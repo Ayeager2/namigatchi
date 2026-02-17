@@ -1,0 +1,53 @@
+.fx-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.fx-float {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-weight: 800;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: rgba(255,255,255,0.9);
+  animation: fxPop 900ms ease-out forwards;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  white-space: nowrap;
+}
+
+.fx-good { }
+.fx-bad { }
+.fx-neutral { opacity: 0.9; }
+
+@keyframes fxPop {
+  0%   { opacity: 0; transform: translate(-50%, -30%) scale(0.85); }
+  15%  { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+  100% { opacity: 0; transform: translate(-50%, -120%) scale(1.0); }
+}
+
+/* Button feedback */
+.fx-btn {
+  transition: transform 120ms ease, filter 120ms ease;
+}
+.fx-btn:active {
+  transform: translateY(1px) scale(0.98);
+}
+.fx-btn--good {
+  filter: drop-shadow(0 0 10px rgba(0,0,0,0.08));
+}
+
+/* Optional “screen shake” */
+.fx-shake {
+  animation: fxShake 280ms linear;
+}
+@keyframes fxShake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  50% { transform: translateX(3px); }
+  75% { transform: translateX(-2px); }
+  100% { transform: translateX(0); }
+}

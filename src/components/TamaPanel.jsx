@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTamagotchi } from "../hooks/useTamagotchi";
 import PetSprite from "./PetSprite";
 import ShopPanel from "./ShopPanel";
@@ -28,8 +28,31 @@ export default function TamaPanel() {
 
   const disabled = !state.alive;
 
+  useEffect(() => {
+    const q = state.fxQueue || [];
+    if (q.length === 0) return;
+
+    q.forEach((f) => {
+      const jitterX = (Math.random() - 0.5) * 0.12;
+      const jitterY = (Math.random() - 0.5) * 0.10;
+
+      addFloat(f.text, {
+        type: f.type,
+        x: 0.52 + jitterX,
+        y: 0.25 + jitterY,
+        ms: 900,
+      });
+    });
+
+  // requires actions.clearFx() to exist in your hook
+  actions.clearFx();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [state.fxQueue]);
+useEffect(() => {
+  setNewName(state.name);
+}, [state.name]);
   return (
-    <div style={{ maxWidth: 520, padding: 16, border: "1px solid #ddd", borderRadius: 14 , position: "relative"}}>
+    <div className={state.tantrum ? "fx-shake" : ""} style={{ maxWidth: 520, padding: 16, border: "1px solid #ddd", borderRadius: 14 , position: "relative"}}>
       <FloatingTextLayer floats={floats} />
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}>
         <h2 style={{ margin: 0 }}>
@@ -51,7 +74,7 @@ export default function TamaPanel() {
             {state.sleeping ? "Sleeping" : "Awake"}
             {state.sick ? " • Sick" : ""}
             {state.injured ? " • Injured" : ""}
-            {state.calling ? " • Calling!" : ""}
+            {state.calling ? ` • Calling!${state.callType === "fake" ? " (mischief)" : ""}` : ""}
             {state.tantrum ? " • Tantrum!" : ""}
           </strong>
         </div>
@@ -82,7 +105,6 @@ export default function TamaPanel() {
         className="fx-btn fx-btn--good"
         onClick={() => {
           actions.feed();
-          addFloat("-HUNGER", { type: "good", x: 0.5, y: 0.25 });
         }}
         disabled={disabled}
       >
@@ -93,7 +115,6 @@ export default function TamaPanel() {
         className="fx-btn fx-btn--good"
         onClick={() => {
           actions.water();
-          addFloat("-THIRST", { type: "good", x: 0.52, y: 0.25 });
         }}
         disabled={disabled}
       >
@@ -104,8 +125,6 @@ export default function TamaPanel() {
         className="fx-btn fx-btn--good"
         onClick={() => {
           actions.play();
-          addFloat("+FUN", { type: "good", x: 0.5, y: 0.25 });
-          addFloat("+1 💰", { type: "neutral", x: 0.62, y: 0.28 });
         }}
         disabled={disabled || state.sleeping}
       >
@@ -116,8 +135,6 @@ export default function TamaPanel() {
         className="fx-btn fx-btn--good"
         onClick={() => {
           actions.clean();
-          addFloat("+HYGIENE", { type: "good", x: 0.5, y: 0.25 });
-          if ((state.poops ?? 0) > 0) addFloat("💩 CLEARED", { type: "neutral", x: 0.62, y: 0.3 });
         }}
         disabled={disabled}
       >
@@ -127,13 +144,7 @@ export default function TamaPanel() {
       <button
         className="fx-btn fx-btn--good"
         onClick={() => {
-          actions.medicine();
-          if (state.sick) {
-            addFloat("MEDICINE", { type: "neutral", x: 0.5, y: 0.22 });
-            addFloat("+HEALTH", { type: "good", x: 0.62, y: 0.28 });
-          } else {
-            addFloat("Not sick", { type: "neutral", x: 0.5, y: 0.22 });
-          }
+          actions.medicine();     
         }}
         disabled={disabled}
       >
@@ -144,12 +155,6 @@ export default function TamaPanel() {
         className="fx-btn fx-btn--good"
         onClick={() => {
           actions.bandage();
-          if (state.injured) {
-            addFloat("BANDAGE", { type: "neutral", x: 0.5, y: 0.22 });
-            addFloat("+HEALTH", { type: "good", x: 0.62, y: 0.28 });
-          } else {
-            addFloat("Not injured", { type: "neutral", x: 0.5, y: 0.22 });
-          }
         }}
         disabled={disabled}
       >
@@ -160,9 +165,6 @@ export default function TamaPanel() {
         className="fx-btn"
         onClick={() => {
           actions.discipline();
-          addFloat("DISCIPLINE", { type: "neutral", x: 0.5, y: 0.22 });
-          if (state.tantrum) addFloat("Tantrum ↓", { type: "good", x: 0.62, y: 0.28 });
-          if (state.calling) addFloat("Call ↓", { type: "good", x: 0.62, y: 0.3 });
         }}
         disabled={disabled || state.sleeping}
       >
@@ -174,7 +176,6 @@ export default function TamaPanel() {
           className="fx-btn"
           onClick={() => {
             actions.wake();
-            addFloat("WAKE", { type: "neutral", x: 0.5, y: 0.22 });
           }}
           disabled={disabled}
         >
@@ -185,7 +186,6 @@ export default function TamaPanel() {
           className="fx-btn"
           onClick={() => {
             actions.sleep();
-            addFloat("SLEEP", { type: "neutral", x: 0.5, y: 0.22 });
           }}
           disabled={disabled}
         >
@@ -199,11 +199,7 @@ export default function TamaPanel() {
           const res = actions.miniGameGuess(Date.now());
           // res might be undefined depending on your implementation, so guard it
           if (res?.win) {
-            addFloat("YOU WIN!", { type: "good", x: 0.5, y: 0.22 });
-            addFloat("+COINS", { type: "neutral", x: 0.62, y: 0.28 });
           } else {
-            addFloat("Nice try", { type: "neutral", x: 0.5, y: 0.22 });
-            addFloat("+1 💰", { type: "neutral", x: 0.62, y: 0.28 });
           }
         }}
         disabled={disabled || state.sleeping}
@@ -212,15 +208,23 @@ export default function TamaPanel() {
         Mini-game
       </button>
 
-      <button
-        className="fx-btn"
-        onClick={() => {
-          actions.reset();
-          addFloat("RESET", { type: "neutral", x: 0.5, y: 0.22 });
-        }}
-      >
-        Reset
-      </button>
+    {!state.alive && (
+      <>
+        <div style={{ marginTop: 10, padding: 10, background: "#fff4f4", borderRadius: 10 }}>
+          Your Namigatchi has passed on.
+          <br />
+          Care determines the next evolution…
+        </div>
+        <button
+          className="fx-btn"
+              onClick={() => {
+                actions.reset();
+              }}  >
+          Start New Egg
+        </button>
+      </>
+    )}
+
     </div>
 
 
@@ -237,19 +241,7 @@ export default function TamaPanel() {
       </div>
 
       <ShopPanel state={state} actions={actions} addFloat={addFloat} />
-      <div
-        className={state.tantrum ? "fx-shake" : ""}
-        style={{
-          maxWidth: 520,
-          padding: 16,
-          border: "1px solid #ddd",
-          borderRadius: 14,
-          position: "relative",
-        }}
-      >
-        <FloatingTextLayer floats={floats} />
-        ...
-      </div>
+
 
       <div style={{ marginTop: 14 }}>
         <div style={{ fontWeight: 700, marginBottom: 6 }}>Log</div>

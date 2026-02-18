@@ -157,6 +157,18 @@ const CONFIG = {
     disciplineEffect: 20, // reduces "tantrum" / misbehavior
   },
 
+  MISCHIEF: {
+    // chance per tick to trigger a fake call (only when calm + needs are ok)
+    fakeCallChance: 0.006, // ~0.6% per tick (about once every ~3 minutes at 1s tick)
+    minAgeMinutes: 8, // don’t do fake calls as an egg/baby
+    durationMs: 18_000, // fake call stays active for 18s
+    severityMaxForFake: 35, // only fake-call if needs severity <= this
+    reward: { discipline: +6, affection: +3, neglect: -6, coins: +1 },
+    punishIgnore: { neglect: +6, affection: -2 },
+    punishWrongDiscipline: { affection: -2, discipline: -2 }, // disciplining a real-need call
+  },
+
+
   // poop system
   POOP: {
     poopChanceBase: 0.015, // per tick chance
@@ -273,6 +285,8 @@ const DEFAULTS = {
   // attention call flags
   calling: false, // pet is asking for attention
   tantrum: false, // misbehavior state triggered by neglect
+  callType: null, // null | "need" | "fake"
+  fakeCallUntil: 0, // timestamp when fake call expires
   lastActionAt: now(),
   lastDisciplineAt: 0,
 
@@ -389,6 +403,23 @@ function finalizeAdultForm(s) {
   return next;
 }
 
+function clearAnyCall(s) {
+  if (!s.calling && !s.callType && !s.fakeCallUntil) return s;
+  return { ...s, calling: false, callType: null, fakeCallUntil: 0 };
+}
+
+function resolveNeedCall(s) {
+  if (!(s.calling && s.callType === "need")) return s;
+  return {
+    ...s,
+    neglect: clamp(s.neglect - CONFIG.ATTENTION.neglectHeal),
+    affection: clamp(s.affection + CONFIG.AFFECTION.gainOnCare),
+    calling: false,
+    callType: null,
+    fakeCallUntil: 0,
+  };
+}
+
 function reducer(state, action) {
   switch (action.type) {
     case ACTIONS.LOAD: {
@@ -408,6 +439,7 @@ function reducer(state, action) {
       const before = state;
 
       let s = { ...DEFAULTS, lastTickAt: now(), lastActionAt: now(), log: [], fxQueue: [] };
+      s = clearAnyCall(s);
       s = addLog(s, "Reset.");
 
       const fxItems = diffFx(before, s, { cap: 4 });
@@ -416,7 +448,6 @@ function reducer(state, action) {
 
     case ACTIONS.RENAME: {
       if (!state.alive) return state;
-
       const before = state;
 
       let s = {
@@ -427,17 +458,19 @@ function reducer(state, action) {
 
       s = addLog(s, `Renamed to ${s.name}.`);
 
-      // diffFx won’t show name changes; add a small neutral bubble
       const fxItems = [{ text: "RENAME ✏️", type: "neutral" }, ...diffFx(before, s, { cap: 3 })];
       return withFx(s, fxItems);
     }
 
     case ACTIONS.SLEEP: {
       if (!state.alive) return state;
-
       const before = state;
 
       let s = { ...state, sleeping: true, lastActionAt: now() };
+
+      // optional: sleeping cancels any active call (need or fake)
+      s = clearAnyCall(s);
+
       s = addLog(s, "Went to sleep.");
 
       const fxItems = diffFx(before, s, { cap: 4 });
@@ -446,7 +479,6 @@ function reducer(state, action) {
 
     case ACTIONS.WAKE: {
       if (!state.alive) return state;
-
       const before = state;
 
       let s = { ...state, sleeping: false, tantrum: false, lastActionAt: now() };
@@ -460,35 +492,49 @@ function reducer(state, action) {
       if (!state.alive) return state;
 
       const before = state;
-
       const t = now();
       const spam = state.lastDisciplineAt && t - state.lastDisciplineAt < 7000;
 
       let s = { ...state };
 
+      // baseline discipline action
       s.discipline = clamp(s.discipline + CONFIG.ATTENTION.disciplineEffect);
       s.tantrum = false;
-      s.calling = false;
-      s.neglect = clamp(s.neglect - 10);
+
+      // If disciplining a FAKE call: reward + clear call
+      if (s.calling && s.callType === "fake") {
+        s.discipline = clamp(s.discipline + CONFIG.MISCHIEF.reward.discipline);
+        s.affection = clamp(s.affection + CONFIG.MISCHIEF.reward.affection);
+        s.neglect = clamp(s.neglect + CONFIG.MISCHIEF.reward.neglect);
+        s.coins = (s.coins ?? 0) + (CONFIG.MISCHIEF.reward.coins ?? 0);
+
+        s = clearAnyCall(s);
+        s = addLog(s, "Disciplined correctly (fake call).");
+      }
+
+      //If disciplining a NEED call: penalty, but keep call active
+      else if (s.calling && s.callType === "need") {
+        s.affection = clamp(s.affection + CONFIG.MISCHIEF.punishWrongDiscipline.affection);
+        s.discipline = clamp(s.discipline + CONFIG.MISCHIEF.punishWrongDiscipline.discipline);
+        s = addLog(s, "Disciplined during a real need call (not ideal).");
+      } else {
+        s = addLog(s, "Discipline applied.");
+      }
 
       if (spam) {
         s.affection = clamp(s.affection - CONFIG.AFFECTION.loseOnDisciplineOveruse);
         s = addLog(s, "Discipline spam annoyed them.");
-      } else {
-        s = addLog(s, "Discipline applied.");
       }
 
       s.lastDisciplineAt = t;
       s.lastActionAt = t;
 
-      // Optional: add a guaranteed label bubble so it always “feels” like something happened
       const fxItems = [{ text: "DISCIPLINE", type: "neutral" }, ...diffFx(before, s, { cap: 3 })];
       return withFx(s, fxItems);
     }
 
     case ACTIONS.FEED: {
       if (!state.alive) return state;
-
       const before = state;
 
       let s = { ...state };
@@ -498,48 +544,35 @@ function reducer(state, action) {
       s.fun = clamp(s.fun + 2);
       s.weight = Math.min(30, s.weight + CONFIG.WEIGHT.gainOnFeed);
 
-      if (s.calling) {
-        s.neglect = clamp(s.neglect - CONFIG.ATTENTION.neglectHeal);
-        s.affection = clamp(s.affection + CONFIG.AFFECTION.gainOnCare);
-        s.calling = false;
-      }
+      s = resolveNeedCall(s);
 
       s.lastActionAt = now();
       s = addLog(s, "Fed.");
 
-      const fx = diffFx(before, s, { cap: 4 });
-      return withFx(s, fx);
+      return withFx(s, diffFx(before, s, { cap: 4 }));
     }
 
     case ACTIONS.WATER: {
       if (!state.alive) return state;
-
       const before = state;
 
       let s = { ...state };
       s.thirst = clamp(s.thirst - 30);
       s.hunger = clamp(s.hunger + 2);
-      if (s.calling) {
-        s.neglect = clamp(s.neglect - CONFIG.ATTENTION.neglectHeal);
-        s.affection = clamp(s.affection + CONFIG.AFFECTION.gainOnCare);
-        s.calling = false;
-      }
+
+      s = resolveNeedCall(s);
+
       s.lastActionAt = now();
-      
       s = addLog(s, "Drank water.");
 
-      const fx = diffFx(before, s, { cap: 4 });
-
-      return withFx(s, fx);
+      return withFx(s, diffFx(before, s, { cap: 4 }));
     }
 
     case ACTIONS.PLAY: {
       if (!state.alive || state.sleeping) return state;
-
       const before = state;
 
       let s = { ...state };
-      // if tantrum, play might fail unless disciplined
       const fail = s.tantrum && r01() < 0.6;
 
       if (fail) {
@@ -554,50 +587,34 @@ function reducer(state, action) {
         s.weight = Math.max(0, s.weight - CONFIG.WEIGHT.loseWhenPlaying);
         s.coins += 1;
 
-        // affection boost
         s.affection = clamp(s.affection + CONFIG.AFFECTION.gainOnPlay);
-
-        // calm tantrum sometimes
         if (s.tantrum && r01() < 0.35) s.tantrum = false;
 
         s = addLog(s, "Played (+1 coin).");
       }
 
-      if (s.calling) {
-        s.neglect = clamp(s.neglect - CONFIG.ATTENTION.neglectHeal);
-        s.calling = false;
-      }
+      s = resolveNeedCall(s);
 
       s.lastActionAt = now();
-
-      const fx = diffFx(before, s, { cap: 4 });
-
-      return withFx(s, fx);
+      return withFx(s, diffFx(before, s, { cap: 4 }));
     }
 
     case ACTIONS.CLEAN: {
       if (!state.alive) return state;
       const before = state;
-      let s = { ...state };
 
-      // remove all poop, restore hygiene
+      let s = { ...state };
       const hadPoop = s.poops > 0;
       s.poops = 0;
       s.hygiene = clamp(s.hygiene + (hadPoop ? 45 : 30));
       s.fun = clamp(s.fun - 1);
 
-      if (s.calling) {
-        s.neglect = clamp(s.neglect - CONFIG.ATTENTION.neglectHeal);
-        s.affection = clamp(s.affection + CONFIG.AFFECTION.gainOnCare);
-        s.calling = false;
-      }
+      s = resolveNeedCall(s);
 
       s.lastActionAt = now();
       s = addLog(s, hadPoop ? "Cleaned up poop." : "Took a bath.");
 
-      const fx = diffFx(before, s, { cap: 4 });
-
-      return withFx(s, fx);
+      return withFx(s, diffFx(before, s, { cap: 4 }));
     }
 
     case ACTIONS.MEDICINE: {
@@ -605,7 +622,12 @@ function reducer(state, action) {
       const before = state;
 
       let s = { ...state };
-      if (!s.sick) return addLog({ ...s, lastActionAt: now() }, "No medicine needed.");
+
+      if (!s.sick) {
+        let out = { ...s, lastActionAt: now() };
+        out = addLog(out, "No medicine needed.");
+        return withFx(out, [{ text: "Not sick", type: "neutral" }]);
+      }
 
       const cured = r01() < CONFIG.SICKNESS.medicineCureChance;
       if (cured) {
@@ -618,16 +640,10 @@ function reducer(state, action) {
         s = addLog(s, "Medicine helped a bit.");
       }
 
-      if (s.calling) {
-        s.neglect = clamp(s.neglect - CONFIG.ATTENTION.neglectHeal);
-        s.calling = false;
-      }
+      s = resolveNeedCall(s);
 
       s.lastActionAt = now();
-
-      const fx = diffFx(before, s, { cap: 4 });
-
-      return withFx(s, fx);
+      return withFx(s, diffFx(before, s, { cap: 4 }));
     }
 
     case ACTIONS.BANDAGE: {
@@ -635,30 +651,29 @@ function reducer(state, action) {
       const before = state;
 
       let s = { ...state };
-      if (!s.injured) return addLog({ ...s, lastActionAt: now() }, "No bandage needed.");
+
+      if (!s.injured) {
+        let out = { ...s, lastActionAt: now() };
+        out = addLog(out, "No bandage needed.");
+        return withFx(out, [{ text: "Not injured", type: "neutral" }]);
+      }
 
       s.injured = false;
       s.health = clamp(s.health + CONFIG.INJURY.bandageHeal);
       s.affection = clamp(s.affection + CONFIG.AFFECTION.gainOnTreat);
 
-      if (s.calling) {
-        s.neglect = clamp(s.neglect - CONFIG.ATTENTION.neglectHeal);
-        s.calling = false;
-      }
+      s = resolveNeedCall(s);
 
       s.lastActionAt = now();
       s = addLog(s, "Bandaged up.");
-     
-      const fx = diffFx(before, s, { cap: 4 });
 
-      return withFx(s, fx);
+      return withFx(s, diffFx(before, s, { cap: 4 }));
     }
 
     case ACTIONS.MINI_GAME_RESULT: {
       if (!state.alive) return state;
       const before = state;
 
-      // mini-game can award coins + fun
       let s = { ...state };
       const { coins = 0, fun = 0, energy = 0 } = action.payload || {};
       s.coins += coins;
@@ -667,10 +682,7 @@ function reducer(state, action) {
       s.lastActionAt = now();
 
       s = addLog(s, `Mini-game: +${coins} coin(s).`);
-      
-      const fx = diffFx(before, s, { cap: 4 });
-
-      return withFx(s, fx);
+      return withFx(s, diffFx(before, s, { cap: 4 }));
     }
 
     case ACTIONS.BUY_ITEM: {
@@ -695,9 +707,7 @@ function reducer(state, action) {
       };
 
       s = addLog(s, `Bought ${item.name}.`);
-
-      const fxItems = diffFx(before, s, { cap: 4 });
-      return withFx(s, fxItems);
+      return withFx(s, diffFx(before, s, { cap: 4 }));
     }
 
     case ACTIONS.USE_ITEM: {
@@ -719,16 +729,12 @@ function reducer(state, action) {
         return addLog(state, `${item.name} is cooling down (${left}s).`);
       }
 
-      // decrement inventory
       inv[item.id] = qty - 1;
       if (inv[item.id] <= 0) delete inv[item.id];
 
       let s = { ...state, inventory: inv, cooldowns: cd, lastActionAt: t };
 
-      // apply effects
       const effects = item.effects || {};
-
-      // numeric stat deltas
       const apply = (key, delta, min = 0, max = 100) => {
         if (typeof delta !== "number") return;
         s[key] = clamp((s[key] ?? 0) + delta, min, max);
@@ -744,17 +750,14 @@ function reducer(state, action) {
       apply("discipline", effects.discipline);
       apply("neglect", effects.neglect);
 
-      // weight
       if (typeof effects.weight === "number") {
         s.weight = Math.max(0, Math.min(30, (s.weight ?? 0) + effects.weight));
       }
 
-      // soap special
       if (effects.poopClear) {
         if ((s.poops ?? 0) > 0) s.poops = 0;
       }
 
-      // vitamins special
       if (effects.sickCureChance && s.sick) {
         if (Math.random() < effects.sickCureChance) {
           s.sick = false;
@@ -762,21 +765,14 @@ function reducer(state, action) {
         }
       }
 
-      // responding to a call counts as care
-      if (s.calling) {
-        s.neglect = clamp((s.neglect ?? 0) - 0.5);
-        s.affection = clamp((s.affection ?? 0) + 1.0);
-        s.calling = false;
-      }
+      // IMPORTANT: Only resolve NEED calls, not fake calls
+      s = resolveNeedCall(s);
 
-      // set cooldown after success
       cd[item.id] = t;
       s.cooldowns = cd;
 
       s = addLog(s, `Used ${item.name}.`);
-
-      const fxItems = diffFx(before, s, { cap: 4 });
-      return withFx(s, fxItems);
+      return withFx(s, diffFx(before, s, { cap: 4 }));
     }
 
     case ACTIONS.TICK: {
@@ -789,19 +785,18 @@ function reducer(state, action) {
       let s = { ...state, lastTickAt: t };
 
       for (let i = 0; i < ticks; i++) {
+        const tickTime = t - (ticks - 1 - i) * CONFIG.TICK_MS;
+
         // age + evolution stage
         s.ageMinutes += CONFIG.MINUTES_PER_TICK;
         const newStage = computeStage(s.ageMinutes);
         if (newStage !== s.stage) {
           s.stage = newStage;
-
-          // set default form names for early stages
           if (newStage === "egg") { s.formId = "egg"; s.formName = "Egg"; }
           if (newStage === "baby") { s.formId = "baby"; s.formName = "Baby"; }
           if (newStage === "child") { s.formId = "child"; s.formName = "Child"; }
           if (newStage === "teen") { s.formId = "teen"; s.formName = "Teen"; }
           if (newStage === "adult") { s.formId = "adult"; s.formName = "Adult"; }
-
           s = addLog(s, `Evolved to ${newStage}.`);
         }
 
@@ -820,7 +815,7 @@ function reducer(state, action) {
           s.hygiene = clamp(s.hygiene - CONFIG.RATES.hygieneDown);
         }
 
-        // weight drift down over time
+        // weight drift down
         s.weight = Math.max(0, s.weight - CONFIG.WEIGHT.losePerTick);
 
         // poop generation
@@ -835,25 +830,49 @@ function reducer(state, action) {
           s = addLog(s, "Pooped.");
         }
 
-        // hygiene penalty from existing poop
         if (s.poops > 0) {
           s.hygiene = clamp(s.hygiene - CONFIG.POOP.hygieneHitPerPoopPerTick * s.poops);
         }
 
-        // attention call logic
         const severity = computeNeedSeverity(s);
+
+        // NEED call (real)
         if (!s.calling && !s.sleeping && severity >= CONFIG.ATTENTION.callThreshold) {
           s.calling = true;
-          s = addLog(s, "Calling for attention!");
+          s.callType = "need";
+          s.fakeCallUntil = 0;
+          s = addLog(s, "Calling for attention (need)!");
         }
 
-        // neglect rises if calling and you ignore it
-        if (s.calling) {
+        // FAKE call (mischief)
+        const oldEnough = s.ageMinutes >= CONFIG.MISCHIEF.minAgeMinutes;
+        const calmEnough = !s.tantrum && !s.sick && !s.injured && !s.sleeping;
+        const needsFine = severity <= CONFIG.MISCHIEF.severityMaxForFake;
+
+        if (!s.calling && oldEnough && calmEnough && needsFine) {
+          if (r01() < CONFIG.MISCHIEF.fakeCallChance) {
+            s.calling = true;
+            s.callType = "fake";
+            s.fakeCallUntil = tickTime + CONFIG.MISCHIEF.durationMs;
+            s = addLog(s, "Calling for attention (fake)!");
+          }
+        }
+
+        // expire fake calls (once, tickTime based)
+        if (s.calling && s.callType === "fake" && s.fakeCallUntil > 0 && tickTime > s.fakeCallUntil) {
+          s = clearAnyCall(s);
+
+          s.neglect = clamp(s.neglect + CONFIG.MISCHIEF.punishIgnore.neglect);
+          s.affection = clamp(s.affection + CONFIG.MISCHIEF.punishIgnore.affection);
+          s = addLog(s, "Ignored the fake call. (They got grumpy)");
+        }
+
+        // neglect rises on NEED calls only
+        if (s.calling && s.callType === "need") {
           s.neglect = clamp(s.neglect + CONFIG.ATTENTION.neglectDecay);
           s.affection = clamp(s.affection - CONFIG.AFFECTION.loseOnNeglectTick);
         }
 
-        // tantrum triggers after enough neglect
         if (!s.tantrum && s.neglect >= 65 && !s.sleeping) {
           s.tantrum = true;
           s = addLog(s, "Tantrum started! (Try discipline)");
@@ -863,21 +882,24 @@ function reducer(state, action) {
         if (!s.sick) {
           const lowHyg = (100 - s.hygiene) / 100;
           const neg = s.neglect / 100;
-          const sickChance = CONFIG.SICKNESS.sickChanceBase + lowHyg * CONFIG.SICKNESS.sickChanceFromLowHygiene + neg * CONFIG.SICKNESS.sickChanceFromNeglect;
+          const sickChance =
+            CONFIG.SICKNESS.sickChanceBase +
+            lowHyg * CONFIG.SICKNESS.sickChanceFromLowHygiene +
+            neg * CONFIG.SICKNESS.sickChanceFromNeglect;
+
           if (r01() < clamp(sickChance, 0, 0.08)) {
             s.sick = true;
             s = addLog(s, "Got sick.");
           }
         }
 
-        // injury chance (mostly while awake; extra if low energy)
+        // injury chance
         if (!s.injured && !s.sleeping) {
           let inj = CONFIG.INJURY.baseChance;
           if (s.energy < 25) inj *= CONFIG.INJURY.tiredMultiplier;
           if (s.sick) inj *= CONFIG.INJURY.sickMultiplier;
           if (s.tantrum) inj *= 1.3;
 
-          // tiny chance just from being awake
           if (r01() < clamp(inj, 0, 0.03)) {
             s.injured = true;
             s.health = clamp(s.health - 8);
@@ -885,18 +907,15 @@ function reducer(state, action) {
           }
         }
 
-        // if playing recently, raise injury slightly (handled in UI action? keep it here simple)
-        // (Optional: you can track lastPlayAt and apply extra risk)
-
         // auto-sleep if energy bottoms out
         if (!s.sleeping && s.energy <= 0) {
           s.sleeping = true;
+          s = clearAnyCall(s);
           s = addLog(s, "Collapsed and fell asleep.");
         }
 
-        // health decay from neglect + bad stats
+        // health decay
         const sev = computeNeedSeverity(s);
-
         const poopExtra = s.poops > 0 ? CONFIG.HEALTH_DECAY.poopNearbyExtra : 0;
         const overweightExtra =
           s.weight > CONFIG.WEIGHT.overweightThreshold ? CONFIG.WEIGHT.overweightHealthPenalty : 0;
@@ -911,7 +930,7 @@ function reducer(state, action) {
 
         s.health = clamp(s.health - healthDecay);
 
-        // small health recovery when well cared for
+        // small recovery
         if (
           !s.sick &&
           !s.injured &&
@@ -926,18 +945,15 @@ function reducer(state, action) {
           s.health = clamp(s.health + 0.12);
         }
 
-        // death
         if (s.health <= 0) {
           s.alive = false;
           s.sleeping = false;
-          s.calling = false;
-          s.tantrum = false;
+          s = clearAnyCall(s);
           s = addLog(s, "Died.");
           break;
         }
       }
 
-      // finalize adult form once adult
       s = finalizeAdultForm(s);
       return s;
     }
@@ -1016,6 +1032,8 @@ export function useTamagotchi(options = {}) {
 
       buyItem: (itemId) => dispatch({ type: ACTIONS.BUY_ITEM, itemId }),
       useItem: (itemId) => dispatch({ type: ACTIONS.USE_ITEM, itemId }),
+
+      clearFx: () => dispatch({ type: ACTIONS.CLEAR_FX }),
 
       miniGameGuess: playMiniGameGuess,
     }),

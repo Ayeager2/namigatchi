@@ -1,87 +1,223 @@
-import React, { useMemo } from "react";
-import { ITEMS } from "../tama/items";
+import { useMemo, useState } from "react";
+import { getItemById } from "../tama/items";
+import "./ShopPanel.css";
 
-export default function ShopPanel({ state, actions, addFloat }) {
-  const inv = state.inventory || {};
-  const cds = state.cooldowns || {};
-  const t = Date.now();
+// Try to support different item module shapes:
+// - export const ITEMS = [...]
+// - export function getAllItems() { return [...] }
+import * as ItemsModule from "../tama/items";
 
-  const rows = useMemo(() => ITEMS, []);
+function getAllItemsSafe() {
+  if (typeof ItemsModule.getAllItems === "function") return ItemsModule.getAllItems();
+  if (Array.isArray(ItemsModule.ITEMS)) return ItemsModule.ITEMS;
+  if (Array.isArray(ItemsModule.items)) return ItemsModule.items;
+  return []; // fallback
+}
+
+function fmtCooldown(msLeft) {
+  const s = Math.max(0, Math.ceil(msLeft / 1000));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}m ${r}s`;
+}
+
+export default function TamaShopPanel({ state, actions }) {
+  const [tab, setTab] = useState("shop"); // "shop" | "inv"
+  const [query, setQuery] = useState("");
+
+  const allItems = useMemo(() => getAllItemsSafe(), []);
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return allItems;
+    return allItems.filter((it) => {
+      const name = (it.name ?? "").toLowerCase();
+      const desc = (it.description ?? "").toLowerCase();
+      return name.includes(q) || desc.includes(q);
+    });
+  }, [allItems, query]);
+
+  const invEntries = useMemo(() => {
+    const inv = state.inventory || {};
+    return Object.entries(inv)
+      .map(([id, qty]) => {
+        const item = getItemById(id);
+        return item ? { item, qty } : null;
+      })
+      .filter(Boolean);
+  }, [state.inventory]);
+
+  const nowTs = Date.now();
+
+  function canUse(item) {
+    const cd = state.cooldowns || {};
+    const last = cd[item.id] || 0;
+    if (!item.cooldownMs) return { ok: true, leftMs: 0 };
+    const left = item.cooldownMs - (nowTs - last);
+    return { ok: left <= 0, leftMs: left };
+  }
 
   return (
-    <div style={{ padding: 12, border: "1px solid #eee", borderRadius: 12, marginTop: 12 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <strong>Shop</strong>
-        <span style={{ fontSize: 12, opacity: 0.75 }}>Coins: {state.coins}</span>
+    <div className="tamaShop">
+      <div className="tamaShop__top">
+        <div className="tamaShop__header">
+          <div className="tamaShop__title">Shop</div>
+          <div className="tamaShop__coins">💰 {state.coins ?? 0}</div>
+        </div>
+
+        <div className="tamaShop__tabs">
+          <button
+            className={`tamaShop__tabBtn ${tab === "shop" ? "tamaShop__tabBtn--active" : ""}`}
+            onClick={() => setTab("shop")}
+          >
+            Store
+          </button>
+          <button
+            className={`tamaShop__tabBtn ${tab === "inv" ? "tamaShop__tabBtn--active" : ""}`}
+            onClick={() => setTab("inv")}
+          >
+            Inventory ({invEntries.length})
+          </button>
+        </div>
+
+        {tab === "shop" && (
+          <div className="tamaShop__searchWrap">
+            <input
+              className="tamaShop__search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search items…"
+            />
+          </div>
+        )}
       </div>
 
-      <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
-        {rows.map((item) => {
-          const qty = inv[item.id] || 0;
-          const last = cds[item.id] || 0;
-          const cdLeft = item.cooldownMs ? Math.max(0, item.cooldownMs - (t - last)) : 0;
-          const cdText = cdLeft > 0 ? `${Math.ceil(cdLeft / 1000)}s` : null;
+      <div className="tamaShop__body">
+        {tab === "shop" && (
+          <div className="tamaShop__grid">
+            {filtered.length === 0 && <div className="tamaShop__empty">No items found.</div>}
 
-          return (
-            <div
-              key={item.id}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr auto",
-                gap: 8,
-                padding: 10,
-                border: "1px solid #f0f0f0",
-                borderRadius: 12,
-              }}
-            >
-              <div>
-                <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-                  <strong>{item.name}</strong>
-                  <span style={{ fontSize: 12, opacity: 0.7 }}>({item.type})</span>
+            {filtered.map((item) => {
+              const affordable = (state.coins ?? 0) >= (item.cost ?? 0);
+
+              return (
+                <div key={item.id} className="tamaShopCard">
+                  <div className="tamaShopCard__top">
+                    <div className="tamaShopCard__name">
+                      {item.icon ? `${item.icon} ` : ""}
+                      {item.name}
+                    </div>
+                    <div className="tamaShopCard__meta">💰 {item.cost ?? 0}</div>
+                  </div>
+
+                  {item.description && <div className="tamaShopCard__desc">{item.description}</div>}
+
+                  <EffectsChips effects={item.effects} />
+
+                  <div className="tamaShopCard__actions">
+                    <button
+                      className="tamaShopBtn"
+                      disabled={!affordable}
+                      onClick={() => actions.buyItem(item.id)}
+                    >
+                      Buy
+                    </button>
+                  </div>
                 </div>
-                <div style={{ fontSize: 12, opacity: 0.75 }}>
-                  Cost: {item.cost} • In bag: {qty}
-                  {cdText ? ` • Cooldown: ${cdText}` : ""}
+              );
+            })}
+          </div>
+        )}
+
+        {tab === "inv" && (
+          <div className="tamaShop__list">
+            {invEntries.length === 0 && (
+              <div className="tamaShop__empty">Inventory is empty. Buy something!</div>
+            )}
+
+            {invEntries.map(({ item, qty }) => {
+              const cd = canUse(item);
+              const disabled = !cd.ok;
+              return (
+                <div key={item.id} className="tamaShopCard">
+                  <div className="tamaShopCard__top">
+                    <div className="tamaShopCard__name">
+                      {item.icon ? `${item.icon} ` : ""}
+                      {item.name}
+                      <span className="tamaShopCard__qty">x{qty}</span>
+                    </div>
+                    <div className="tamaShopCard__cooldown">
+                      {item.cooldownMs ? (disabled ? `⏳ ${fmtCooldown(cd.leftMs)}` : "✅ Ready") : "✅ Ready"}
+                    </div>
+                  </div>
+
+                  {item.description && <div className="tamaShopCard__desc">{item.description}</div>}
+
+                  <EffectsChips effects={item.effects} />
+
+                  <div className="tamaShopCard__actions">
+                    <button
+                      className="tamaShopBtn"
+                      disabled={disabled}
+                      onClick={() => actions.useItem(item.id)}
+                    >
+                      Use
+                    </button>
+                  </div>
                 </div>
-              </div>
-
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <button
-                className="fx-btn fx-btn--good"
-                onClick={() => {
-                  actions.buyItem(item.id);
-                  addFloat(`-${item.cost} 💰  Bought ${item.name}`, { type: "neutral", x: 0.65, y: 0.15 });
-                }}
-                disabled={!state.alive || state.coins < item.cost}
-              >
-                Buy
-              </button>
-
-              <button
-                className="fx-btn fx-btn--good"
-                onClick={() => {
-                  actions.useItem(item.id);
-
-                  // quick “guess” effect based on item type (simple + fun)
-                  if (item.type === "meal" || item.type === "snack") addFloat("-HUNGER", { type: "good", x: 0.55, y: 0.25 });
-                  if (item.type === "toy") addFloat("+FUN", { type: "good", x: 0.55, y: 0.25 });
-                  if (item.type === "vitamins") addFloat("+HEALTH", { type: "good", x: 0.55, y: 0.25 });
-                  if (item.type === "soap") addFloat("+CLEAN", { type: "good", x: 0.55, y: 0.25 });
-                }}
-                disabled={!state.alive || qty <= 0 || cdLeft > 0}
-              >
-                Use
-              </button>
-
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>
-        Tip: Toys give fun + coins indirectly (keep them happy, avoid tantrums).
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
+
 }
+
+function EffectsChips({ effects }) {
+  const chips = useMemo(() => {
+    if (!effects) return [];
+    const out = [];
+
+    for (const [k, v] of Object.entries(effects)) {
+      if (v === null || v === undefined) continue;
+      if (typeof v === "number" && Math.abs(v) < 0.001) continue;
+
+      if (k === "poopClear" && v) out.push({ label: "💩 Clear", type: "good" });
+      else if (k === "sickCureChance" && typeof v === "number")
+        out.push({ label: `🤒 Cure ${Math.round(v * 100)}%`, type: "good" });
+      else if (typeof v === "number") {
+        const sign = v > 0 ? "+" : "";
+        out.push({ label: `${sign}${v} ${k}`, type: v > 0 ? "good" : "bad" });
+      } else if (typeof v === "boolean" && v) {
+        out.push({ label: k, type: "neutral" });
+      }
+    }
+
+    return out.slice(0, 6);
+  }, [effects]);
+
+  if (chips.length === 0) return <div className="tamaShopCard__desc">No effects</div>;
+
+  return (
+    <div className="tamaShopChips">
+      {chips.map((c, i) => (
+        <span
+          key={i}
+          className={
+            "tamaShopChip " +
+            (c.type === "good"
+              ? "tamaShopChip--good"
+              : c.type === "bad"
+              ? "tamaShopChip--bad"
+              : "tamaShopChip--neutral")
+          }
+        >
+          {c.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+

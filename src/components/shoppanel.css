@@ -1,0 +1,219 @@
+/* TamaShopPanel.css */
+
+.tamaShop {
+  width: min(560px, 100%);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
+  background: #ffffff;
+  color: #111;
+  overflow: hidden;
+}
+
+/* Sticky top bar */
+.tamaShop__top {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
+  border-bottom: 1px solid rgba(0,0,0,0.10);
+}
+
+.tamaShop__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+}
+
+.tamaShop__title {
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.2px;
+}
+
+.tamaShop__coins {
+  font-weight: 700;
+  font-size: 13px;
+  opacity: 0.95;
+}
+
+/* Tabs */
+.tamaShop__tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 12px 10px 12px;
+}
+
+.tamaShop__tabBtn {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.14);
+  background: #f7f7f7;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.tamaShop__tabBtn:hover {
+  filter: brightness(0.98);
+}
+
+.tamaShop__tabBtn--active {
+  background: #111;
+  color: #fff;
+  border-color: rgba(0,0,0,0.35);
+}
+
+/* Search */
+.tamaShop__searchWrap {
+  padding: 0 12px 10px 12px;
+}
+
+.tamaShop__search {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.14);
+  background: #fff;
+  font-size: 13px;
+}
+
+/* Scroll area */
+.tamaShop__body {
+  height: 520px; /* adjust to taste */
+  overflow: auto;
+  padding: 10px 12px 12px 12px;
+}
+
+/* Store grid to reduce height */
+.tamaShop__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 520px) {
+  .tamaShop__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Item card (compact) */
+.tamaShopCard {
+  border: 1px solid rgba(0,0,0,0.10);
+  border-radius: 12px;
+  padding: 10px;
+  background: #fff;
+  display: grid;
+  gap: 8px;
+}
+
+.tamaShopCard__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tamaShopCard__name {
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1.1;
+}
+
+.tamaShopCard__meta {
+  font-size: 12px;
+  opacity: 0.8;
+  font-weight: 700;
+}
+
+.tamaShopCard__desc {
+  font-size: 12px;
+  opacity: 0.8;
+  line-height: 1.25;
+  margin-top: -2px;
+}
+
+/* Chips tighter + more readable */
+.tamaShopChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tamaShopChip {
+  font-size: 11px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,0.14);
+  background: #fafafa;
+  white-space: nowrap;
+}
+
+.tamaShopChip--good {
+  border-color: rgba(0, 160, 60, 0.35);
+  background: rgba(0, 160, 60, 0.06);
+}
+
+.tamaShopChip--bad {
+  border-color: rgba(220, 30, 30, 0.35);
+  background: rgba(220, 30, 30, 0.06);
+}
+
+.tamaShopChip--neutral {
+  border-color: rgba(0,0,0,0.14);
+}
+
+/* Actions row compact */
+.tamaShopCard__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.tamaShopBtn {
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.16);
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.tamaShopBtn:hover {
+  filter: brightness(1.05);
+}
+
+.tamaShopBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Inventory list: single column but compact */
+.tamaShop__list {
+  display: grid;
+  gap: 10px;
+}
+
+.tamaShopCard__qty {
+  font-weight: 900;
+  opacity: 0.85;
+  margin-left: 6px;
+}
+
+.tamaShopCard__cooldown {
+  font-size: 11px;
+  opacity: 0.8;
+  font-weight: 700;
+}
+
+.tamaShop__empty {
+  border: 1px dashed rgba(0,0,0,0.25);
+  border-radius: 12px;
+  padding: 12px;
+  opacity: 0.8;
+  font-size: 13px;
+}

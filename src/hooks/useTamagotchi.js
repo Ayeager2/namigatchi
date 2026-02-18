@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useReducer, useRef } from "react";
 import { getItemById } from "../tama/items";
+import { getMinigame } from "../tama/minigames";
 
 /**
  * Full-ish Tamagotchi sim
@@ -109,8 +110,6 @@ function diffFx(before, after, opts = {}) {
   const cap = opts.cap ?? 4;
   return fx.slice(0, cap);
 }
-
-
 
 /* =========================
    CONFIG (tweak me)
@@ -282,6 +281,14 @@ const DEFAULTS = {
   discipline: 30, // 0..100
   neglect: 0, // 0..100 (rises if calling + ignored)
 
+  minigameStats: {}, // { [gameId]: { plays, wins, streak, bestStreak } }
+
+  working: false,
+  workEndsAt: 0,
+  workPay: 0,
+  workJob: null, // optional: "lemonade" | "paperroute" later
+  workReason: "",  // optional: “Lemonade stand” later
+  
   // attention call flags
   calling: false, // pet is asking for attention
   tantrum: false, // misbehavior state triggered by neglect
@@ -289,6 +296,7 @@ const DEFAULTS = {
   fakeCallUntil: 0, // timestamp when fake call expires
   lastActionAt: now(),
   lastDisciplineAt: 0,
+  paused: false,
 
   // evolution
   stage: "egg",
@@ -322,13 +330,20 @@ const ACTIONS = {
   MEDICINE: "MEDICINE",
   BANDAGE: "BANDAGE",
   DISCIPLINE: "DISCIPLINE",
+  PAUSE: "PAUSE",
+  RESUME: "RESUME",
 
   BUY_ITEM: "BUY_ITEM",
   USE_ITEM: "USE_ITEM",
 
   CLEAR_FX: "CLEAR_FX",
 
+  PLAY_MINIGAME: "PLAY_MINIGAME",
   MINI_GAME_RESULT: "MINI_GAME_RESULT",
+
+  GO_WORK: "GO_WORK",
+  WORK_DONE: "WORK_DONE",
+
 };
 
 function addLog(s, msg) {
@@ -420,6 +435,21 @@ function resolveNeedCall(s) {
   };
 }
 
+function canWork(s) {
+  if (!s?.alive) return false;
+  if (s.sleeping) return false;
+  if (s.working) return false;
+  // child+ only
+  return s.stage === "child" || s.stage === "teen" || s.stage === "adult";
+}
+
+function getWorkProfile(s) {
+  // you can tune this later
+  if (s.stage === "child") return { ms: 18_000, coins: 3, energy: -6, fun: -3, label: "Did chores" };
+  if (s.stage === "teen")  return { ms: 22_000, coins: 6, energy: -9, fun: -4, label: "Worked a shift" };
+  return                  { ms: 26_000, coins: 8, energy: -11, fun: -5, label: "Worked overtime" };
+}
+
 function reducer(state, action) {
   switch (action.type) {
     case ACTIONS.LOAD: {
@@ -446,13 +476,24 @@ function reducer(state, action) {
       return withFx(s, fxItems);
     }
 
+    case ACTIONS.PAUSE: {
+      if (state.paused) return state;
+      return { ...state, paused: true };
+    }
+
+    case ACTIONS.RESUME: {
+      if (!state.paused) return state;
+      return { ...state, paused: false, lastTickAt: now() }; // prevent catch-up jump
+    }
+
     case ACTIONS.RENAME: {
-      if (!state.alive) return state;
+      if (state.alive) return state; // only allow rename when dead
+
       const before = state;
 
       let s = {
         ...state,
-        name: action.name ?? state.name,
+        name: (action.name ?? state.name).trim() || state.name,
         lastActionAt: now(),
       };
 
@@ -463,7 +504,7 @@ function reducer(state, action) {
     }
 
     case ACTIONS.SLEEP: {
-      if (!state.alive) return state;
+      if (!state.alive || state.working) return state;
       const before = state;
 
       let s = { ...state, sleeping: true, lastActionAt: now() };
@@ -489,7 +530,7 @@ function reducer(state, action) {
     }
 
     case ACTIONS.DISCIPLINE: {
-      if (!state.alive) return state;
+      if (!state.alive || state.working) return state;
 
       const before = state;
       const t = now();
@@ -534,7 +575,8 @@ function reducer(state, action) {
     }
 
     case ACTIONS.FEED: {
-      if (!state.alive) return state;
+      if (!state.alive || state.working) return state;
+
       const before = state;
 
       let s = { ...state };
@@ -553,7 +595,8 @@ function reducer(state, action) {
     }
 
     case ACTIONS.WATER: {
-      if (!state.alive) return state;
+      if (!state.alive || state.working) return state;
+
       const before = state;
 
       let s = { ...state };
@@ -569,7 +612,8 @@ function reducer(state, action) {
     }
 
     case ACTIONS.PLAY: {
-      if (!state.alive || state.sleeping) return state;
+      if (!state.alive || state.sleeping || state.working) return state;
+
       const before = state;
 
       let s = { ...state };
@@ -599,8 +643,55 @@ function reducer(state, action) {
       return withFx(s, diffFx(before, s, { cap: 4 }));
     }
 
+    case ACTIONS.PLAY_MINIGAME: {
+      if (!state.alive || state.sleeping || state.working) return state;
+
+      const before = state;
+      const { gameId, gameName, costCoins = 0, rewards, win, message } = action.payload || {};
+      if (!gameId || !rewards) return state;
+
+      // paid games safety (future-proof)
+      if (costCoins > 0 && (state.coins ?? 0) < costCoins) {
+        let out = addLog(state, `Not enough coins to play ${gameName || gameId}.`);
+        return withFx(out, [{ text: "Not enough 💰", type: "bad" }]);
+      }
+
+      // update per-game stats
+      const stats = { ...(state.minigameStats || {}) };
+      const prev = stats[gameId] || { plays: 0, wins: 0, streak: 0, bestStreak: 0 };
+
+      const nextPlays = prev.plays + 1;
+      const nextWins = prev.wins + (win ? 1 : 0);
+      const nextStreak = win ? prev.streak + 1 : 0;
+      const nextBest = Math.max(prev.bestStreak || 0, nextStreak);
+
+      stats[gameId] = { plays: nextPlays, wins: nextWins, streak: nextStreak, bestStreak: nextBest };
+
+      // apply cost + rewards
+      let s = { ...state, minigameStats: stats };
+
+      if (costCoins > 0) s.coins = (s.coins ?? 0) - costCoins; // charge once here
+
+      s.coins = (s.coins ?? 0) + (rewards.coins ?? 0);
+      s.fun = clamp((s.fun ?? 0) + (rewards.fun ?? 0));
+      s.energy = clamp((s.energy ?? 0) + (rewards.energy ?? 0));
+
+      if (win && (nextStreak === 10 || nextStreak === 20 || nextStreak === 50)) {
+        const bonus = nextStreak === 10 ? 2 : nextStreak === 20 ? 5 : 12;
+        s.coins = (s.coins ?? 0) + bonus;
+        s = addLog(s, `Streak bonus! +${bonus} coins for ${nextStreak} wins.`);
+      }
+
+      s.lastActionAt = now();
+      s = addLog(s, `${gameName || gameId}: ${message || (win ? "Win!" : "Loss.")}`);
+
+      const fxItems = diffFx(before, s, { cap: 4 });
+      return withFx(s, fxItems);
+    }
+
     case ACTIONS.CLEAN: {
-      if (!state.alive) return state;
+      if (!state.alive || state.working) return state;
+
       const before = state;
 
       let s = { ...state };
@@ -618,7 +709,7 @@ function reducer(state, action) {
     }
 
     case ACTIONS.MEDICINE: {
-      if (!state.alive) return state;
+      if (!state.alive || state.working) return state;
       const before = state;
 
       let s = { ...state };
@@ -647,7 +738,7 @@ function reducer(state, action) {
     }
 
     case ACTIONS.BANDAGE: {
-      if (!state.alive) return state;
+      if (!state.alive || state.working) return state;
       const before = state;
 
       let s = { ...state };
@@ -777,7 +868,7 @@ function reducer(state, action) {
 
     case ACTIONS.TICK: {
       if (!state.alive) return state;
-
+      if (state.paused) return state;
       const t = action.now ?? now();
       const dtMs = Math.max(0, t - (state.lastTickAt ?? t));
       const ticks = clamp(Math.round(dtMs / CONFIG.TICK_MS), 0, CONFIG.MAX_CATCHUP_TICKS);
@@ -786,6 +877,30 @@ function reducer(state, action) {
 
       for (let i = 0; i < ticks; i++) {
         const tickTime = t - (ticks - 1 - i) * CONFIG.TICK_MS;
+
+        // finish work when timer expires
+        if (s.working && s.workEndsAt > 0 && tickTime >= s.workEndsAt) {
+          const pay = s.workPay ?? 0;
+          const reason = s.workReason || "Work";
+          const beforeWork = s;
+
+          s = {
+            ...s,
+            working: false,
+            workEndsAt: 0,
+            workPay: 0,
+            workReason: "",
+            workJob: null,
+            coins: (s.coins ?? 0) + pay,
+            energy: clamp((s.energy ?? 0) - 8),
+            fun: clamp((s.fun ?? 0) - 4),
+            lastActionAt: tickTime,
+          };
+
+          s = addLog(s, `${reason} complete: +${pay} 💰`);
+          s = withFx(s, diffFx(beforeWork, s, { cap: 4 }));
+          continue;
+        }
 
         // age + evolution stage
         s.ageMinutes += CONFIG.MINUTES_PER_TICK;
@@ -802,11 +917,22 @@ function reducer(state, action) {
 
         // base metabolism / needs
         if (s.sleeping) {
+          const beforeSleep = s.sleeping;
+          const beforeEnergy = s.energy;
+
           s.energy = clamp(s.energy + CONFIG.RATES.sleep.energyGain);
           s.hunger = clamp(s.hunger + CONFIG.RATES.hungerUp * CONFIG.RATES.sleep.hungerUpMul);
           s.thirst = clamp(s.thirst + CONFIG.RATES.thirstUp * CONFIG.RATES.sleep.thirstUpMul);
           s.fun = clamp(s.fun - CONFIG.RATES.funDown * CONFIG.RATES.sleep.funDownMul);
           s.hygiene = clamp(s.hygiene - CONFIG.RATES.hygieneDown * CONFIG.RATES.sleep.hygieneDownMul);
+
+          // auto-wake when fully rested
+          if (beforeSleep && beforeEnergy < 100 && s.energy >= 100) {
+            s.sleeping = false;
+            s.tantrum = false;         // optional
+            s = clearAnyCall(s);       // optional (prevents “calling while asleep” weirdness)
+            s = addLog(s, "Woke up (fully rested).");
+          }
         } else {
           s.energy = clamp(s.energy - CONFIG.RATES.energyDown);
           s.hunger = clamp(s.hunger + CONFIG.RATES.hungerUp);
@@ -958,6 +1084,26 @@ function reducer(state, action) {
       return s;
     }
 
+    case ACTIONS.GO_WORK: {
+      if (!canWork(state)) return state;
+
+      const before = state;
+      const t = now();
+      const prof = getWorkProfile(state);
+
+      let s = {
+        ...state,
+        working: true,
+        workEndsAt: t + prof.ms,
+        workPay: prof.coins,
+        workReason: prof.label,
+        lastActionAt: t,
+      };
+
+      s = addLog(s, `${prof.label}…`);
+      return withFx(s, [{ text: "WORK 💼", type: "neutral" }, ...diffFx(before, s, { cap: 3 })]);
+    }
+
     default:
       return state;
   }
@@ -991,9 +1137,11 @@ export function useTamagotchi(options = {}) {
 
   // tick loop
   useEffect(() => {
+    if (state.paused) return;
     const id = setInterval(() => dispatch({ type: ACTIONS.TICK, now: now() }), CONFIG.TICK_MS);
     return () => clearInterval(id);
-  }, []);
+  }, [state.paused]);
+
 
   const mood = useMemo(() => computeMood(state), [state]);
   const severity = useMemo(() => computeNeedSeverity(state), [state]);
@@ -1013,33 +1161,62 @@ export function useTamagotchi(options = {}) {
     return { outcome, win };
   }
 
-  const actions = useMemo(
-    () => ({
-      rename: (name) => dispatch({ type: ACTIONS.RENAME, name }),
-      reset: () => dispatch({ type: ACTIONS.RESET }),
+const actions = useMemo(() => {
+  const playMinigame = (id, data) => {
+    if (!state.alive || state.sleeping) return;
 
-      feed: () => dispatch({ type: ACTIONS.FEED }),
-      water: () => dispatch({ type: ACTIONS.WATER }),
-      play: () => dispatch({ type: ACTIONS.PLAY }),
-      clean: () => dispatch({ type: ACTIONS.CLEAN }),
+    const game = getMinigame(id);
+    if (!game || !game.canPlay(state)) return;
 
-      sleep: () => dispatch({ type: ACTIONS.SLEEP }),
-      wake: () => dispatch({ type: ACTIONS.WAKE }),
+    // IMPORTANT: if you want repeatability per click, keep Date.now()
+    const outcome = game.play(data, { seed: Date.now() });
+    if (!outcome) return;
+    if (outcome.meta?.invalid) return outcome;
 
-      medicine: () => dispatch({ type: ACTIONS.MEDICINE }),
-      bandage: () => dispatch({ type: ACTIONS.BANDAGE }),
-      discipline: () => dispatch({ type: ACTIONS.DISCIPLINE }),
+    dispatch({
+      type: ACTIONS.PLAY_MINIGAME,
+      payload: {
+        gameId: game.id,          // store id, not full object (better for serialization)
+        gameName: game.name,
+        costCoins: game.costCoins ?? 0,
+        rewards: outcome.rewards,
+        win: outcome.win,
+        message: outcome.message,
+      },
+    });
 
-      buyItem: (itemId) => dispatch({ type: ACTIONS.BUY_ITEM, itemId }),
-      useItem: (itemId) => dispatch({ type: ACTIONS.USE_ITEM, itemId }),
+    return outcome;
+  };
 
-      clearFx: () => dispatch({ type: ACTIONS.CLEAR_FX }),
+  return {
+    rename: (name) => dispatch({ type: ACTIONS.RENAME, name }),
+    reset: () => dispatch({ type: ACTIONS.RESET }),
+    pause: () => dispatch({ type: ACTIONS.PAUSE }),
+    resume: () => dispatch({ type: ACTIONS.RESUME }),
 
-      miniGameGuess: playMiniGameGuess,
-    }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state.alive, state.sleeping]
-  );
+    feed: () => dispatch({ type: ACTIONS.FEED }),
+    water: () => dispatch({ type: ACTIONS.WATER }),
+    play: () => dispatch({ type: ACTIONS.PLAY }),
+    clean: () => dispatch({ type: ACTIONS.CLEAN }),
+
+    sleep: () => dispatch({ type: ACTIONS.SLEEP }),
+    wake: () => dispatch({ type: ACTIONS.WAKE }),
+
+    medicine: () => dispatch({ type: ACTIONS.MEDICINE }),
+    bandage: () => dispatch({ type: ACTIONS.BANDAGE }),
+    discipline: () => dispatch({ type: ACTIONS.DISCIPLINE }),
+
+    buyItem: (itemId) => dispatch({ type: ACTIONS.BUY_ITEM, itemId }),
+    useItem: (itemId) => dispatch({ type: ACTIONS.USE_ITEM, itemId }),
+
+    clearFx: () => dispatch({ type: ACTIONS.CLEAR_FX }),
+    goWork: () => dispatch({ type: ACTIONS.GO_WORK }),
+
+    miniGameGuess: playMiniGameGuess,
+    playMinigame,
+  };
+  // include what playMinigame reads
+}, [state.alive, state.sleeping, state.paused, state]);
 
   return { state, mood, severity, actions };
 }

@@ -1,0 +1,263 @@
+/* tamaminigamepanel.css — compact, higher contrast, less “washed out” */
+
+/* PANEL */
+.mg-panel{
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(0,0,0,0.18);
+}
+
+/* HEADER */
+.mg-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.mg-headerLeft{ display:grid; gap: 2px; }
+.mg-title{ font-weight: 900; font-size: 15px; }
+.mg-sub{ font-size: 12px; opacity: 0.75; }
+
+.mg-headerRight{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+}
+.mg-coins{ font-size: 12px; font-weight: 800; opacity: 0.9; }
+
+/* BODY LAYOUT */
+.mg-body{
+  display:grid;
+  grid-template-columns: 190px 1fr;
+  gap: 10px;
+  min-height: 0;
+  max-height: 360px; /* cap overall height */
+}
+
+.mg-left, .mg-right{ min-height: 0; }
+
+/* LEFT LIST */
+.mg-list{
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+  max-height: 360px;
+  overflow:auto;
+  padding-right: 6px;
+}
+
+.mg-gameBtn{
+  text-align:left;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(0,0,0,0.22);
+  cursor:pointer;
+  transition: transform .06s ease, border-color .12s ease, background .12s ease;
+}
+
+.mg-gameBtn:hover{
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,0.28);
+  background: rgba(255,255,255,0.06);
+}
+
+.mg-gameBtn.is-active{
+  border-color: rgba(255,255,255,0.40);
+  background: rgba(255,255,255,0.09);
+}
+
+.mg-gameBtnTop{
+  display:flex;
+  align-items:center;
+  gap: 8px;
+}
+
+.mg-tier{
+  font-size: 11px;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.18);
+  opacity: 0.95;
+}
+
+.mg-gameName{ font-weight: 900; font-size: 12px; }
+.mg-gameMeta{ font-size: 11px; opacity: 0.75; margin-top: 4px; }
+
+/* RIGHT CARD */
+.mg-card{
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(0,0,0,0.22);
+  max-height: 360px;
+  overflow:auto;
+}
+
+.mg-cardTop{
+  display:grid;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.mg-cardTitleRow{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap: 10px;
+}
+
+.mg-cardTitle{
+  font-weight: 950;
+  font-size: 15px;
+  display:flex;
+  align-items:center;
+  gap: 8px;
+}
+
+.mg-tierBadge{
+  font-size: 11px;
+  font-weight: 950;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.22);
+  opacity: 0.9;
+}
+
+.mg-desc{
+  font-size: 12px;
+  opacity: 0.78;
+  line-height: 1.35;
+}
+
+/* STATS (compact + readable) */
+.mg-stats{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 10px;
+  font-size: 11px;
+  opacity: 0.9;
+  text-align:right;
+}
+
+.mg-stat{
+  display:flex;
+  gap: 6px;
+  justify-content:space-between;
+}
+
+/* ACTIONS */
+.mg-actions{ margin-top: 6px; }
+.mg-actionRow{ display:flex; gap: 8px; flex-wrap:wrap; }
+
+.mg-btn{
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-weight: 900;
+  cursor:pointer;
+}
+
+.mg-btn:hover{ background: rgba(255,255,255,0.11); }
+.mg-btn:disabled{ opacity: 0.45; cursor:not-allowed; }
+
+.mg-btn--ghost{
+  background: transparent;
+}
+
+/* NOTES + RESULTS */
+.mg-note{
+  margin-top: 10px;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.mg-result{
+  margin-top: 10px;
+  border-radius: 12px;
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+}
+
+.mg-result.is-win{ border-color: rgba(0,255,0,0.28); }
+.mg-result.is-lose{ border-color: rgba(255,0,0,0.28); }
+
+.mg-resultMsg{
+  font-weight: 950;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.mg-resultRow{
+  display:flex;
+  gap: 6px;
+  flex-wrap:wrap;
+}
+
+.mg-pill{
+  font-size: 11px;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: rgba(0,0,0,0.18);
+  opacity: 0.95;
+}
+
+.mg-econ{
+  margin-top: 6px;
+  font-size: 11px;
+  opacity: 0.8;
+  padding: 6px 8px;
+  border: 1px dashed rgba(0,0,0,0.18);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.6);
+}
+
+.mg-gameMetaRow{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  gap: 8px;
+}
+
+.mg-costBadge{
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,0.14);
+  background: rgba(255,255,255,0.8);
+  opacity: 0.9;
+  line-height: 1.2;
+}
+
+.mg-costBadge.is-free{
+  border-style: dashed;
+}
+
+.mg-costBadge.is-paid{
+  border-style: solid;
+}
+
+.mg-miniMeta{
+  font-size: 10px;
+  font-weight: 800;
+  opacity: 0.65;
+}
+
+
+/* MOBILE */
+@media (max-width: 520px){
+  .mg-body{ grid-template-columns: 1fr; max-height: none; }
+  .mg-list{ max-height: 220px; }
+  .mg-card{ max-height: none; }
+  .mg-stats{ text-align:left; }
+}
+

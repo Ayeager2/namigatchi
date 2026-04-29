@@ -21,13 +21,27 @@ export const PERSISTENT_DEFAULTS = {
   storyMilestones: {},
 
   // Across-runs stats — for achievements, lifetime feel, debug info.
+  // Resources are broken out by type so we can show "lifetime wood" etc.
   lifetimeStats: {
     totalGathers: 0,
     totalResourcesGathered: 0,
+    resourcesByType: { wood: 0, stone: 0, water: 0, fragments: 0 },
     rocksFound: 0,
     rocksAwakened: 0,
+    hutsBuilt: 0,
     runsStarted: 0,
     runsCompleted: 0,
     msPlayedTotal: 0,
+    bestEraReached: 0,
+    fastestAwakeningMs: null, // ms from run start to rock awakening
+    fastestHutMs: null,       // ms from run start to hut built
   },
+
+  // History of past runs (most recent first, capped). Each entry is a snapshot
+  // taken when a run ends (either reset or prestige). Drives the "compare to
+  // last run" UI and longer-term retrospective views.
+  runHistory: [],
 };
+
+// How many run snapshots to keep in history. Older ones get dropped.
+export const RUN_HISTORY_CAP = 50;

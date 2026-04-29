@@ -22,10 +22,14 @@ export function getPrestigeReward(state) {
     reasons.push({ id: "rockAwakened", label: "The Stone awakened", value: v });
   }
 
-  // Future milestones plug in here. Examples:
-  //   if (run.era >= 1) { echoes += 2; reasons.push(...) }
-  //   if (run.era >= 2) { echoes += 5; reasons.push(...) }
-  //   bonus echoes for time efficiency, alignment commitment, etc.
+  // Era 1 milestone: a hut was built (player has a home).
+  if (run.built?.hut) {
+    const v = 2;
+    echoes += v;
+    reasons.push({ id: "hutBuilt", label: "A home was raised", value: v });
+  }
+
+  // Future milestones plug in here.
 
   return { echoes, reasons, eligible: echoes > 0 };
 }

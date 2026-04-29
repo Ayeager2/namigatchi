@@ -260,6 +260,50 @@ The current code is one node in this graph (the Pet system). That's a totally re
 
 ---
 
+## Observability — collect now, expose later
+
+The stats system was added to the foundation early because **data collection cannot be retrofitted**. Player A who plays for 50 hours before stats ship has no comparison data; the feature has to be there from day one even if invisible.
+
+### What's collected (always, from run 1)
+
+**Per-run accumulators** in run state:
+- `gathered: { wood, stone, water, fragments }` — total picked up this run, never decreases
+- `gatherCount` — total gather actions
+- `startedAt` — run start timestamp
+
+**Lifetime stats** in persistent state, updated on every run end:
+- Resources by type (broken out, not just one total)
+- Best era reached ever
+- Fastest awakening (ms from run start)
+- Fastest hut (ms from run start)
+- Total time played
+- Run counts (started, completed)
+- Building counts (huts raised, etc.)
+
+**Run history** — array of snapshots, capped at 50, most recent first. Each snapshot:
+- runIndex, startedAt, endedAt, durationMs
+- eraReached, rockAwakened, buildingsBuilt
+- resourcesGathered, gatherCount
+- echoesEarned (0 if reset, >0 if prestige)
+- ending: "reset" | "prestige"
+
+### What's exposed (gated)
+
+A **Stats** tab in the right column of the layout. Three sections:
+1. **Current Run** — duration, era, resources gathered, total
+2. **Last Completed Run** — snapshot of last run with comparison deltas vs the run before it (the "better or worse" view)
+3. **Lifetime** — total runs, best era, fastest milestones, time played, resources by type
+
+**Unlock condition:** `persistent.lifetimeStats.runsCompleted >= 1` — i.e. after first prestige. Until then, the Stats tab is invisible. Data collection runs in the background regardless.
+
+### Why this matters for the long arc
+
+When prestige is the central mechanic of an incremental game, players become *students of their own runs*. They want to know: how did this run compare? Am I getting faster? Which strategy yielded more Echoes? Stats turn each run from a one-shot into a data point in a series — and that's what makes 30-hour games into 300-hour games.
+
+The architecture also extends naturally: as we add more milestones, more buildings, more eras, the stats system absorbs them automatically. New fields go in `lifetimeStats` and `runHistory snapshot`; the StatsPanel UI gets new rows. No structural changes to the data model.
+
+---
+
 ## Things to keep doing
 
 A few habits worth maintaining as the project grows:

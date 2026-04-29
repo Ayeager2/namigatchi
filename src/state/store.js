@@ -26,8 +26,10 @@ export function useGameStore() {
   // Action functions — UI calls these, never touches dispatch directly.
   const actions = {
     gather: () => dispatch({ type: ACTIONS.GATHER }),
+    build: (buildingId) => dispatch({ type: ACTIONS.BUILD, buildingId }),
     resetRun: () => dispatch({ type: ACTIONS.RESET_RUN }),
     prestige: () => dispatch({ type: ACTIONS.PRESTIGE }),
+    markSplashSeen: () => dispatch({ type: ACTIONS.MARK_SPLASH_SEEN }),
     clearLog: () => dispatch({ type: ACTIONS.CLEAR_LOG }),
   };
 

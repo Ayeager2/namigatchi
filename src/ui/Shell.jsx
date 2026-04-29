@@ -1,17 +1,30 @@
-// Top-level layout. Header + Scene + active panel + footer.
-// The footer's reset button is contextual:
-//   - if the player has hit a prestige milestone -> "Channel the Rock (+N)"
-//   - otherwise                                  -> "Reset run (no reward)"
+// Top-level layout. Composes the smaller UI components into a responsive grid.
+//
+// Mobile (≤900px): single column, ordered for best mobile flow.
+// Desktop (>900px): three columns — Inventory/Buildings | Wasteland | Log.
+// Stone strip spans full width below the grid.
+//
+// Prestige UI (Echoes counter, "Channel the Rock" button) is gated behind
+// `era >= 2`. Hidden in early game; revealed as a reward for progress.
 
 import Scene from "./Scene.jsx";
-import GatherPanel from "./GatherPanel.jsx";
+import ActionPanel from "./ActionPanel.jsx";
+import InventoryPanel from "./InventoryPanel.jsx";
+import BuildingsPanel from "./BuildingsPanel.jsx";
+import StonePanel from "./StonePanel.jsx";
+import RightColumn from "./RightColumn.jsx";
 import { getPrestigeReward } from "../systems/prestige.js";
+import { computeEra, getEra } from "../systems/era.js";
 
 export default function Shell({ state, actions }) {
+  const era = computeEra(state);
+  const eraInfo = getEra(state);
+  const prestigeUnlocked = era >= 2;
   const reward = getPrestigeReward(state);
+  const showEchoes = prestigeUnlocked || state.persistent.echoes > 0;
 
   const handleReset = () => {
-    if (reward.eligible) {
+    if (prestigeUnlocked && reward.eligible) {
       const lines = [
         `Channel the Rock to wipe this world?`,
         ``,
@@ -27,8 +40,7 @@ export default function Shell({ state, actions }) {
       const lines = [
         `Reset the current run?`,
         ``,
-        `You haven't reached a milestone yet, so no Echoes will be earned.`,
-        `(Awaken the Stone to unlock your first prestige reward.)`,
+        `Your progress this run will be lost. No rewards yet.`,
       ];
       if (window.confirm(lines.join("\n"))) {
         actions.resetRun();
@@ -41,24 +53,44 @@ export default function Shell({ state, actions }) {
       <header className="shell-header">
         <h1>Namigatchi</h1>
         <div className="shell-meta">
-          <span className="meta-item">Echoes: {state.persistent.echoes}</span>
+          {era > 0 && <span className="meta-item meta-era">{eraInfo.name}</span>}
+          {showEchoes && (
+            <span className="meta-item">Echoes: {state.persistent.echoes}</span>
+          )}
         </div>
       </header>
 
       <Scene state={state} />
 
-      <main className="shell-main">
-        <GatherPanel state={state} actions={actions} />
-      </main>
+      {/* DOM order = mobile order. Grid-template-areas reorders for desktop. */}
+      <div className="shell-grid">
+        <main className="shell-area shell-area--center">
+          <ActionPanel state={state} actions={actions} />
+        </main>
+
+        <aside className="shell-area shell-area--left">
+          <InventoryPanel state={state} />
+          <BuildingsPanel state={state} actions={actions} />
+        </aside>
+
+        <aside className="shell-area shell-area--right">
+          <RightColumn state={state} />
+        </aside>
+      </div>
+
+      <StonePanel state={state} />
 
       <footer className="shell-footer">
-        {reward.eligible ? (
+        {prestigeUnlocked && reward.eligible ? (
           <button className="btn btn-prestige" onClick={handleReset}>
-            Channel the Rock <span className="btn-suffix">+{reward.echoes} Echo{reward.echoes !== 1 ? "es" : ""}</span>
+            Channel the Rock{" "}
+            <span className="btn-suffix">
+              +{reward.echoes} Echo{reward.echoes !== 1 ? "es" : ""}
+            </span>
           </button>
         ) : (
           <button className="btn btn-ghost" onClick={handleReset}>
-            Reset run <span className="btn-suffix">no reward</span>
+            Reset run
           </button>
         )}
       </footer>

@@ -10,17 +10,28 @@ import { getRockState } from "./rock.js";
 export function composeScene(state) {
   const { run } = state;
   const rock = getRockState(run);
+  const hasHut = !!run.built?.hut;
 
   const layers = [];
 
   // Background — biome / sky
-  layers.push({
-    id: "bg",
-    text:
-      rock === "awakened"
-        ? "[A wide dead landscape — a single sprout of green glows nearby.]"
-        : "[A wide dead landscape stretches in every direction. Ash drifts on a cold wind.]",
-  });
+  let bgText;
+  if (hasHut) {
+    bgText = "[A wide dead landscape stretches around you — but here, around your hut, life has begun to creep back. A single sprout glows nearby.]";
+  } else if (rock === "awakened") {
+    bgText = "[A wide dead landscape — a single sprout of green glows nearby.]";
+  } else {
+    bgText = "[A wide dead landscape stretches in every direction. Ash drifts on a cold wind.]";
+  }
+  layers.push({ id: "bg", text: bgText });
+
+  // Hut layer
+  if (hasHut) {
+    layers.push({
+      id: "hut",
+      text: "[🛖 A small hut of stone and wood. Yours.]",
+    });
+  }
 
   // Rock visual
   if (rock === "dormant") {

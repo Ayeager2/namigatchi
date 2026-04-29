@@ -296,3 +296,54 @@ When you're ready, let's pick a few of these and start filling in `roadmap.md`.
 ---
 
 *Audit current as of commit 9191057, April 29 2026.*
+
+---
+
+## Addendum: v2 architecture (active codebase)
+
+The audit above describes the v1 codebase that's now archived. The current working codebase has been rebuilt with the architectural recommendations applied. Key shape:
+
+### Folder layout
+
+- `src/util/` — pure helpers (RNG, clamp, etc.)
+- `src/content/` — game data as plain JS modules (resources, gather tables, buildings)
+- `src/state/` — persistent + run state, save/load with versioned schema, reducer, store hook
+- `src/systems/` — gameplay logic functions (gathering, building, rock, era, scene, prestige, stats)
+- `src/ui/` — small React components, one concern each (ActionPanel, InventoryPanel, BuildingsPanel, StonePanel, LogPanel, StatsPanel, RightColumn, Scene, Shell, SplashScreen)
+
+### State model
+
+Two top-level slices, intentionally separate:
+
+- **`state.persistent`** — never wiped on prestige. Contains echoes, echoUpgrades, automationUnlocks, storyMilestones, lifetimeStats, runHistory. Treat as sacred.
+- **`state.run`** — wiped on prestige and reset. Contains the current run's inventory, gathered totals, gather count, rock state, built buildings, splash flag, log.
+
+This split is the foundation of the prestige system. Save format:
+
+```js
+{
+  version: 1,
+  persistent: { ... },
+  run: { ... },
+}
+```
+
+### Reducer pattern
+
+The reducer in `src/state/reducer.js` is intentionally thin. Each action delegates to a system function in `src/systems/` that does the actual work and returns new state slices + log events. This keeps the reducer scannable and the systems unit-testable.
+
+### Observability layer
+
+The stats system (`src/systems/stats.js`) is a parallel observability layer. Every run gets snapshotted on end (reset or prestige). Snapshots feed into both `lifetimeStats` (aggregates) and `runHistory` (timeline). The Stats UI reads this data to show current-run / last-run / lifetime views with comparison deltas. Data collection runs from day one even though the UI is gated behind first prestige.
+
+### Era system
+
+`computeEra(state)` is a derived value, not a stored field. Era is whatever the state implies. Era 0 = baseline. Era 1 = rock awakened AND hut built. Future eras plug in here.
+
+### Prestige system
+
+Hidden until era 2 is reached (UI-gated). Mechanism is in code from day one. `getPrestigeReward(state)` is the single source of truth for what Echoes a player would earn. Adding new milestones = new entry in that function.
+
+### Visual scene
+
+`composeScene(state)` is a pure function returning a list of layers. UI renders them. Layers are text placeholders today, swappable to SVG/sprite layers later without changing component code.

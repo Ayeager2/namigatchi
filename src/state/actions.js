@@ -10,6 +10,10 @@ export const ACTIONS = {
   // Era 0
   GATHER: "GATHER",
 
+  // Era 1
+  BUILD: "BUILD",
+
   // Misc
+  MARK_SPLASH_SEEN: "MARK_SPLASH_SEEN",
   CLEAR_LOG: "CLEAR_LOG",
 };

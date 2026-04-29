@@ -7,6 +7,7 @@ import { freshRun } from "./run.js";
 import { performGather } from "../systems/gathering.js";
 import { performBuild } from "../systems/building.js";
 import { performListen } from "../systems/research.js";
+import { performSurvivalAction } from "../systems/survival.js";
 import { getPrestigeReward } from "../systems/prestige.js";
 import {
   snapshotRun,
@@ -97,6 +98,21 @@ export function reducer(state, action) {
         persistent,
         run: appendLog(run, events),
       };
+    }
+
+    case ACTIONS.EAT: {
+      const { run, persistent, events } = performSurvivalAction(state, "eat");
+      return { persistent, run: appendLog(run, events) };
+    }
+
+    case ACTIONS.DRINK: {
+      const { run, persistent, events } = performSurvivalAction(state, "drink");
+      return { persistent, run: appendLog(run, events) };
+    }
+
+    case ACTIONS.REST: {
+      const { run, persistent, events } = performSurvivalAction(state, "rest");
+      return { persistent, run: appendLog(run, events) };
     }
 
     case ACTIONS.MARK_SPLASH_SEEN:

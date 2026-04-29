@@ -4,6 +4,9 @@
 // The gather table is composed dynamically: a base table (depending on rock
 // state) + additional entries injected by completed research. So Foraging
 // research adds Food to the loot pool, automatically and without UI changes.
+//
+// Survival: when the hut is built, gathering applies stat decay and yield
+// multipliers. Energy must be > 0 to gather (caller checks via canGather).
 
 import {
   GATHER_TABLE,
@@ -14,6 +17,12 @@ import { RESOURCES } from "../content/resources.js";
 import { getBuilding } from "../content/buildings.js";
 import { getBuildingBonuses } from "./building.js";
 import { getResearchBonuses } from "./research.js";
+import {
+  survivalActive,
+  decayForAction,
+  getYieldMultiplier,
+  canGather,
+} from "./survival.js";
 import { pickWeighted, randInt } from "../util/rng.js";
 
 // Build the live gather table from base + research additions.
@@ -23,7 +32,6 @@ function buildGatherTable(run) {
   else if (!run.rockAwakened) entries = [...GATHER_TABLE.postRockPreAwaken];
   else entries = [...GATHER_TABLE.postAwaken];
 
-  // Add research-driven entries.
   for (const researchId of Object.keys(run.researched || {})) {
     const addition = GATHER_ADDITIONS[researchId];
     if (addition) entries.push({ ...addition });
@@ -32,11 +40,17 @@ function buildGatherTable(run) {
   return entries;
 }
 
-// Returns: { run, persistent, events }
-//   run        — new run state
-//   persistent — new persistent state
-//   events     — array of { kind, message } for the activity log
 export function performGather(state, rng = Math.random) {
+  // Energy gate — refuse if exhausted.
+  const gateCheck = canGather(state);
+  if (!gateCheck.ok) {
+    return {
+      run: state.run,
+      persistent: state.persistent,
+      events: [{ kind: "actionFail", message: gateCheck.reason }],
+    };
+  }
+
   // Build new state from immutable copies.
   const run = {
     ...state.run,
@@ -55,11 +69,13 @@ export function performGather(state, rng = Math.random) {
   const table = buildGatherTable(run);
   const result = pickWeighted(rng, table);
 
-  // Bonuses stack: hut, fire pit, knapping research, etc.
   const buildingBonuses = getBuildingBonuses(run);
   const researchBonuses = getResearchBonuses(run);
   const gatherBonus =
     (buildingBonuses.gatherBonus || 0) + (researchBonuses.gatherBonus || 0);
+
+  // Survival yield penalty (only when survival active).
+  const yieldMult = survivalActive(state) ? getYieldMultiplier(run.stats) : 1.0;
 
   persistent.lifetimeStats.totalGathers += 1;
 
@@ -76,7 +92,9 @@ export function performGather(state, rng = Math.random) {
     case "resource": {
       const [lo, hi] = result.qty;
       const baseQty = randInt(rng, lo, hi);
-      const qty = baseQty + gatherBonus;
+      // Apply gather bonus, then yield multiplier (rounded, min 1 if anything).
+      const rawQty = baseQty + gatherBonus;
+      const qty = Math.max(1, Math.round(rawQty * yieldMult));
       run.inventory[result.id] = (run.inventory[result.id] || 0) + qty;
       run.gathered[result.id] = (run.gathered[result.id] || 0) + qty;
       persistent.lifetimeStats.totalResourcesGathered += qty;
@@ -115,11 +133,15 @@ export function performGather(state, rng = Math.random) {
       kind: "awaken",
       message: "The fragments bind to the stone, and the stone OPENS its eye.",
     });
-    // Rock whispers the next step (build a hut)
     const hut = getBuilding("hut");
     if (hut?.whisperOnAvailable) {
       events.push({ kind: "whisper", message: hut.whisperOnAvailable });
     }
+  }
+
+  // Apply survival decay (after gather, AFTER any awakening/build state changes).
+  if (survivalActive({ ...state, run })) {
+    run.stats = decayForAction(run.stats || {}, "Gather");
   }
 
   return { run, persistent, events };

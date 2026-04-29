@@ -14,6 +14,11 @@ export const ACTIONS = {
   BUILD: "BUILD",
   RESEARCH: "RESEARCH",
 
+  // Survival
+  EAT: "EAT",
+  DRINK: "DRINK",
+  REST: "REST",
+
   // Misc
   MARK_SPLASH_SEEN: "MARK_SPLASH_SEEN",
   CLEAR_LOG: "CLEAR_LOG",

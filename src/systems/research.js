@@ -5,6 +5,7 @@
 // the rock anew. (Permanent speed-up of research will come from Echo upgrades.)
 
 import { getResearch, getAllResearch } from "../content/research.js";
+import { decayForAction, survivalActive } from "./survival.js";
 
 // Returns { ok: bool, reason: string } — eligibility check.
 export function canListen(state, researchId) {
@@ -62,10 +63,15 @@ export function performListen(state, researchId) {
     [researchId]: { at: Date.now() },
   };
 
-  const run = { ...state.run, inventory, researched };
+  let run = { ...state.run, inventory, researched };
   const persistent = state.persistent;
 
   const events = [{ kind: "research", message: r.onLearnedMessage }];
+
+  // Survival decay for the research action.
+  if (survivalActive({ ...state, run })) {
+    run = { ...run, stats: decayForAction(run.stats || {}, "Research") };
+  }
 
   return { run, persistent, events };
 }

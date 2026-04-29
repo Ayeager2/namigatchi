@@ -12,6 +12,8 @@ export const LOG_KINDS = {
   nothing:      { category: "recent" },
   buildFail:    { category: "recent" },
   researchFail: { category: "recent" },
+  consume:      { category: "recent" },
+  actionFail:   { category: "recent" },
 
   // Progression / story beats — the player will want to reread these.
   rockFind:  { category: "unlocks" },

@@ -2,9 +2,13 @@
 // Reducer dispatches BUILD; this file owns the actual logic.
 
 import { getBuilding, getAllBuildings } from "../content/buildings.js";
+import {
+  decayForAction,
+  initialStats,
+  survivalActive,
+} from "./survival.js";
 
 // Returns { ok: bool, reason: string }.
-// Reason is a short user-facing string (used to disable button + tooltip).
 export function canBuild(state, buildingId) {
   const building = getBuilding(buildingId);
   if (!building) return { ok: false, reason: "Unknown building." };
@@ -34,7 +38,7 @@ export function canBuild(state, buildingId) {
   return { ok: true };
 }
 
-// Returns { run, persistent, events } where events is an array of log entries.
+// Returns { run, persistent, events }.
 export function performBuild(state, buildingId) {
   const building = getBuilding(buildingId);
   if (!building) {
@@ -63,9 +67,9 @@ export function performBuild(state, buildingId) {
   // Mark built
   const built = { ...(state.run.built || {}), [buildingId]: { at: Date.now() } };
 
-  const run = { ...state.run, inventory, built };
+  let run = { ...state.run, inventory, built };
 
-  // Increment lifetime build counters.
+  // Lifetime build counters.
   const persistent = {
     ...state.persistent,
     lifetimeStats: { ...state.persistent.lifetimeStats },
@@ -84,20 +88,29 @@ export function performBuild(state, buildingId) {
     events.push({ kind: "whisper", message: building.whisperOnBuilt });
   }
 
-  return {
-    run,
-    persistent,
-    events,
-  };
+  // Special activation: building the hut activates survival mechanics.
+  // Initialize stats here (they default to a "fresh" state but we want the
+  // documented startValues to take effect at activation).
+  if (buildingId === "hut") {
+    run.stats = initialStats();
+    events.push({
+      kind: "whisper",
+      message:
+        "The stone whispers: you have a body. Hunger. Thirst. The slow press of weariness. Care for yourself, that you may care for the world.",
+    });
+  }
+
+  // Survival decay for performing the build action itself.
+  if (survivalActive({ ...state, run })) {
+    run = { ...run, stats: decayForAction(run.stats || {}, "Build") };
+  }
+
+  return { run, persistent, events };
 }
 
-// Get a list of buildings the player should currently see in the UI.
-// Filters by requirements; player only sees what's actually available to consider.
 export function getVisibleBuildings(state) {
   return getAllBuildings().filter((b) => {
-    // Always show what's already built (so player can see their accomplishments)
     if (state.run.built?.[b.id]) return true;
-    // Hide if requirements aren't met yet.
     if (b.requires?.rockAwakened && !state.run.rockAwakened) return false;
     if (
       b.requires?.researched &&
@@ -109,7 +122,6 @@ export function getVisibleBuildings(state) {
   });
 }
 
-// Aggregated bonuses from all built buildings — applied in gathering, etc.
 export function getBuildingBonuses(run) {
   let gatherBonus = 0;
   for (const id of Object.keys(run.built || {})) {

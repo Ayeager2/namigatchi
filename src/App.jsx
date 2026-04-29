@@ -1,10 +1,8 @@
-import React from "react";
-import TamaPanel from "./components/TamaPanel";
+import { useGameStore } from "./state/store.js";
+import Shell from "./ui/Shell.jsx";
+import "./index.css";
 
 export default function App() {
-  return (
-    <div style={{ padding: 24 }}>
-      <TamaPanel />
-    </div>
-  );
+  const { state, actions } = useGameStore();
+  return <Shell state={state} actions={actions} />;
 }

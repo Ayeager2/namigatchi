@@ -1,19 +1,35 @@
 // Gathering system. Pure function: takes state + rng, returns new state + events.
 // Reducer dispatches GATHER; this file owns all the actual logic.
 //
-// The reducer is intentionally thin so all real game logic lives in systems/.
+// The gather table is composed dynamically: a base table (depending on rock
+// state) + additional entries injected by completed research. So Foraging
+// research adds Food to the loot pool, automatically and without UI changes.
 
-import { GATHER_TABLE, FRAGMENTS_TO_AWAKEN } from "../content/gatherTable.js";
+import {
+  GATHER_TABLE,
+  GATHER_ADDITIONS,
+  FRAGMENTS_TO_AWAKEN,
+} from "../content/gatherTable.js";
 import { RESOURCES } from "../content/resources.js";
 import { getBuilding } from "../content/buildings.js";
 import { getBuildingBonuses } from "./building.js";
+import { getResearchBonuses } from "./research.js";
 import { pickWeighted, randInt } from "../util/rng.js";
 
-// Pick the right loot table based on rock progress.
-function pickTable(run) {
-  if (!run.rockFound) return GATHER_TABLE.preRock;
-  if (!run.rockAwakened) return GATHER_TABLE.postRockPreAwaken;
-  return GATHER_TABLE.postAwaken;
+// Build the live gather table from base + research additions.
+function buildGatherTable(run) {
+  let entries;
+  if (!run.rockFound) entries = [...GATHER_TABLE.preRock];
+  else if (!run.rockAwakened) entries = [...GATHER_TABLE.postRockPreAwaken];
+  else entries = [...GATHER_TABLE.postAwaken];
+
+  // Add research-driven entries.
+  for (const researchId of Object.keys(run.researched || {})) {
+    const addition = GATHER_ADDITIONS[researchId];
+    if (addition) entries.push({ ...addition });
+  }
+
+  return entries;
 }
 
 // Returns: { run, persistent, events }
@@ -36,9 +52,14 @@ export function performGather(state, rng = Math.random) {
     },
   };
 
-  const table = pickTable(run);
+  const table = buildGatherTable(run);
   const result = pickWeighted(rng, table);
-  const bonuses = getBuildingBonuses(run);
+
+  // Bonuses stack: hut, fire pit, knapping research, etc.
+  const buildingBonuses = getBuildingBonuses(run);
+  const researchBonuses = getResearchBonuses(run);
+  const gatherBonus =
+    (buildingBonuses.gatherBonus || 0) + (researchBonuses.gatherBonus || 0);
 
   persistent.lifetimeStats.totalGathers += 1;
 
@@ -55,7 +76,7 @@ export function performGather(state, rng = Math.random) {
     case "resource": {
       const [lo, hi] = result.qty;
       const baseQty = randInt(rng, lo, hi);
-      const qty = baseQty + (bonuses.gatherBonus || 0);
+      const qty = baseQty + gatherBonus;
       run.inventory[result.id] = (run.inventory[result.id] || 0) + qty;
       run.gathered[result.id] = (run.gathered[result.id] || 0) + qty;
       persistent.lifetimeStats.totalResourcesGathered += qty;

@@ -27,6 +27,7 @@ export function useGameStore() {
   const actions = {
     gather: () => dispatch({ type: ACTIONS.GATHER }),
     build: (buildingId) => dispatch({ type: ACTIONS.BUILD, buildingId }),
+    research: (researchId) => dispatch({ type: ACTIONS.RESEARCH, researchId }),
     resetRun: () => dispatch({ type: ACTIONS.RESET_RUN }),
     prestige: () => dispatch({ type: ACTIONS.PRESTIGE }),
     markSplashSeen: () => dispatch({ type: ACTIONS.MARK_SPLASH_SEEN }),

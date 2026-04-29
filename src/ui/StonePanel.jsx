@@ -1,11 +1,12 @@
-// The persistent rock companion strip. Lives at the bottom of the layout —
-// always present once the rock is found, but visually understated. Compact
-// horizontal layout: icon · status text · progress bar (when dormant).
+// The persistent rock companion strip at the bottom of the layout.
+// Once the hut is built, the strip becomes the door to the Teachings tree —
+// click it to open the modal. Until then it's purely informational.
+//
 // Renders nothing if rock not found yet.
 
 import { getRockProgress, getRockState } from "../systems/rock.js";
 
-export default function StonePanel({ state }) {
+export default function StonePanel({ state, onListen }) {
   const { run } = state;
   const rock = getRockState(run);
 
@@ -13,9 +14,24 @@ export default function StonePanel({ state }) {
 
   const progress = getRockProgress(run);
   const isDormant = rock === "dormant";
+  const canListen = !!run.built?.hut && !!onListen;
+
+  const Wrapper = canListen ? "button" : "div";
+  const wrapperProps = canListen
+    ? {
+        type: "button",
+        onClick: onListen,
+        "aria-label": "Listen to the Stone's teachings",
+      }
+    : {};
 
   return (
-    <div className={`stone-strip ${isDormant ? "is-dormant" : "is-awakened"}`}>
+    <Wrapper
+      className={`stone-strip ${isDormant ? "is-dormant" : "is-awakened"} ${
+        canListen ? "is-clickable" : ""
+      }`}
+      {...wrapperProps}
+    >
       <span className="stone-icon">{isDormant ? "🪨" : "👁️"}</span>
       <div className="stone-info">
         <div className="stone-title">
@@ -36,10 +52,14 @@ export default function StonePanel({ state }) {
               />
             </div>
           </div>
+        ) : canListen ? (
+          <div className="stone-flavor">
+            It watches you. <em>Click to listen.</em>
+          </div>
         ) : (
           <div className="stone-flavor">It watches you, calm and ancient.</div>
         )}
       </div>
-    </div>
+    </Wrapper>
   );
 }

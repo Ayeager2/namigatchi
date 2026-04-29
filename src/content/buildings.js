@@ -26,6 +26,20 @@ export const BUILDINGS = {
     whisperOnBuilt:
       "The stone whispers: there are skills to learn. Listen, and the world will open.",
   },
+
+  firepit: {
+    id: "firepit",
+    name: "Fire Pit",
+    icon: "🔥",
+    description: "A ring of stones and a hollow of ember. The cold no longer rules you here.",
+    cost: { wood: 8, stone: 10 },
+    requires: { researched: "fire" },
+    effect: { gatherBonus: 1 },
+    onBuiltMessage:
+      "You strike sparks until something catches. The fire watches you back.",
+    whisperOnBuilt:
+      "The stone whispers: the cold is no longer your master. What else will you ask of the world?",
+  },
 };
 
 export const getBuilding = (id) => BUILDINGS[id] || null;

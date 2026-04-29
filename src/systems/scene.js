@@ -33,6 +33,14 @@ export function composeScene(state) {
     });
   }
 
+  // Fire Pit layer
+  if (run.built?.firepit) {
+    layers.push({
+      id: "firepit",
+      text: "[🔥 A ring of stones, embers crackling at its center. Warmth.]",
+    });
+  }
+
   // Rock visual
   if (rock === "dormant") {
     layers.push({

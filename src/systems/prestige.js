@@ -29,6 +29,25 @@ export function getPrestigeReward(state) {
     reasons.push({ id: "hutBuilt", label: "A home was raised", value: v });
   }
 
+  // Era 1 progression: research learned (the rock taught you).
+  const researchCount = Object.keys(run.researched || {}).length;
+  if (researchCount > 0) {
+    const v = researchCount; // +1 Echo per teaching learned
+    echoes += v;
+    reasons.push({
+      id: "researchLearned",
+      label: `${researchCount} teaching${researchCount === 1 ? "" : "s"} learned`,
+      value: v,
+    });
+  }
+
+  // Era 1 progression: fire pit raised.
+  if (run.built?.firepit) {
+    const v = 1;
+    echoes += v;
+    reasons.push({ id: "firepitBuilt", label: "Fire was raised", value: v });
+  }
+
   // Future milestones plug in here.
 
   return { echoes, reasons, eligible: echoes > 0 };

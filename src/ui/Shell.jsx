@@ -1,22 +1,29 @@
 // Top-level layout. Composes the smaller UI components into a responsive grid.
 //
 // Mobile (≤900px): single column, ordered for best mobile flow.
-// Desktop (>900px): three columns — Inventory/Buildings | Wasteland | Log.
-// Stone strip spans full width below the grid.
+// Desktop (>900px): three columns — Inventory/Buildings | Wasteland | Right.
+// Stone strip spans full width below the grid (clickable once hut is built).
 //
 // Prestige UI (Echoes counter, "Channel the Rock" button) is gated behind
 // `era >= 2`. Hidden in early game; revealed as a reward for progress.
+//
+// Teachings live in their own modal (TeachingsTreeModal) — opened by clicking
+// the stone strip. Building list is a collapsible card in the left column.
 
+import { useState } from "react";
 import Scene from "./Scene.jsx";
 import ActionPanel from "./ActionPanel.jsx";
 import InventoryPanel from "./InventoryPanel.jsx";
 import BuildingsPanel from "./BuildingsPanel.jsx";
 import StonePanel from "./StonePanel.jsx";
 import RightColumn from "./RightColumn.jsx";
+import TeachingsTreeModal from "./TeachingsTreeModal.jsx";
 import { getPrestigeReward } from "../systems/prestige.js";
 import { computeEra, getEra } from "../systems/era.js";
 
 export default function Shell({ state, actions }) {
+  const [teachingsOpen, setTeachingsOpen] = useState(false);
+
   const era = computeEra(state);
   const eraInfo = getEra(state);
   const prestigeUnlocked = era >= 2;
@@ -78,7 +85,7 @@ export default function Shell({ state, actions }) {
         </aside>
       </div>
 
-      <StonePanel state={state} />
+      <StonePanel state={state} onListen={() => setTeachingsOpen(true)} />
 
       <footer className="shell-footer">
         {prestigeUnlocked && reward.eligible ? (
@@ -94,6 +101,14 @@ export default function Shell({ state, actions }) {
           </button>
         )}
       </footer>
+
+      {teachingsOpen && (
+        <TeachingsTreeModal
+          state={state}
+          actions={actions}
+          onClose={() => setTeachingsOpen(false)}
+        />
+      )}
     </div>
   );
 }

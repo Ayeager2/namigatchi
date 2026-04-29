@@ -34,6 +34,11 @@ export const RUN_DEFAULTS = {
   // Buildings constructed this run. Shape: { buildingId: { at: ms } }.
   built: {},
 
+  // Research learned this run ("listened to"). Resets on prestige —
+  // each awakening, the rock teaches you anew.
+  // Shape: { researchId: { at: ms } }.
+  researched: {},
+
   // Splash screen flag. Plays the opening sequence on each fresh run.
   splashSeen: false,
 

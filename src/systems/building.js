@@ -17,6 +17,12 @@ export function canBuild(state, buildingId) {
     if (building.requires.rockAwakened && !state.run.rockAwakened) {
       return { ok: false, reason: "The stone must awaken first." };
     }
+    if (
+      building.requires.researched &&
+      !state.run.researched?.[building.requires.researched]
+    ) {
+      return { ok: false, reason: "You haven't listened for this yet." };
+    }
   }
 
   for (const [res, qty] of Object.entries(building.cost || {})) {
@@ -68,6 +74,10 @@ export function performBuild(state, buildingId) {
     persistent.lifetimeStats.hutsBuilt =
       (persistent.lifetimeStats.hutsBuilt || 0) + 1;
   }
+  if (buildingId === "firepit") {
+    persistent.lifetimeStats.firepitsBuilt =
+      (persistent.lifetimeStats.firepitsBuilt || 0) + 1;
+  }
 
   const events = [{ kind: "build", message: building.onBuiltMessage }];
   if (building.whisperOnBuilt) {
@@ -87,8 +97,14 @@ export function getVisibleBuildings(state) {
   return getAllBuildings().filter((b) => {
     // Always show what's already built (so player can see their accomplishments)
     if (state.run.built?.[b.id]) return true;
-    // Show if requirements are met
+    // Hide if requirements aren't met yet.
     if (b.requires?.rockAwakened && !state.run.rockAwakened) return false;
+    if (
+      b.requires?.researched &&
+      !state.run.researched?.[b.requires.researched]
+    ) {
+      return false;
+    }
     return true;
   });
 }

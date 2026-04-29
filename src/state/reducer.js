@@ -6,6 +6,7 @@ import { ACTIONS } from "./actions.js";
 import { freshRun } from "./run.js";
 import { performGather } from "../systems/gathering.js";
 import { performBuild } from "../systems/building.js";
+import { performListen } from "../systems/research.js";
 import { getPrestigeReward } from "../systems/prestige.js";
 import {
   snapshotRun,
@@ -84,6 +85,14 @@ export function reducer(state, action) {
 
     case ACTIONS.BUILD: {
       const { run, persistent, events } = performBuild(state, action.buildingId);
+      return {
+        persistent,
+        run: appendLog(run, events),
+      };
+    }
+
+    case ACTIONS.RESEARCH: {
+      const { run, persistent, events } = performListen(state, action.researchId);
       return {
         persistent,
         run: appendLog(run, events),

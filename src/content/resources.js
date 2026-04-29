@@ -27,6 +27,12 @@ export const RESOURCES = {
     icon: "✨",
     description: "Shimmering shards of something not-quite-of-this-world.",
   },
+  food: {
+    id: "food",
+    name: "Food",
+    icon: "🌿",
+    description: "Bitter berries and stubborn roots from the cracks in the dead earth.",
+  },
 };
 
 export const getResource = (id) => RESOURCES[id] || null;

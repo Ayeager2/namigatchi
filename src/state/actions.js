@@ -12,6 +12,7 @@ export const ACTIONS = {
 
   // Era 1
   BUILD: "BUILD",
+  RESEARCH: "RESEARCH",
 
   // Misc
   MARK_SPLASH_SEEN: "MARK_SPLASH_SEEN",

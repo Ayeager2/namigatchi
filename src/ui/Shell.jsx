@@ -8,7 +8,10 @@
 // `era >= 2`. Hidden in early game; revealed as a reward for progress.
 //
 // Teachings live in their own modal (TeachingsTreeModal) — opened by clicking
-// the stone strip. Building list is a collapsible card in the left column.
+// the stone strip. Building list is also a modal trigger card.
+//
+// Settings (theme, font, accessibility, save management) live behind a
+// floating gear icon at bottom-right.
 
 import { useState } from "react";
 import Scene from "./Scene.jsx";
@@ -19,12 +22,16 @@ import StonePanel from "./StonePanel.jsx";
 import RightColumn from "./RightColumn.jsx";
 import TeachingsTreeModal from "./TeachingsTreeModal.jsx";
 import BuildingsTreeModal from "./BuildingsTreeModal.jsx";
+import EventModal from "./EventModal.jsx";
+import SettingsModal from "./SettingsModal.jsx";
+import SettingsTrigger from "./SettingsTrigger.jsx";
 import { getPrestigeReward } from "../systems/prestige.js";
 import { computeEra, getEra } from "../systems/era.js";
 
-export default function Shell({ state, actions }) {
+export default function Shell({ state, actions, settingsHook }) {
   const [teachingsOpen, setTeachingsOpen] = useState(false);
   const [buildingsOpen, setBuildingsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const era = computeEra(state);
   const eraInfo = getEra(state);
@@ -71,14 +78,13 @@ export default function Shell({ state, actions }) {
 
       <Scene state={state} />
 
-      {/* DOM order = mobile order. Grid-template-areas reorders for desktop. */}
       <div className="shell-grid">
         <main className="shell-area shell-area--center">
           <ActionPanel state={state} actions={actions} />
         </main>
 
         <aside className="shell-area shell-area--left">
-          <InventoryPanel state={state} />
+          <InventoryPanel state={state} settingsHook={settingsHook} />
           <BuildingsPanel state={state} onOpen={() => setBuildingsOpen(true)} />
         </aside>
 
@@ -117,6 +123,19 @@ export default function Shell({ state, actions }) {
           state={state}
           actions={actions}
           onClose={() => setBuildingsOpen(false)}
+        />
+      )}
+
+      <EventModal state={state} actions={actions} />
+
+      <SettingsTrigger onOpen={() => setSettingsOpen(true)} />
+
+      {settingsOpen && (
+        <SettingsModal
+          settings={settingsHook.settings}
+          update={settingsHook.update}
+          state={state}
+          onClose={() => setSettingsOpen(false)}
         />
       )}
     </div>

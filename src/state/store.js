@@ -23,6 +23,16 @@ export function useGameStore() {
     saveGame(state);
   }, [state]);
 
+  // Real-time tick — every 15 seconds, dispatch TICK so events can roll.
+  // The actual interval check (60s) happens inside the TICK handler; this
+  // outer cadence just gives the system regular opportunities to fire.
+  useEffect(() => {
+    const id = setInterval(() => {
+      dispatch({ type: ACTIONS.TICK });
+    }, 15_000);
+    return () => clearInterval(id);
+  }, []);
+
   // Action functions — UI calls these, never touches dispatch directly.
   const actions = {
     gather: () => dispatch({ type: ACTIONS.GATHER }),
@@ -31,6 +41,8 @@ export function useGameStore() {
     eat: () => dispatch({ type: ACTIONS.EAT }),
     drink: () => dispatch({ type: ACTIONS.DRINK }),
     rest: () => dispatch({ type: ACTIONS.REST }),
+    respondToEvent: (choiceId) =>
+      dispatch({ type: ACTIONS.RESPOND_TO_EVENT, choiceId }),
     resetRun: () => dispatch({ type: ACTIONS.RESET_RUN }),
     prestige: () => dispatch({ type: ACTIONS.PRESTIGE }),
     markSplashSeen: () => dispatch({ type: ACTIONS.MARK_SPLASH_SEEN }),

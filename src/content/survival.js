@@ -26,28 +26,32 @@ export const SURVIVAL = {
   },
 
   // Action effects — what each survival action costs and gives.
-  // Eat and rest also restore HP. Mending research adds extra HP recovery.
+  // Eat consumes any food-category resource (lowest-quality first by default).
+  // The hunger reduction comes from the FOOD's `nutrition` value — different
+  // foods give different amounts. Cooking research adds a flat bonus to that.
+  // Other restorative effects (HP, resolve, sanity) are constant per eat.
   actions: {
     eat: {
-      cost: { food: 1 },
-      effect: { hunger: -25, hp: +5 },
+      consumesCategory: "food",
+      // baseEffect — applied on top of the food's nutrition (which goes to hunger).
+      baseEffect: { hp: +5, happiness: +2, sanity: +1 },
       logKind: "consume",
-      message: "🌿 You eat. The hunger eases.",
-      missingMessage: "No food to eat.",
+      // Message has placeholders {icon} and {name} substituted with the chosen food.
+      message: "{icon} You eat {name}. The hunger eases.",
+      missingMessage: "Nothing to eat.",
     },
     drink: {
       cost: { water: 1 },
-      effect: { thirst: -25 },
+      effect: { thirst: -25, happiness: +1 },
       logKind: "consume",
       message: "💧 You drink. The thirst recedes.",
       missingMessage: "No water to drink.",
     },
     rest: {
       cost: {},
-      effect: { energy: +30, hp: +10 },
-      // Rest at a fire pit is more restorative — first concrete use of the pit.
+      effect: { energy: +30, hp: +10, happiness: +3, sanity: +2 },
       bonusFromBuilding: {
-        firepit: { energy: +20, hp: +5 },
+        firepit: { energy: +20, hp: +5, happiness: +2, sanity: +1 },
       },
       logKind: "consume",
       message: "🛌 You rest. The weariness fades.",
@@ -72,10 +76,28 @@ export const SURVIVAL = {
   },
 
   // Initial values when survival activates (hut built).
+  // The opening is intentionally hard-core: the player wakes up hurt, hungry,
+  // thirsty, tired, and shaken. Climbing back to comfortable is a journey of
+  // acts (eating, building, learning), not a passive timer.
   startValues: {
-    hunger: 30,
-    thirst: 30,
-    energy: 80,
-    hp: 100,
+    hunger: 60,    // hungry
+    thirst: 60,    // thirsty
+    energy: 50,    // tired
+    hp: 40,        // hurt
+    happiness: 15, // miserable — look around
+    sanity: 25,    // shaken — the eyeball watched you wake up
+  },
+
+  // Extra Happiness drain per gather when needs are in the red.
+  happinessPenalties: {
+    perRedHunger: -0.5,
+    perRedThirst: -0.5,
+    perLowEnergy: -0.5,
+  },
+
+  // Sanity changes from threat events (per threat encounter, plus per HP damage).
+  sanityFromThreat: {
+    perEncounter: -2,    // every threat is unsettling
+    perDamagePoint: -1,  // taking damage compounds
   },
 };

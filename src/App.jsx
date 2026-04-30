@@ -1,10 +1,12 @@
 import { useGameStore } from "./state/store.js";
 import Shell from "./ui/Shell.jsx";
 import SplashScreen from "./ui/SplashScreen.jsx";
+import { useSettings } from "./ui/useSettings.js";
 import "./index.css";
 
 export default function App() {
   const { state, actions } = useGameStore();
+  const settingsHook = useSettings();
 
   // Splash plays on every fresh run. Once seen (or skipped), it doesn't replay
   // until run state resets (manual reset or prestige).
@@ -12,5 +14,5 @@ export default function App() {
     return <SplashScreen onComplete={actions.markSplashSeen} />;
   }
 
-  return <Shell state={state} actions={actions} />;
+  return <Shell state={state} actions={actions} settingsHook={settingsHook} />;
 }

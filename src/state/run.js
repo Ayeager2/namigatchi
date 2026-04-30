@@ -40,18 +40,35 @@ export const RUN_DEFAULTS = {
   researched: {},
 
   // Survival stats — only meaningful once the hut is built.
-  // Hunger/thirst rise with action; energy falls. HP is reduced by threats,
-  // restored by eat/rest. All clamped 0..100.
   // See systems/survival.js for decay rates and penalty thresholds.
+  // When the hut goes up, these are overwritten with SURVIVAL.startValues.
   stats: {
     hunger: 0,
     thirst: 0,
     energy: 100,
     hp: 100,
+    happiness: 50,
+    sanity: 50,
   },
 
   // Splash screen flag. Plays the opening sequence on each fresh run.
   splashSeen: false,
+
+  // Random events tracking. Cooldowns per event id, last interval roll timestamp,
+  // currently active choice event (if any).
+  events: {
+    cooldowns: {},
+    lastIntervalMs: 0,
+  },
+  activeEvent: null,
+
+  // Hidden alignment counters — accumulated through choice events. Never shown
+  // directly to the player; surfaces through later consequences (NPC reactions,
+  // available choices, late-game branching, etc.).
+  alignment: {
+    good: 0,
+    evil: 0,
+  },
 
   // Recent in-run events (latest first, capped).
   log: [],

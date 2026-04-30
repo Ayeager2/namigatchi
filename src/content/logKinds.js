@@ -25,6 +25,12 @@ export const LOG_KINDS = {
   // World threats — surfaced in Recent so they feel immediate, not buried.
   threat:    { category: "recent" },
   damage:    { category: "recent" },
+
+  // Random world events — narrative beats; live in Unlocks so the player
+  // can re-read their journey and the choices they made.
+  event_good:    { category: "unlocks" },
+  event_strange: { category: "unlocks" },
+  event_choice:  { category: "unlocks" },
 };
 
 export function getLogCategory(kind) {

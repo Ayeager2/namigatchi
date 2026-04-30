@@ -9,6 +9,8 @@
 
 import { getAllThreats } from "../content/threats.js";
 import { getResearch } from "../content/research.js";
+import { SURVIVAL } from "../content/survival.js";
+import { applyEffect } from "./survival.js";
 import { randInt } from "../util/rng.js";
 
 // Aggregate defense from all sources (research, future buildings).
@@ -70,7 +72,7 @@ export function rollThreatEncounter(state, rng = Math.random) {
 
 function resolveThreat(state, threat, rng) {
   const inventory = { ...state.run.inventory };
-  const stats = { ...(state.run.stats || {}) };
+  let stats = { ...(state.run.stats || {}) };
   const events = [];
 
   const defense = getDefense(state);
@@ -100,7 +102,17 @@ function resolveThreat(state, threat, rng) {
     }
   }
 
-  // Build the log message(s)
+  // Sanity drain — every threat is unsettling, damage compounds.
+  // Sanity is the ONLY stat affected by horror events (per design).
+  let sanityChange = SURVIVAL.sanityFromThreat?.perEncounter || 0;
+  if (dmg > 0) {
+    sanityChange += (SURVIVAL.sanityFromThreat?.perDamagePoint || 0) * dmg;
+  }
+  if (sanityChange !== 0) {
+    stats = applyEffect(stats, { sanity: sanityChange });
+  }
+
+  // Log messages
   if (stolen > 0) {
     events.push({
       kind: "threat",

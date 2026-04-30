@@ -15,25 +15,27 @@
 // (hut requires 5 water, foraging research requires 5 water).
 
 export const GATHER_TABLE = {
-  // Pre-rock: basic resources + a tiny chance to find the rock.
+  // Pre-rock: BARREN. You're digging in dust with bare fingers.
+  // Quantities are 1 and there's a high chance of nothing — every gather
+  // should feel like effort, not reward. The wasteland yields slowly.
   preRock: [
-    { weight: 38, kind: "resource", id: "wood",  qty: [1, 2] },
-    { weight: 38, kind: "resource", id: "stone", qty: [1, 2] },
-    { weight: 8,  kind: "resource", id: "water", qty: [1, 1] },
-    { weight: 14, kind: "nothing" },
+    { weight: 32, kind: "resource", id: "wood",  qty: [1, 1] },
+    { weight: 32, kind: "resource", id: "stone", qty: [1, 1] },
+    { weight: 6,  kind: "resource", id: "water", qty: [1, 1] },
+    { weight: 28, kind: "nothing" },
     { weight: 2,  kind: "rockFind" },
   ],
 
-  // Rock found, not yet awakened: basic resources + frequent fragment drops.
+  // Rock found, not yet awakened: a little better. You have purpose now.
   postRockPreAwaken: [
-    { weight: 32, kind: "resource", id: "wood",  qty: [1, 2] },
-    { weight: 32, kind: "resource", id: "stone", qty: [1, 2] },
-    { weight: 8,  kind: "resource", id: "water", qty: [1, 1] },
-    { weight: 5,  kind: "nothing" },
-    { weight: 23, kind: "resource", id: "fragments", qty: [1, 1] },
+    { weight: 30, kind: "resource", id: "wood",  qty: [1, 2] },
+    { weight: 30, kind: "resource", id: "stone", qty: [1, 2] },
+    { weight: 7,  kind: "resource", id: "water", qty: [1, 1] },
+    { weight: 12, kind: "nothing" },
+    { weight: 21, kind: "resource", id: "fragments", qty: [1, 1] },
   ],
 
-  // Rock awakened: more generous wood/stone yields.
+  // Rock awakened: the world feels more generous. The earth gives more freely.
   postAwaken: [
     { weight: 38, kind: "resource", id: "wood",  qty: [1, 3] },
     { weight: 38, kind: "resource", id: "stone", qty: [1, 3] },

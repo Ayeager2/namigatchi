@@ -19,6 +19,10 @@ export const ACTIONS = {
   DRINK: "DRINK",
   REST: "REST",
 
+  // World events
+  TICK: "TICK",
+  RESPOND_TO_EVENT: "RESPOND_TO_EVENT",
+
   // Misc
   MARK_SPLASH_SEEN: "MARK_SPLASH_SEEN",
   CLEAR_LOG: "CLEAR_LOG",

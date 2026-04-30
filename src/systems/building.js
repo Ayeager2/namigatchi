@@ -6,6 +6,7 @@ import {
   decayForAction,
   initialStats,
   survivalActive,
+  boostStats,
 } from "./survival.js";
 
 // Returns { ok: bool, reason: string }.
@@ -103,6 +104,11 @@ export function performBuild(state, buildingId) {
   // Survival decay for performing the build action itself.
   if (survivalActive({ ...state, run })) {
     run = { ...run, stats: decayForAction(run.stats || {}, "Build") };
+    // Building something is a meaningful achievement — boost resolve and sanity.
+    run = {
+      ...run,
+      stats: boostStats(run.stats, { happiness: +5, sanity: +3 }),
+    };
   }
 
   return { run, persistent, events };

@@ -15,6 +15,7 @@ import {
 } from "../content/gatherTable.js";
 import { RESOURCES } from "../content/resources.js";
 import { getBuilding } from "../content/buildings.js";
+import { getResearch } from "../content/research.js";
 import { getBuildingBonuses } from "./building.js";
 import { getResearchBonuses } from "./research.js";
 import {
@@ -24,6 +25,7 @@ import {
   canGather,
 } from "./survival.js";
 import { rollThreatEncounter } from "./threats.js";
+import { rollGatherEvent } from "./events.js";
 import { pickWeighted, randInt } from "../util/rng.js";
 
 // Build the live gather table from base + research additions.
@@ -140,6 +142,25 @@ export function performGather(state, rng = Math.random) {
     }
   }
 
+  // Tracking research: separate chance to find a bonus fragment after the rock
+  // is found. Pure additive — doesn't intrude on the main gather table.
+  if (run.rockFound) {
+    for (const id of Object.keys(run.researched || {})) {
+      const r = getResearch(id);
+      if (r?.effect?.fragmentChance && rng() < r.effect.fragmentChance) {
+        run.inventory.fragments = (run.inventory.fragments || 0) + 1;
+        run.gathered.fragments = (run.gathered.fragments || 0) + 1;
+        persistent.lifetimeStats.totalResourcesGathered += 1;
+        persistent.lifetimeStats.resourcesByType.fragments =
+          (persistent.lifetimeStats.resourcesByType.fragments || 0) + 1;
+        events.push({
+          kind: "resource",
+          message: "✨ +1 (something extra glints in the dust)",
+        });
+      }
+    }
+  }
+
   // Apply survival decay (after gather, AFTER any awakening/build state changes).
   if (survivalActive({ ...state, run })) {
     run.stats = decayForAction(run.stats || {}, "Gather");
@@ -152,9 +173,18 @@ export function performGather(state, rng = Math.random) {
       run.inventory = threat.inventory;
       run.stats = threat.stats;
       events.push(...threat.events);
-      // Track encounters in persistent stats.
       persistent.lifetimeStats.threatsEncountered =
         (persistent.lifetimeStats.threatsEncountered || 0) + 1;
+    }
+  }
+
+  // Random event — roll for a gather-triggered event after threats resolve.
+  if (survivalActive({ ...state, run })) {
+    const ev = rollGatherEvent({ ...state, run, persistent }, rng);
+    if (ev) {
+      Object.assign(run, ev.run);
+      Object.assign(persistent, ev.persistent);
+      events.push(...ev.events);
     }
   }
 

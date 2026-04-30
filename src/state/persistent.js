@@ -36,6 +36,7 @@ export const PERSISTENT_DEFAULTS = {
     fastestAwakeningMs: null, // ms from run start to rock awakening
     fastestHutMs: null,       // ms from run start to hut built
     threatsEncountered: 0,    // total threat encounters across runs
+    eventsTriggered: 0,       // total random events across runs
   },
 
   // History of past runs (most recent first, capped). Each entry is a snapshot

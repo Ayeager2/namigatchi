@@ -117,6 +117,39 @@ export const RESEARCH = {
     col: 2,
     parents: ["foraging"],
   },
+
+  // Tier 3 — refinement. Each builds on tier 2.
+  cooking: {
+    id: "cooking",
+    name: "Cooking",
+    icon: "🍳",
+    whisper:
+      "The stone speaks of fire and meat. Of heat that breaks the cold thing into something the body can use.",
+    cost: { wood: 10, food: 5 },
+    requires: { hutBuilt: true },
+    effect: { cookingBonus: 5 },
+    onLearnedMessage:
+      "You listen, and the stone teaches you cooking. Food is more filling now, when warmed.",
+    tier: 3,
+    col: 1,
+    parents: ["fire"],
+  },
+
+  tracking: {
+    id: "tracking",
+    name: "Tracking",
+    icon: "🐾",
+    whisper:
+      "The stone speaks of sign. Of broken twigs, of pressed dust, of the way the world remembers what walks across it.",
+    cost: { stone: 8, food: 3 },
+    requires: { hutBuilt: true },
+    effect: { fragmentChance: 0.05, gatherBonus: 1 },
+    onLearnedMessage:
+      "You listen, and the stone teaches you to read the dust. The world gives up more of what it hides.",
+    tier: 3,
+    col: 0,
+    parents: ["vigilance"],
+  },
 };
 
 export const getResearch = (id) => RESEARCH[id] || null;

@@ -1,7 +1,32 @@
 /* Global styles. Dark, post-apocalyptic mood. Minimal but tasteful.
    This file will get split into per-component CSS later as it grows. */
 
+/* ===== Themes ===== */
+
+/* Default theme variables. The .theme-X classes on body override these. */
 :root {
+  --bg: #1a1814;
+  --bg-elev: #221f1a;
+  --bg-elev2: #2a261f;
+  --text: #d8d2c4;
+  --text-muted: #8a8478;
+  --text-faint: #5a544a;
+  --accent: #d4a45c;
+  --accent-dim: #8a6a3a;
+  --good: #87a96b;
+  --warn: #c98a4f;
+  --bad: #b85b5b;
+  --awaken: #d8c477;
+  --border: #3a352c;
+
+  /* Typography variables — overridden by .font-X and .size-X body classes */
+  --font-body: "Inter", "Helvetica Neue", system-ui, sans-serif;
+  --font-display: Georgia, "Cinzel", "Trajan Pro", serif;
+  --font-base-size: 15px;
+}
+
+/* Dark (default) */
+body.theme-dark {
   --bg: #1a1814;
   --bg-elev: #221f1a;
   --bg-elev2: #2a261f;
@@ -17,6 +42,41 @@
   --border: #3a352c;
 }
 
+/* Sepia — warm parchment/dusk feel. Easier on the eyes for long sessions. */
+body.theme-sepia {
+  --bg: #2a241a;
+  --bg-elev: #322b1f;
+  --bg-elev2: #3a3225;
+  --text: #ede0c4;
+  --text-muted: #b9a888;
+  --text-faint: #807055;
+  --accent: #e6b870;
+  --accent-dim: #a07c40;
+  --good: #9ab773;
+  --warn: #d99852;
+  --bad: #c46a5e;
+  --awaken: #f0d480;
+  --border: #4a3f2c;
+}
+
+/* Font families (overrides --font-body/--font-display) */
+body.font-system { /* defaults */ }
+
+body.font-lexend {
+  --font-body: "Lexend", "Inter", system-ui, sans-serif;
+  --font-display: "Lexend", Georgia, serif;
+}
+
+body.font-atkinson {
+  --font-body: "Atkinson Hyperlegible", "Inter", system-ui, sans-serif;
+  --font-display: "Atkinson Hyperlegible", Georgia, serif;
+}
+
+/* Font sizes */
+body.size-small  { --font-base-size: 13px; }
+body.size-normal { --font-base-size: 15px; }
+body.size-large  { --font-base-size: 17px; }
+
 * { box-sizing: border-box; }
 
 html, body, #root {
@@ -25,13 +85,13 @@ html, body, #root {
   height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
-  font-size: 15px;
+  font-family: var(--font-body);
+  font-size: var(--font-base-size);
   line-height: 1.5;
 }
 
 h1, h2, h3 {
-  font-family: Georgia, "Cinzel", "Trajan Pro", serif;
+  font-family: var(--font-display);
   letter-spacing: 0.04em;
   margin: 0 0 0.5em 0;
 }
@@ -107,6 +167,20 @@ button {
 .shell-footer {
   margin-top: 24px;
   text-align: center;
+}
+
+.footer-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.btn-import {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
 }
 
 /* ---- action panel (center) ---- */
@@ -1371,6 +1445,272 @@ button {
   text-shadow: 0 0 4px rgba(184, 91, 91, 0.25);
 }
 
+.log-entry--event_good {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.log-entry--event_strange {
+  color: #b29ec5;
+  font-style: italic;
+  text-shadow: 0 0 4px rgba(178, 158, 197, 0.2);
+}
+
+.log-entry--event_choice {
+  color: var(--accent);
+  font-style: italic;
+}
+
+/* ---- event modal ---- */
+
+.modal--event {
+  max-width: 560px;
+}
+
+.modal-body--event {
+  padding: 22px 26px 26px;
+}
+
+.event-flavor {
+  font-size: 16px;
+  line-height: 1.6;
+  font-style: italic;
+  color: var(--text);
+  margin: 0 0 22px 0;
+  padding-left: 14px;
+  border-left: 2px solid var(--accent-dim);
+}
+
+.event-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.event-choice {
+  background: var(--bg-elev2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 14px 18px;
+  border-radius: 10px;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  transition: background 0.1s, border-color 0.1s, transform 0.05s;
+}
+
+.event-choice:hover:not(:disabled) {
+  background: var(--bg-elev);
+  border-color: var(--accent-dim);
+}
+
+.event-choice:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.event-choice:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.event-choice-label {
+  font-size: 15px;
+  font-weight: 500;
+  flex: 1;
+}
+
+.event-choice-cost {
+  display: flex;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.event-choice-cost-item {
+  white-space: nowrap;
+  background: var(--bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+/* ---- inventory groups ---- */
+
+.inv-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inv-group {
+  border-bottom: 1px dashed var(--border);
+  padding-bottom: 8px;
+}
+
+.inv-group:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.inv-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: transparent;
+  color: inherit;
+  border: none;
+  padding: 6px 4px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.1s;
+}
+
+.inv-group-header:hover {
+  background: rgba(212, 164, 92, 0.05);
+}
+
+.inv-group-caret {
+  color: var(--text-faint);
+  font-size: 10px;
+  width: 12px;
+  flex-shrink: 0;
+}
+
+.inv-group-name {
+  flex: 1;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.inv-group-count {
+  color: var(--text-faint);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.inv-group .inventory-list {
+  margin-top: 6px;
+}
+
+/* ---- settings trigger (floating gear) ---- */
+
+.settings-trigger {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--bg-elev);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 50;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  transition: color 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.settings-trigger:hover {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+  transform: rotate(30deg);
+}
+
+/* ---- settings modal ---- */
+
+.modal--settings {
+  max-width: 620px;
+}
+
+.settings-section {
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.settings-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.settings-section h3 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.settings-row:last-child { margin-bottom: 0; }
+
+.settings-label {
+  flex: 0 0 90px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.settings-options {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.settings-option {
+  background: var(--bg-elev2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+
+.settings-option:hover {
+  border-color: var(--accent-dim);
+}
+
+.settings-option.is-active {
+  background: var(--accent-dim);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.settings-import {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.settings-help {
+  font-size: 12px;
+  margin: -6px 0 12px 0;
+}
+
 /* HP bar — fills toward right like the other bars but the visual story is
    about how much you have. Use a red-ish gradient that gets brighter when low. */
 
@@ -1418,6 +1758,67 @@ button {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   color: var(--accent);
+}
+
+/* Body / Mind sections */
+
+.sb-section {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.sb-section:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.sb-section-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-faint);
+  margin-bottom: 2px;
+}
+
+/* Resolve (happiness) — soft warm gold, dims when low */
+.sb-bar--resolve .sb-bar-fill {
+  background: linear-gradient(to right, var(--accent-dim), var(--accent));
+}
+
+.sb-bar--resolve.sb-bar--warn .sb-bar-fill {
+  background: var(--warn);
+}
+
+.sb-bar--resolve.sb-bar--danger .sb-bar-fill {
+  background: linear-gradient(to right, #6a4a3a, #c98a4f);
+  opacity: 0.7;
+}
+
+.sb-bar--resolve.sb-bar--danger .sb-bar-value {
+  color: var(--warn);
+}
+
+/* Sanity — cool purple, more eldritch when low */
+.sb-bar--sanity .sb-bar-fill {
+  background: linear-gradient(to right, #5a4870, #b29ec5);
+}
+
+.sb-bar--sanity.sb-bar--warn .sb-bar-fill {
+  background: linear-gradient(to right, #5a4870, #8a7a9c);
+}
+
+.sb-bar--sanity.sb-bar--danger .sb-bar-fill {
+  background: linear-gradient(to right, #3a2a4a, #6a4a7a);
+  box-shadow: 0 0 6px rgba(178, 158, 197, 0.3);
+}
+
+.sb-bar--sanity.sb-bar--danger .sb-bar-value {
+  color: #b29ec5;
+  text-shadow: 0 0 4px rgba(178, 158, 197, 0.5);
 }
 
 /* ---- utilities ---- */

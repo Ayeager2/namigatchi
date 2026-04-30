@@ -8,6 +8,10 @@ import { performGather } from "../systems/gathering.js";
 import { performBuild } from "../systems/building.js";
 import { performListen } from "../systems/research.js";
 import { performSurvivalAction } from "../systems/survival.js";
+import {
+  maybeRollInterval,
+  respondToActiveEvent,
+} from "../systems/events.js";
 import { getPrestigeReward } from "../systems/prestige.js";
 import {
   snapshotRun,
@@ -118,6 +122,24 @@ export function reducer(state, action) {
     case ACTIONS.MARK_SPLASH_SEEN:
       if (state.run.splashSeen) return state;
       return { ...state, run: { ...state.run, splashSeen: true } };
+
+    case ACTIONS.TICK: {
+      // Real-time tick — checks if an interval event should fire.
+      const result = maybeRollInterval(state);
+      if (!result) return state;
+      return {
+        persistent: result.persistent,
+        run: appendLog(result.run, result.events),
+      };
+    }
+
+    case ACTIONS.RESPOND_TO_EVENT: {
+      const result = respondToActiveEvent(state, action.choiceId);
+      return {
+        persistent: result.persistent,
+        run: appendLog(result.run, result.events),
+      };
+    }
 
     case ACTIONS.CLEAR_LOG:
       return { ...state, run: { ...state.run, log: [] } };

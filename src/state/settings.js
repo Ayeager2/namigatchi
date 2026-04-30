@@ -11,6 +11,19 @@ export const SETTINGS_DEFAULTS = {
   theme: "dark",         // "dark" | "sepia"
   font: "system",        // "system" | "lexend" | "atkinson"
   fontSize: "normal",    // "small" | "normal" | "large"
+  // Motion preference. "auto" respects OS (prefers-reduced-motion).
+  // "reduced" forces calm animations regardless of OS.
+  // "full" forces full animations regardless of OS.
+  // Important for photosensitive epilepsy and vestibular disorders.
+  motion: "auto",        // "auto" | "reduced" | "full"
+  // Audio (volumes 0..100, muted is a separate boolean for one-click silence).
+  masterVolume: 70,
+  musicVolume: 50,
+  sfxVolume: 80,
+  muted: false,
+  // Music selection. null = auto (era-based). Otherwise the trackId of an
+  // unlocked music track to lock onto, regardless of era.
+  pinnedMusicId: null,
   // Inventory section collapse state. true = collapsed, missing/false = open.
   inventoryCollapsed: {},
 };
@@ -42,7 +55,7 @@ export function saveSettings(settings) {
 }
 
 // Apply settings to the DOM by setting body classes. CSS reads these classes
-// to switch theme, font family, and base font size.
+// to switch theme, font family, base font size, and motion preference.
 export function applySettingsToDOM(settings) {
   const body = document.body;
   if (!body) return;
@@ -52,7 +65,8 @@ export function applySettingsToDOM(settings) {
     if (
       cls.startsWith("theme-") ||
       cls.startsWith("font-") ||
-      cls.startsWith("size-")
+      cls.startsWith("size-") ||
+      cls.startsWith("motion-")
     ) {
       classesToRemove.push(cls);
     }
@@ -62,4 +76,8 @@ export function applySettingsToDOM(settings) {
   body.classList.add(`theme-${settings.theme}`);
   body.classList.add(`font-${settings.font}`);
   body.classList.add(`size-${settings.fontSize}`);
+  // Motion class is only added when user has overridden OS — "auto" uses
+  // CSS media query so the OS preference flows through naturally.
+  if (settings.motion === "reduced") body.classList.add("motion-reduced");
+  if (settings.motion === "full") body.classList.add("motion-full");
 }

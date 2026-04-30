@@ -131,10 +131,15 @@ export function performGather(state, rng = Math.random) {
     run.inventory.fragments >= FRAGMENTS_TO_AWAKEN
   ) {
     run.rockAwakened = true;
+    run.rockAwakenedAt = Date.now();
+    // The rock consumes the fragments — all of them. Player sees the
+    // Unknown inventory section vanish in real time.
+    run.inventory.fragments = 0;
     persistent.lifetimeStats.rocksAwakened += 1;
     events.push({
       kind: "awaken",
-      message: "The fragments bind to the stone, and the stone OPENS its eye.",
+      message:
+        "The fragments leap from your hand to the stone — and the stone OPENS its eye.",
     });
     const hut = getBuilding("hut");
     if (hut?.whisperOnAvailable) {

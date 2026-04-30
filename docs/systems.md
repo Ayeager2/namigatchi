@@ -188,11 +188,13 @@ starting an iteration so we don't lose context after time away.
 ---
 
 ### 🟢 User settings (theme, font, accessibility)
-**State.** Separate persistence track from game state. Stored in `localStorage` under `namigatchi-settings` so settings survive across save resets, prestige wipes, and game data clears. Three theme options (Dark, Sepia), three font options (System, Lexend for dyslexia-friendly reading, Atkinson Hyperlegible for low vision), three text sizes (Small, Normal, Large). Settings apply live via body class names and CSS variables. Inventory category collapse state also persists here. Accessed via floating gear icon at bottom-right.
+**State.** Separate persistence track from game state. Stored in `localStorage` under `namigatchi-settings` so settings survive across save resets, prestige wipes, and game data clears. Three theme options (Dark, Sepia), three font options (System, Lexend for dyslexia-friendly reading, Atkinson Hyperlegible for low vision), three text sizes (Small, Normal, Large), three motion options (Auto / Reduced / Full — Auto follows OS `prefers-reduced-motion`). Settings apply live via body class names and CSS variables. Inventory category collapse state also persists here. Accessed via floating gear icon at bottom-right.
 
-**Where.** `src/state/settings.js`, `src/ui/useSettings.js`, `src/ui/SettingsModal.jsx`, `src/ui/SettingsTrigger.jsx`. Theme/font CSS in `src/index.css` (body.theme-X, body.font-X, body.size-X).
+**Motion / photosensitivity.** The awakening flash and other dramatic animations have calm variants (gentle fade-ins, no scale, no brightness peak) that activate under either OS preference OR explicit user choice. Important for photosensitive epilepsy and vestibular disorders. Default is "Auto" — respects OS — so users with their system already configured get safe behavior with no extra action.
 
-**Long arc.** Reduced motion toggle, color-blind palettes, sound volume controls when audio arrives, language selection if we localize. The pattern is established: any new preference goes in `SETTINGS_DEFAULTS`, gets a UI control, applies via CSS class or component state.
+**Where.** `src/state/settings.js`, `src/ui/useSettings.js`, `src/ui/SettingsModal.jsx`, `src/ui/SettingsTrigger.jsx`. Theme/font/motion CSS in `src/index.css` (body.theme-X, body.font-X, body.size-X, body.motion-X, plus `@media (prefers-reduced-motion: reduce)`).
+
+**Long arc.** Color-blind palettes, sound volume controls when audio arrives, language selection if we localize, optional one-time photosensitivity warning on first ever launch. The pattern is established: any new preference goes in `SETTINGS_DEFAULTS`, gets a UI control, applies via CSS class or component state.
 
 ---
 
@@ -225,12 +227,43 @@ starting an iteration so we don't lose context after time away.
 
 ---
 
+### 🟢 Audio (era-driven music with progressive unlocks)
+**State.** Music plays automatically based on era — tracks tagged `era0`, `era1`, etc. crossfade as the player progresses. When the player first reaches an era, every track tagged for that era is added to `persistent.unlockedMusic` and stays unlocked forever (across prestige). Players can pin any unlocked track to override era-based selection. Crossfades are smooth (~2.5s). Browser autoplay policy is handled — if initial play is blocked, music retries on first user interaction. Volume sliders (Master / Music / Sound) and Mute toggle in Settings. Credits section auto-renders attribution from the audio data.
+
+**Currently in the game.** One music track: "Dark Ambient Soundscape" by LemonMusicLab (Pixabay), tagged `era0, ambient, calm`. Plays from the moment the player begins a fresh run. Will fade out when era 1 is reached and no era1 track is yet defined.
+
+**Where.** `src/content/audio.js` (registry + era helpers), `src/systems/audio.js` (playback, crossfade, autoplay retry, sync logic), `src/state/persistent.js` (unlockedMusic), `src/state/reducer.js` (SYNC_MUSIC_UNLOCKS action), `src/App.jsx` (era-watch effect that triggers unlock + play sync), `src/ui/SettingsModal.jsx` (volume sliders, mute, music picker), `src/ui/CreditsSection.jsx` (attribution).
+
+**To add a music track or SFX:** use `npm run add-audio` (the dev tool). It walks through download → metadata → license → registers in audio.js. The Credits section picks it up automatically.
+
+**For tracks specifically:** tag with `era0` / `era1` / etc. for auto-play in that era. Tagging multiple eras (e.g. `era1`, `era2`) means it remains an option across multiple eras (auto-pick prefers the highest era track that's tagged for the player's current era).
+
+**Free music sources.** Pixabay Music (royalty-free, no attribution required), Free Music Archive (CC-BY mostly), Incompetech (CC-BY, Kevin MacLeod), Tabletop Audio (great for ambient/horror, personal use free), Uppbeat, Bensound. For SFX: Freesound.org, Sonniss GDC packs.
+
+**Long arc.** Per-era music progression (sparse Era 1 ambient → eldritch Era 5 horror). SFX for gather, awaken, build, threat, event, choice. Optional dynamic music — track changes based on world state (low sanity layers an eldritch drone, etc.). Player music history (which tracks they've heard, on what runs).
+
+---
+
 ### 🟢 Stone strip + Teachings trigger
 **State.** Persistent strip at bottom. Once hut built, clickable — opens teachings modal. Lore-fitting (you're literally listening to the stone).
 
 **Where.** `src/ui/StonePanel.jsx`.
 
 **Long arc.** As the stone evolves through forms, this strip changes. Eventually the stone may be replaced by an evolved companion sprite.
+
+---
+
+## Development tools
+
+Scripts that help work on the project but aren't shipped as part of the game.
+Live in `tools/`. See `tools/README.md` for the full list.
+
+### 🟢 `tools/add-audio.js` — audio import wizard
+**State.** Walks through adding a music track or SFX. Asks for a source URL, fetches the page to suggest a title, attempts to find and download a direct MP3 link (works on hosts that expose URLs in HTML; falls back to manual file path otherwise). Prompts for id/title/artist/tags/volume/loop/license, auto-detects license from common source domains (Pixabay, FMA, Incompetech, Freesound, Tabletop Audio, Uppbeat, Bensound), copies the file into `public/audio/`, and appends a properly-formatted entry to `src/content/audio.js`. The Credits section auto-renders the new entry.
+
+**Run.** `npm run add-audio` (or `node tools/add-audio.js`).
+
+**Long arc.** As the asset pipeline grows, similar wizards may help with adding research nodes, threats, events, buildings, etc. Pattern: each tool is a self-contained Node script under `tools/` that prompts for missing data and either generates a snippet or appends directly to the relevant content file. Same content-as-data philosophy applied to the *authoring* layer.
 
 ---
 

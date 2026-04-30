@@ -30,6 +30,7 @@ export const RUN_DEFAULTS = {
   // Era 0 milestones
   rockFound: false,
   rockAwakened: false,
+  rockAwakenedAt: 0, // ms timestamp; drives the awakening-flash animation
 
   // Buildings constructed this run. Shape: { buildingId: { at: ms } }.
   built: {},

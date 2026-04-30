@@ -48,9 +48,15 @@ export function composeScene(state) {
       text: "[A small smooth stone rests in your hand, warm to the touch.]",
     });
   } else if (rock === "awakened") {
+    // Recently awakened? Mark for the flash animation.
+    const since = run.rockAwakenedAt
+      ? Date.now() - run.rockAwakenedAt
+      : Infinity;
+    const justAwakened = since >= 0 && since < 4000;
     layers.push({
       id: "rock-awakened",
       text: "[The stone has OPENED its eye. It watches you, calm and ancient.]",
+      flags: { justAwakened },
     });
   }
 

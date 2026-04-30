@@ -9,11 +9,17 @@ export default function Scene({ state }) {
   const scene = composeScene(state);
   return (
     <section className="scene">
-      {scene.layers.map((layer) => (
-        <div key={layer.id} className={`scene-layer scene-layer--${layer.id}`}>
-          {layer.text}
-        </div>
-      ))}
+      {scene.layers.map((layer) => {
+        const extraClass = layer.flags?.justAwakened ? " just-awakened" : "";
+        return (
+          <div
+            key={layer.id}
+            className={`scene-layer scene-layer--${layer.id}${extraClass}`}
+          >
+            {layer.text}
+          </div>
+        );
+      })}
     </section>
   );
 }

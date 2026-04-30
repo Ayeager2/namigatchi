@@ -1286,6 +1286,114 @@ button {
   font-style: italic;
 }
 
+/* ---- awakening flash ----
+   Plays once for ~3 seconds when the rock just awakened. Pulse glow,
+   slight scale, brief brightness peak, settles back into the steady
+   awakened look (which is itself defined by .stone-strip.is-awakened
+   above). */
+
+@keyframes rockAwakenStrip {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(216, 196, 119, 0);
+    background: var(--bg-elev);
+  }
+  10% {
+    transform: scale(1.02);
+    box-shadow: 0 0 28px 6px rgba(216, 196, 119, 0.55);
+    background: rgba(216, 196, 119, 0.18);
+  }
+  35% {
+    transform: scale(1);
+    box-shadow: 0 0 22px 4px rgba(216, 196, 119, 0.4);
+    background: rgba(216, 196, 119, 0.10);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(216, 196, 119, 0);
+    background: linear-gradient(90deg, var(--bg-elev) 0%, rgba(216, 196, 119, 0.05) 100%);
+  }
+}
+
+@keyframes rockAwakenIcon {
+  0%   { transform: scale(1);   filter: brightness(1); }
+  15%  { transform: scale(1.6); filter: brightness(2.2); }
+  30%  { transform: scale(1.3); filter: brightness(1.6); }
+  100% { transform: scale(1);   filter: brightness(1); }
+}
+
+.stone-strip.just-awakened {
+  animation: rockAwakenStrip 3s ease-out forwards;
+}
+
+.stone-strip.just-awakened .stone-icon {
+  animation: rockAwakenIcon 3s ease-out;
+  display: inline-block; /* needed for transform */
+}
+
+@keyframes sceneRockFlash {
+  0%   { opacity: 0.4; color: #fff; text-shadow: 0 0 24px rgba(216, 196, 119, 1); transform: translateY(4px); }
+  20%  { opacity: 1;   color: #fff8d8; text-shadow: 0 0 18px rgba(216, 196, 119, 0.85); transform: translateY(0); }
+  100% { opacity: 1;   color: var(--awaken); text-shadow: 0 0 8px rgba(216, 196, 119, 0.25); transform: translateY(0); }
+}
+
+.scene-layer--rock-awakened.just-awakened {
+  animation: sceneRockFlash 3s ease-out;
+}
+
+/* ---- reduced motion: calm versions of awakening animations ----
+   Triggers under EITHER:
+     1. body.motion-reduced (user override)
+     2. @media (prefers-reduced-motion: reduce) when user hasn't overridden
+   The body:not(.motion-full) condition lets users force full motion via the
+   in-app setting even if their OS says reduce. */
+
+@keyframes rockAwakenStripCalm {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes sceneRockFlashCalm {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Force-reduced: user-explicit override */
+body.motion-reduced .stone-strip.just-awakened {
+  animation: rockAwakenStripCalm 1.2s ease-out forwards;
+}
+
+body.motion-reduced .stone-strip.just-awakened .stone-icon {
+  animation: none;
+}
+
+body.motion-reduced .scene-layer--rock-awakened.just-awakened {
+  animation: sceneRockFlashCalm 1.2s ease-out forwards;
+}
+
+body.motion-reduced .settings-trigger:hover {
+  transform: none;
+}
+
+/* Auto-reduced: OS preference, only when user hasn't forced full */
+@media (prefers-reduced-motion: reduce) {
+  body:not(.motion-full) .stone-strip.just-awakened {
+    animation: rockAwakenStripCalm 1.2s ease-out forwards;
+  }
+
+  body:not(.motion-full) .stone-strip.just-awakened .stone-icon {
+    animation: none;
+  }
+
+  body:not(.motion-full) .scene-layer--rock-awakened.just-awakened {
+    animation: sceneRockFlashCalm 1.2s ease-out forwards;
+  }
+
+  body:not(.motion-full) .settings-trigger:hover {
+    transform: none;
+  }
+}
+
 /* ---- unlocks log ---- */
 
 .unlock-list {
@@ -1709,6 +1817,136 @@ button {
 .settings-help {
   font-size: 12px;
   margin: -6px 0 12px 0;
+}
+
+/* ---- volume sliders ---- */
+
+.settings-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.settings-slider {
+  flex: 1;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--bg-elev2);
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.settings-slider:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.settings-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg);
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.settings-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.settings-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg);
+  cursor: pointer;
+}
+
+.settings-slider-value {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 28px;
+  text-align: right;
+}
+
+/* ---- credits ---- */
+
+.credits-block {
+  margin-bottom: 14px;
+}
+
+.credits-block:last-child {
+  margin-bottom: 0;
+}
+
+.credits-block-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.credits-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.credit-item {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.credit-item:last-child {
+  border-bottom: none;
+}
+
+.credit-title {
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.credit-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.credit-sep {
+  color: var(--text-faint);
+}
+
+.credit-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.credit-link:hover {
+  text-decoration: underline;
+}
+
+/* Music track picker — wraps gracefully as the unlocked list grows. */
+.music-tracks {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.music-tracks .settings-option {
+  font-size: 12px;
+  white-space: normal;
+  text-align: left;
+  max-width: 220px;
 }
 
 /* HP bar — fills toward right like the other bars but the visual story is

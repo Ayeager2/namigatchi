@@ -43,6 +43,7 @@ export function useGameStore() {
     rest: () => dispatch({ type: ACTIONS.REST }),
     respondToEvent: (choiceId) =>
       dispatch({ type: ACTIONS.RESPOND_TO_EVENT, choiceId }),
+    syncMusicUnlocks: () => dispatch({ type: ACTIONS.SYNC_MUSIC_UNLOCKS }),
     resetRun: () => dispatch({ type: ACTIONS.RESET_RUN }),
     prestige: () => dispatch({ type: ACTIONS.PRESTIGE }),
     markSplashSeen: () => dispatch({ type: ACTIONS.MARK_SPLASH_SEEN }),

@@ -16,6 +16,10 @@ export default function StonePanel({ state, onListen }) {
   const isDormant = rock === "dormant";
   const canListen = !!run.built?.hut && !!onListen;
 
+  // Flash animation when awakening just happened (within 4s).
+  const since = run.rockAwakenedAt ? Date.now() - run.rockAwakenedAt : Infinity;
+  const justAwakened = !isDormant && since >= 0 && since < 4000;
+
   const Wrapper = canListen ? "button" : "div";
   const wrapperProps = canListen
     ? {
@@ -29,7 +33,7 @@ export default function StonePanel({ state, onListen }) {
     <Wrapper
       className={`stone-strip ${isDormant ? "is-dormant" : "is-awakened"} ${
         canListen ? "is-clickable" : ""
-      }`}
+      }${justAwakened ? " just-awakened" : ""}`}
       {...wrapperProps}
     >
       <span className="stone-icon">{isDormant ? "🪨" : "👁️"}</span>

@@ -7,6 +7,7 @@ import {
   saveSettings,
   applySettingsToDOM,
 } from "../state/settings.js";
+import { applyAudioSettings } from "../systems/audio.js";
 
 export function useSettings() {
   const [settings, setSettings] = useState(loadSettings);
@@ -15,11 +16,13 @@ export function useSettings() {
   useEffect(() => {
     saveSettings(settings);
     applySettingsToDOM(settings);
+    applyAudioSettings(settings);
   }, [settings]);
 
   // Apply immediately on mount (in case load happened before DOM ready).
   useEffect(() => {
     applySettingsToDOM(settings);
+    applyAudioSettings(settings);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

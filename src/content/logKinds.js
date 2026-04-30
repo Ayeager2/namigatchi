@@ -31,6 +31,9 @@ export const LOG_KINDS = {
   event_good:    { category: "unlocks" },
   event_strange: { category: "unlocks" },
   event_choice:  { category: "unlocks" },
+
+  // Music unlocks — narrative beat (you've heard a new sound for this era).
+  music_unlocked: { category: "unlocks" },
 };
 
 export function getLogCategory(kind) {

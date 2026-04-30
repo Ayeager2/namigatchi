@@ -13,6 +13,8 @@ import {
   respondToActiveEvent,
 } from "../systems/events.js";
 import { getPrestigeReward } from "../systems/prestige.js";
+import { computeEra } from "../systems/era.js";
+import { getAllMusic } from "../content/audio.js";
 import {
   snapshotRun,
   updateLifetime,
@@ -122,6 +124,42 @@ export function reducer(state, action) {
     case ACTIONS.MARK_SPLASH_SEEN:
       if (state.run.splashSeen) return state;
       return { ...state, run: { ...state.run, splashSeen: true } };
+
+    case ACTIONS.SYNC_MUSIC_UNLOCKS: {
+      // Walk all defined music tracks. Any track tagged with eraN where
+      // current era >= N gets added to unlockedMusic (one-way ratchet).
+      const era = computeEra(state);
+      const unlockedMusic = { ...(state.persistent.unlockedMusic || {}) };
+      const newEvents = [];
+      let changed = false;
+
+      for (const track of getAllMusic()) {
+        if (unlockedMusic[track.id]) continue;
+        const eraTags = (track.tags || []).filter((t) => /^era\d+$/.test(t));
+        if (eraTags.length === 0) continue;
+        const eraNumbers = eraTags
+          .map((t) => parseInt(t.slice(3), 10))
+          .filter((n) => !isNaN(n));
+        if (eraNumbers.length === 0) continue;
+        const minEra = Math.min(...eraNumbers);
+        if (era >= minEra) {
+          unlockedMusic[track.id] = { unlockedAt: Date.now() };
+          changed = true;
+          newEvents.push({
+            kind: "music_unlocked",
+            message: `🎵 New music: "${track.title}"${
+              track.artist ? ` by ${track.artist}` : ""
+            }.`,
+          });
+        }
+      }
+
+      if (!changed) return state;
+      return {
+        persistent: { ...state.persistent, unlockedMusic },
+        run: appendLog(state.run, newEvents),
+      };
+    }
 
     case ACTIONS.TICK: {
       // Real-time tick — checks if an interval event should fire.

@@ -43,6 +43,11 @@ export const PERSISTENT_DEFAULTS = {
   // taken when a run ends (either reset or prestige). Drives the "compare to
   // last run" UI and longer-term retrospective views.
   runHistory: [],
+
+  // Music tracks the player has unlocked across all runs.
+  // Once a track is unlocked, it's available forever — surviving prestige.
+  // Shape: { trackId: { unlockedAt: ms } }.
+  unlockedMusic: {},
 };
 
 // How many run snapshots to keep in history. Older ones get dropped.

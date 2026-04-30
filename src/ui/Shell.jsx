@@ -18,11 +18,13 @@ import BuildingsPanel from "./BuildingsPanel.jsx";
 import StonePanel from "./StonePanel.jsx";
 import RightColumn from "./RightColumn.jsx";
 import TeachingsTreeModal from "./TeachingsTreeModal.jsx";
+import BuildingsTreeModal from "./BuildingsTreeModal.jsx";
 import { getPrestigeReward } from "../systems/prestige.js";
 import { computeEra, getEra } from "../systems/era.js";
 
 export default function Shell({ state, actions }) {
   const [teachingsOpen, setTeachingsOpen] = useState(false);
+  const [buildingsOpen, setBuildingsOpen] = useState(false);
 
   const era = computeEra(state);
   const eraInfo = getEra(state);
@@ -77,7 +79,7 @@ export default function Shell({ state, actions }) {
 
         <aside className="shell-area shell-area--left">
           <InventoryPanel state={state} />
-          <BuildingsPanel state={state} actions={actions} />
+          <BuildingsPanel state={state} onOpen={() => setBuildingsOpen(true)} />
         </aside>
 
         <aside className="shell-area shell-area--right">
@@ -107,6 +109,14 @@ export default function Shell({ state, actions }) {
           state={state}
           actions={actions}
           onClose={() => setTeachingsOpen(false)}
+        />
+      )}
+
+      {buildingsOpen && (
+        <BuildingsTreeModal
+          state={state}
+          actions={actions}
+          onClose={() => setBuildingsOpen(false)}
         />
       )}
     </div>

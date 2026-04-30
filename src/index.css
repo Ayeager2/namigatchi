@@ -963,6 +963,113 @@ button {
   opacity: 0.4;
 }
 
+/* Available = can be built/listened given current resources & gates.
+   Subtle gold border to invite the click. */
+.tree-node--available .tree-node-bg {
+  stroke: var(--accent-dim);
+}
+
+/* Built = constructed (buildings tree). Gold-tinted, glowing. */
+.tree-node--built .tree-node-bg {
+  fill: rgba(212, 164, 92, 0.12);
+  stroke: var(--accent);
+  filter: drop-shadow(0 0 6px rgba(212, 164, 92, 0.3));
+}
+
+.tree-node--built.is-selected .tree-node-bg {
+  filter: drop-shadow(0 0 10px rgba(212, 164, 92, 0.55));
+}
+
+/* Category accents — used for category-tinted node strokes */
+.tree-node--cat-shelter     .tree-node-bg { }
+.tree-node--cat-comfort     .tree-node-bg { stroke-dasharray: none; }
+.tree-node--cat-tools       .tree-node-bg { }
+.tree-node--cat-industry    .tree-node-bg { }
+.tree-node--cat-arcane      .tree-node-bg { }
+.tree-node--cat-sovereignty .tree-node-bg { }
+.tree-node--cat-cosmos      .tree-node-bg { }
+
+.tree-detail-cat {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.building-effect {
+  font-size: 13px;
+  margin: 0 0 6px 0;
+}
+
+/* ---- trigger card (replaces inline buildings list) ---- */
+
+.card--trigger {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s, transform 0.05s;
+}
+
+.card--trigger:hover {
+  background: var(--bg-elev2);
+  border-color: var(--accent-dim);
+}
+
+.card--trigger:active {
+  transform: translateY(1px);
+}
+
+.trigger-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.trigger-top h3 {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0;
+}
+
+.trigger-arrow {
+  color: var(--accent-dim);
+  font-size: 16px;
+  transition: transform 0.15s, color 0.15s;
+}
+
+.card--trigger:hover .trigger-arrow {
+  color: var(--accent);
+  transform: translateX(2px);
+}
+
+.trigger-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.trigger-stats strong {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.trigger-sep {
+  color: var(--text-faint);
+}
+
 /* ---- tree detail panel ---- */
 
 .tree-detail {
@@ -1251,6 +1358,66 @@ button {
 .log-entry--actionFail {
   color: var(--text-faint);
   font-style: italic;
+}
+
+.log-entry--threat {
+  color: #c98a4f;
+  font-style: italic;
+}
+
+.log-entry--damage {
+  color: var(--bad);
+  font-weight: 500;
+  text-shadow: 0 0 4px rgba(184, 91, 91, 0.25);
+}
+
+/* HP bar — fills toward right like the other bars but the visual story is
+   about how much you have. Use a red-ish gradient that gets brighter when low. */
+
+.sb-bar--hp .sb-bar-fill {
+  background: linear-gradient(to right, #b85b5b, #d36b6b);
+}
+
+.sb-bar--hp.sb-bar--ok .sb-bar-fill {
+  background: linear-gradient(to right, #b85b5b, #d36b6b);
+}
+
+.sb-bar--hp.sb-bar--warn .sb-bar-fill {
+  background: var(--warn);
+}
+
+.sb-bar--hp.sb-bar--danger .sb-bar-fill {
+  background: var(--bad);
+  box-shadow: 0 0 6px rgba(184, 91, 91, 0.5);
+}
+
+/* Defense — flat number with a shield icon, not a bar. */
+.sb-defense {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.sb-defense-icon {
+  font-size: 14px;
+}
+
+.sb-defense-name {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.sb-defense-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--accent);
 }
 
 /* ---- utilities ---- */

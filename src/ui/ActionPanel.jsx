@@ -19,7 +19,7 @@ export default function ActionPanel({ state, actions }) {
         <p className="muted">There is nothing here. There is everything to find.</p>
       </div>
 
-      {survival && <SurvivalBars stats={state.run.stats} />}
+      {survival && <SurvivalBars state={state} />}
 
       <div className="action-row">
         <button

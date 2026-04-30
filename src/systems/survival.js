@@ -5,8 +5,8 @@
 // false and decay/penalties are skipped. This keeps Era 0 frictionless.
 
 import { SURVIVAL } from "../content/survival.js";
+import { getResearch } from "../content/research.js";
 
-// Whether survival mechanics are active for this state.
 export function survivalActive(state) {
   return !!state.run.built?.hut;
 }
@@ -23,11 +23,11 @@ export function decayForAction(stats, kind) {
     hunger: clamp((stats.hunger ?? 0) + (decay.hunger || 0), 0, 100),
     thirst: clamp((stats.thirst ?? 0) + (decay.thirst || 0), 0, 100),
     energy: clamp((stats.energy ?? 100) + (decay.energy || 0), 0, 100),
+    hp: clamp((stats.hp ?? 100) + (decay.hp || 0), 0, 100),
   };
 }
 
-// Compute the gather yield multiplier given current stats. Higher hunger/
-// thirst lower yields; low energy lowers yields.
+// Compute the gather yield multiplier given current stats.
 export function getYieldMultiplier(stats) {
   if (!stats) return 1.0;
   let mult = 1.0;
@@ -43,8 +43,7 @@ export function getYieldMultiplier(stats) {
   return mult;
 }
 
-// Whether the player can perform a gather right now. When energy is exhausted,
-// gathering is blocked — the player must rest first.
+// Whether the player can perform a gather right now.
 export function canGather(state) {
   if (!survivalActive(state)) return { ok: true };
   const stats = state.run.stats || {};
@@ -54,16 +53,27 @@ export function canGather(state) {
   return { ok: true };
 }
 
-// Apply an effect object to stats. { hunger: -25, energy: +30, ... }
+// Apply an effect object to stats. { hunger, thirst, energy, hp }
 function applyEffect(stats, effect) {
   return {
     hunger: clamp((stats.hunger ?? 0) + (effect.hunger || 0), 0, 100),
     thirst: clamp((stats.thirst ?? 0) + (effect.thirst || 0), 0, 100),
     energy: clamp((stats.energy ?? 100) + (effect.energy || 0), 0, 100),
+    hp: clamp((stats.hp ?? 100) + (effect.hp || 0), 0, 100),
   };
 }
 
-// Eligibility for a survival action. Returns { ok, reason }.
+// Mending research: extra HP recovery from healing actions.
+function getHealBonus(state) {
+  let bonus = 0;
+  for (const id of Object.keys(state.run.researched || {})) {
+    const r = getResearch(id);
+    if (r?.effect?.healBonus) bonus += r.effect.healBonus;
+  }
+  return bonus;
+}
+
+// Eligibility for a survival action.
 export function canPerformSurvivalAction(state, actionId) {
   if (!survivalActive(state)) {
     return { ok: false, reason: "No needs yet." };
@@ -105,7 +115,7 @@ export function performSurvivalAction(state, actionId) {
     inventory[res] = (inventory[res] || 0) - qty;
   }
 
-  // Apply effect, plus any building bonus
+  // Compose effect: base + building bonus + research heal bonus on HP-restoring actions.
   let effect = { ...def.effect };
   let message = def.message;
   if (def.bonusFromBuilding) {
@@ -120,6 +130,12 @@ export function performSurvivalAction(state, actionId) {
       }
     }
   }
+  // Mending: bonus HP restoration on actions that heal.
+  if (effect.hp && effect.hp > 0) {
+    const heal = getHealBonus(state);
+    if (heal > 0) effect.hp += heal;
+  }
+
   const stats = applyEffect(state.run.stats || SURVIVAL.startValues, effect);
 
   return {

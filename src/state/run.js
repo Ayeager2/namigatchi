@@ -40,12 +40,14 @@ export const RUN_DEFAULTS = {
   researched: {},
 
   // Survival stats — only meaningful once the hut is built.
-  // Hunger/thirst rise with action; energy falls. All clamped 0..100.
+  // Hunger/thirst rise with action; energy falls. HP is reduced by threats,
+  // restored by eat/rest. All clamped 0..100.
   // See systems/survival.js for decay rates and penalty thresholds.
   stats: {
     hunger: 0,
     thirst: 0,
     energy: 100,
+    hp: 100,
   },
 
   // Splash screen flag. Plays the opening sequence on each fresh run.

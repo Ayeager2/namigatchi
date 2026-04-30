@@ -23,6 +23,7 @@ import {
   getYieldMultiplier,
   canGather,
 } from "./survival.js";
+import { rollThreatEncounter } from "./threats.js";
 import { pickWeighted, randInt } from "../util/rng.js";
 
 // Build the live gather table from base + research additions.
@@ -142,6 +143,19 @@ export function performGather(state, rng = Math.random) {
   // Apply survival decay (after gather, AFTER any awakening/build state changes).
   if (survivalActive({ ...state, run })) {
     run.stats = decayForAction(run.stats || {}, "Gather");
+  }
+
+  // Threat encounter — roll AFTER decay so defense/HP reflect current state.
+  if (survivalActive({ ...state, run })) {
+    const threat = rollThreatEncounter({ ...state, run }, rng);
+    if (threat) {
+      run.inventory = threat.inventory;
+      run.stats = threat.stats;
+      events.push(...threat.events);
+      // Track encounters in persistent stats.
+      persistent.lifetimeStats.threatsEncountered =
+        (persistent.lifetimeStats.threatsEncountered || 0) + 1;
+    }
   }
 
   return { run, persistent, events };

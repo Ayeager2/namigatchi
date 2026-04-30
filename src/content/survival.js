@@ -26,10 +26,11 @@ export const SURVIVAL = {
   },
 
   // Action effects — what each survival action costs and gives.
+  // Eat and rest also restore HP. Mending research adds extra HP recovery.
   actions: {
     eat: {
       cost: { food: 1 },
-      effect: { hunger: -25 },
+      effect: { hunger: -25, hp: +5 },
       logKind: "consume",
       message: "🌿 You eat. The hunger eases.",
       missingMessage: "No food to eat.",
@@ -43,10 +44,10 @@ export const SURVIVAL = {
     },
     rest: {
       cost: {},
-      effect: { energy: +30 },
+      effect: { energy: +30, hp: +10 },
       // Rest at a fire pit is more restorative — first concrete use of the pit.
       bonusFromBuilding: {
-        firepit: { energy: +20 },
+        firepit: { energy: +20, hp: +5 },
       },
       logKind: "consume",
       message: "🛌 You rest. The weariness fades.",
@@ -75,5 +76,6 @@ export const SURVIVAL = {
     hunger: 30,
     thirst: 30,
     energy: 80,
+    hp: 100,
   },
 };

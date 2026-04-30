@@ -68,6 +68,55 @@ export const RESEARCH = {
     col: 2,
     parents: [],
   },
+
+  // Tier 2 — defense / survival reinforcement
+  vigilance: {
+    id: "vigilance",
+    name: "Vigilance",
+    icon: "👁️",
+    whisper:
+      "The stone speaks of watching. Of the long quiet eye that sees what stirs in the ash before it is upon you.",
+    cost: { food: 5, stone: 10 },
+    requires: { hutBuilt: true },
+    effect: { defense: 2 },
+    onLearnedMessage:
+      "You listen, and the stone teaches you to watch. Your eyes harden against the dust.",
+    tier: 2,
+    col: 0,
+    parents: ["knapping"],
+  },
+
+  hiddenStores: {
+    id: "hiddenStores",
+    name: "Hidden Stores",
+    icon: "📦",
+    whisper:
+      "The stone speaks of caches. Of placing what you must keep where the hungry cannot find it.",
+    cost: { food: 5, wood: 10 },
+    requires: { hutBuilt: true },
+    effect: { foodStealReduction: 1 },
+    onLearnedMessage:
+      "You listen, and the stone teaches you to hide. The hungry find less when they come.",
+    tier: 2,
+    col: 1,
+    parents: ["foraging"],
+  },
+
+  mending: {
+    id: "mending",
+    name: "Mending",
+    icon: "🩹",
+    whisper:
+      "The stone speaks of slow knitting. Of bone that remembers itself, of skin that closes around what it must.",
+    cost: { food: 5, water: 5 },
+    requires: { hutBuilt: true },
+    effect: { healBonus: 5 },
+    onLearnedMessage:
+      "You listen, and the stone teaches you mending. Rest and food restore more of the body's quiet weight.",
+    tier: 2,
+    col: 2,
+    parents: ["foraging"],
+  },
 };
 
 export const getResearch = (id) => RESEARCH[id] || null;

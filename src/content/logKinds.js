@@ -21,6 +21,10 @@ export const LOG_KINDS = {
   whisper:   { category: "unlocks" },
   build:     { category: "unlocks" },
   research:  { category: "unlocks" },
+
+  // World threats — surfaced in Recent so they feel immediate, not buried.
+  threat:    { category: "recent" },
+  damage:    { category: "recent" },
 };
 
 export function getLogCategory(kind) {

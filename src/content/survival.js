@@ -100,4 +100,12 @@ export const SURVIVAL = {
     perEncounter: -2,    // every threat is unsettling
     perDamagePoint: -1,  // taking damage compounds
   },
+
+  // Gather pacing — anti-spam cooldown that progression slowly chips away at.
+  // Manual click → faster manual click (via tools/research) → eventual
+  // automation is the entire incremental progression curve.
+  gather: {
+    baseCooldownMs: 1500, // pre-anything; barren wasteland, slow work
+    minCooldownMs: 250,   // floor — there's always SOME pause
+  },
 };

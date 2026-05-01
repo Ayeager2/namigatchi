@@ -24,6 +24,14 @@ export const SETTINGS_DEFAULTS = {
   // Music selection. null = auto (era-based). Otherwise the trackId of an
   // unlocked music track to lock onto, regardless of era.
   pinnedMusicId: null,
+  // Keyboard shortcuts. Lowercase single keys. Customizable in settings.
+  // null means unbound. Holding a key does NOT auto-fire (e.repeat filtered).
+  keybindings: {
+    gather: "g",
+    rest: "r",
+    eat: "e",
+    drink: "d",
+  },
   // Inventory section collapse state. true = collapsed, missing/false = open.
   inventoryCollapsed: {},
 };

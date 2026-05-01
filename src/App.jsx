@@ -3,6 +3,7 @@ import { useGameStore } from "./state/store.js";
 import Shell from "./ui/Shell.jsx";
 import SplashScreen from "./ui/SplashScreen.jsx";
 import { useSettings } from "./ui/useSettings.js";
+import { useKeybindings } from "./ui/useKeybindings.js";
 import { computeEra } from "./systems/era.js";
 import { syncMusicToState } from "./systems/audio.js";
 import "./index.css";
@@ -11,6 +12,14 @@ export default function App() {
   const { state, actions } = useGameStore();
   const settingsHook = useSettings();
   const era = computeEra(state);
+
+  // Global keyboard shortcuts. Filters out key-repeats so holding a key
+  // doesn't bypass gather cooldown. Disabled while splash is showing.
+  useKeybindings(
+    settingsHook.settings,
+    actions,
+    !state.run.splashSeen
+  );
 
   // When era changes (or on initial mount), sync the music unlock list:
   // every track whose era tag has been reached gets added to persistent

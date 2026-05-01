@@ -2,6 +2,7 @@
 // Hosts theme/font/size accessibility options + save export/import.
 // Settings apply live as the user clicks (no Apply button needed).
 
+import { useEffect, useState } from "react";
 import {
   downloadSaveFile,
   importSaveFromJSON,
@@ -9,6 +10,77 @@ import {
 } from "../systems/saveIO.js";
 import CreditsSection from "./CreditsSection.jsx";
 import { getMusic, getAllMusic } from "../content/audio.js";
+
+// One row in the keybindings section. Click to start capturing a new key.
+// During capture, the next key press becomes the new binding (Esc cancels,
+// Backspace clears).
+function KeybindingRow({ label, action, currentKey, onRebind, onClear, allBindings }) {
+  const [capturing, setCapturing] = useState(false);
+  const [conflictKey, setConflictKey] = useState(null);
+
+  useEffect(() => {
+    if (!capturing) return;
+    const handler = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === "Escape") {
+        setCapturing(false);
+        setConflictKey(null);
+        return;
+      }
+      if (e.key === "Backspace" || e.key === "Delete") {
+        onClear(action);
+        setCapturing(false);
+        setConflictKey(null);
+        return;
+      }
+      // Single character keys only (lowercased) — no modifiers, no F-keys, etc.
+      const key = e.key.length === 1 ? e.key.toLowerCase() : null;
+      if (!key) return;
+
+      // Check for conflict with another binding.
+      const conflict = Object.entries(allBindings || {}).find(
+        ([a, k]) => a !== action && k === key
+      );
+      if (conflict) {
+        setConflictKey(key);
+        // Auto-clear the warning after a moment.
+        return;
+      }
+
+      onRebind(action, key);
+      setCapturing(false);
+      setConflictKey(null);
+    };
+    document.addEventListener("keydown", handler, true);
+    return () => document.removeEventListener("keydown", handler, true);
+  }, [capturing, action, onRebind, onClear, allBindings]);
+
+  return (
+    <div className="settings-row">
+      <div className="settings-label">{label}</div>
+      <div className="settings-options">
+        <button
+          className={`settings-option keybind-button ${
+            capturing ? "is-capturing" : ""
+          }`}
+          onClick={() => {
+            setCapturing(!capturing);
+            setConflictKey(null);
+          }}
+        >
+          {capturing
+            ? conflictKey
+              ? `"${conflictKey.toUpperCase()}" already used — try another`
+              : "Press a key… (Esc to cancel, Backspace to clear)"
+            : currentKey
+            ? currentKey.toUpperCase()
+            : "—"}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function OptionRow({ label, options, value, onChange }) {
   return (
@@ -130,6 +202,38 @@ export default function SettingsModal({ settings, update, state, onClose }) {
                 { value: "large", label: "Large" },
               ]}
             />
+          </section>
+
+          <section className="settings-section">
+            <h3>Keyboard shortcuts</h3>
+            <p className="muted settings-help">
+              Click a key, press a new one to rebind. Esc cancels, Backspace clears.
+              Holding a key won't auto-fire — gather keeps its cooldown.
+            </p>
+            {[
+              { action: "gather", label: "Gather" },
+              { action: "eat", label: "Eat" },
+              { action: "drink", label: "Drink" },
+              { action: "rest", label: "Rest" },
+            ].map(({ action, label }) => (
+              <KeybindingRow
+                key={action}
+                action={action}
+                label={label}
+                currentKey={settings.keybindings?.[action]}
+                allBindings={settings.keybindings}
+                onRebind={(a, k) =>
+                  update({
+                    keybindings: { ...settings.keybindings, [a]: k },
+                  })
+                }
+                onClear={(a) =>
+                  update({
+                    keybindings: { ...settings.keybindings, [a]: null },
+                  })
+                }
+              />
+            ))}
           </section>
 
           <section className="settings-section">

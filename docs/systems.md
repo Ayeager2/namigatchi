@@ -56,11 +56,43 @@ starting an iteration so we don't lose context after time away.
 ## Era 0 — Scavenger
 
 ### 🟢 Gathering loop
-**State.** Click Gather, roll a weighted table for a random resource (wood/stone/water; fragments after rock found; food after Foraging research). Water is rare (8% of rolls).
+**State.** Click Gather (or press G), roll a weighted table for a random resource (wood/stone/water; fragments after rock found; food after Foraging research). Water is rare (8% of rolls). Quantities scale with progress: pre-rock 1 per drop, post-rock-pre-awaken 1–2, post-awakening 1–3, plus +1 per gather-bonus source (hut, fire pit, knapping, tracking).
 
 **Where.** `src/systems/gathering.js`, `src/content/gatherTable.js`, `src/content/resources.js`.
 
-**Next steps.** As more research nodes add resources, the gather table should support per-zone variations later (different gathering "where you go" → different drops). Not needed yet.
+**Next steps.** Per-zone gather tables when zones exist (different drops at the cave vs. the forest). Not needed yet.
+
+---
+
+### 🟢 Gather cooldown — the manual→automation curve
+**State.** Each gather has a cooldown. Base 1500ms, floored at 250ms. Reductions stack from buildings and research:
+- Hut: –150ms
+- Fire Pit: –100ms
+- Knapping: –250ms
+- Tracking: –100ms
+
+With everything Era 1 has to offer: 900ms (about 40% faster than base). Holding the gather key does NOT bypass the cooldown — `e.repeat` is filtered, anti-spam from day one. Cooldown rejections are silent (no log spam from key-mashing).
+
+**UI.** The Gather button shows a live fill bar that animates across the bottom edge during cooldown. Button disabled until the bar fills. CPU-cheap — the React re-render interval only runs while a cooldown is active.
+
+**Where.** `src/content/survival.js` (gather config), `src/systems/gathering.js` (`getGatherCooldownMs`, `canGatherFull`), `src/ui/ActionPanel.jsx` (UI).
+
+**Long arc.** The whole incremental progression curve hangs off this. Era 2 tools (Stone Axe, Bone Knife) will add more reductions. Era 3 research could grant `gatherSpeedup` of 500ms+ per node. Era 4+ unlocks "Auto-Gather" — a passive trickle that gathers without clicks while you focus on higher-tier decisions. By late game, most early-tier resources are passive.
+
+---
+
+### 🟢 Keyboard shortcuts
+**State.** Global keyboard shortcuts for the four most-used actions. Defaults: G (gather), R (rest), E (eat), D (drink). Customizable in Settings → Keyboard shortcuts. Click a key, press a new one to rebind. Esc cancels rebind, Backspace clears the binding.
+
+**Anti-spam.** Holding a key does NOT auto-fire — `e.repeat` is filtered in the global handler. Combined with the gather cooldown, players can't mash their way past the wasteland's harshness.
+
+**Conflict detection.** Trying to bind a key that's already bound to another action shows a conflict warning and refuses the bind. Player must clear the existing binding first.
+
+**Suppression.** Shortcuts won't fire when typing in inputs/textareas (so settings inputs aren't hijacked). Disabled entirely while the splash is showing.
+
+**Where.** `src/ui/useKeybindings.js` (global handler), `src/state/settings.js` (`keybindings` field), `src/ui/SettingsModal.jsx` (rebind UI), `src/App.jsx` (hook usage).
+
+**Long arc.** More actions to bind as the game grows: open buildings/teachings/settings modals, prestige action, etc. The hook's action-handler map is one place to extend — add a new entry, surface a row in the settings UI.
 
 ---
 

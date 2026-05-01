@@ -14,19 +14,64 @@ import {
   FRAGMENTS_TO_AWAKEN,
 } from "../content/gatherTable.js";
 import { RESOURCES } from "../content/resources.js";
-import { getBuilding } from "../content/buildings.js";
-import { getResearch } from "../content/research.js";
+import { getBuilding, getAllBuildings } from "../content/buildings.js";
+import { getResearch, getAllResearch } from "../content/research.js";
 import { getBuildingBonuses } from "./building.js";
 import { getResearchBonuses } from "./research.js";
 import {
   survivalActive,
   decayForAction,
   getYieldMultiplier,
-  canGather,
+  canGather as canGatherSurvival,
 } from "./survival.js";
 import { rollThreatEncounter } from "./threats.js";
 import { rollGatherEvent } from "./events.js";
 import { pickWeighted, randInt } from "../util/rng.js";
+import { SURVIVAL } from "../content/survival.js";
+
+// Compute the current gather cooldown in ms. Buildings and research reduce
+// the base. Floored at SURVIVAL.gather.minCooldownMs so there's always SOME
+// pause — full automation is a separate (future) system.
+export function getGatherCooldownMs(state) {
+  const cfg = SURVIVAL.gather || {};
+  let ms = cfg.baseCooldownMs ?? 1500;
+
+  // Buildings
+  for (const id of Object.keys(state.run.built || {})) {
+    const b = getBuilding(id);
+    if (b?.effect?.gatherSpeedup) ms -= b.effect.gatherSpeedup;
+  }
+  // Research
+  for (const id of Object.keys(state.run.researched || {})) {
+    const r = getResearch(id);
+    if (r?.effect?.gatherSpeedup) ms -= r.effect.gatherSpeedup;
+  }
+
+  return Math.max(cfg.minCooldownMs ?? 250, ms);
+}
+
+// Returns { ok, reason, msRemaining } for the gather action including
+// both survival energy gating and the new cooldown.
+export function canGatherFull(state) {
+  // Energy gate (existing)
+  const survivalCheck = canGatherSurvival(state);
+  if (!survivalCheck.ok) return { ...survivalCheck, msRemaining: 0 };
+
+  // Cooldown gate (new)
+  const lastAt = state.run.lastGatheredAt || 0;
+  if (lastAt > 0) {
+    const cooldownMs = getGatherCooldownMs(state);
+    const elapsed = Date.now() - lastAt;
+    if (elapsed < cooldownMs) {
+      return {
+        ok: false,
+        reason: "Catching your breath…",
+        msRemaining: cooldownMs - elapsed,
+      };
+    }
+  }
+  return { ok: true, msRemaining: 0 };
+}
 
 // Build the live gather table from base + research additions.
 function buildGatherTable(run) {
@@ -44,9 +89,17 @@ function buildGatherTable(run) {
 }
 
 export function performGather(state, rng = Math.random) {
-  // Energy gate — refuse if exhausted.
-  const gateCheck = canGather(state);
+  // Energy gate AND cooldown gate.
+  const gateCheck = canGatherFull(state);
   if (!gateCheck.ok) {
+    // Cooldown rejections happen silently — no log spam from key-mashing.
+    if (gateCheck.msRemaining > 0) {
+      return {
+        run: state.run,
+        persistent: state.persistent,
+        events: [],
+      };
+    }
     return {
       run: state.run,
       persistent: state.persistent,
@@ -60,6 +113,7 @@ export function performGather(state, rng = Math.random) {
     inventory: { ...state.run.inventory },
     gathered: { ...(state.run.gathered || {}) },
     gatherCount: (state.run.gatherCount || 0) + 1,
+    lastGatheredAt: Date.now(),
   };
   const persistent = {
     ...state.persistent,

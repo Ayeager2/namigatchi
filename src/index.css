@@ -1949,6 +1949,86 @@ body.motion-reduced .settings-trigger:hover {
   max-width: 220px;
 }
 
+/* ---- gather button cooldown bar ---- */
+
+.btn-gather {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-gather .btn-label {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-hotkey {
+  display: inline-block;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--bg-elev2);
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.btn-secondary .btn-hotkey {
+  background: var(--bg);
+  color: var(--text-muted);
+  margin-left: 6px;
+}
+
+.btn-cooldown-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.55);
+  transform-origin: left center;
+  transition: transform 0.05s linear, opacity 0.2s;
+  pointer-events: none;
+}
+
+.btn-gather.is-cooling {
+  cursor: wait;
+  opacity: 0.85;
+}
+
+/* Reduced motion: no smooth transition on the cooldown fill — just snap */
+body.motion-reduced .btn-cooldown-fill {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body:not(.motion-full) .btn-cooldown-fill {
+    transition: none;
+  }
+}
+
+/* ---- keybinding rebind button ---- */
+
+.keybind-button {
+  min-width: 60px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.keybind-button.is-capturing {
+  background: var(--accent-dim);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-weight: 400;
+  font-size: 11px;
+  white-space: normal;
+  text-align: center;
+  min-width: 220px;
+}
+
 /* HP bar — fills toward right like the other bars but the visual story is
    about how much you have. Use a red-ish gradient that gets brighter when low. */
 

@@ -1,16 +1,52 @@
-# React + Vite
+# Namigatchi
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A long-arc incremental/idle game with cosmic horror flavor. You wake in a poisoned post-apocalyptic wasteland. You find a rock that talks to you. You progress through eight eras (Scavenger → Cosmic) while the rock evolves alongside you, your hidden alignment crystallizes, and the world transforms around you.
 
-Currently, two official plugins are available:
+Built in React + Vite. Browser-only for now, eventually Steam-bound.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Quick start
 
-## React Compiler
+```bash
+git clone https://github.com/Ayeager2/namigatchi.git
+cd namigatchi
+npm install
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Open `http://localhost:5173` in your browser.
 
-## Expanding the ESLint configuration
+## Documentation
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **[`docs/HANDOFF.md`](docs/HANDOFF.md)** — start here. Onboarding, current state, how to resume work on another machine or in a new conversation.
+- **[`docs/roadmap.md`](docs/roadmap.md)** — vision, era ladder, design decisions.
+- **[`docs/architecture.md`](docs/architecture.md)** — structural design (v1 audit + v2 addendum).
+- **[`docs/systems.md`](docs/systems.md)** — every gameplay system's current state, with status legend.
+- **[`tools/README.md`](tools/README.md)** — dev tools (audio import wizard, etc.).
+
+## Scripts
+
+```bash
+npm run dev          # dev server with hot reload
+npm run build        # production build
+npm run preview      # preview production build
+npm run lint         # ESLint
+npm run add-audio    # CLI wizard to import a music track or SFX
+```
+
+## Project structure
+
+```
+src/
+  content/       game content as pure data (resources, buildings, research, audio, ...)
+  state/         persistent + run state, save/load, reducer, store hook, settings
+  systems/       gameplay logic (gathering, research, building, threats, events, audio, ...)
+  ui/            React components (Shell, panels, modals, settings)
+  util/          pure helpers (RNG, etc.)
+public/audio/    music + sfx files
+tools/           dev scripts (e.g. add-audio.js)
+docs/            project documentation
+```
+
+## Commit conventions
+
+Solo project, no strict rules. Prefer descriptive messages that summarize the feature added or change made.

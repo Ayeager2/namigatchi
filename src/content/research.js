@@ -61,9 +61,9 @@ export const RESEARCH = {
       "The stone speaks of edges. Of striking one stone against another until something sharper than need is born.",
     cost: { stone: 10 },
     requires: { hutBuilt: true },
-    effect: { gatherBonus: 1 },
+    effect: { gatherBonus: 1, gatherSpeedup: 250 },
     onLearnedMessage:
-      "You listen, and the stone teaches you edges. Your hands take more from the earth now.",
+      "You listen, and the stone teaches you edges. Your hands take more from the earth now, and faster.",
     tier: 1,
     col: 2,
     parents: [],
@@ -143,9 +143,9 @@ export const RESEARCH = {
       "The stone speaks of sign. Of broken twigs, of pressed dust, of the way the world remembers what walks across it.",
     cost: { stone: 8, food: 3 },
     requires: { hutBuilt: true },
-    effect: { fragmentChance: 0.05, gatherBonus: 1 },
+    effect: { fragmentChance: 0.05, gatherBonus: 1, gatherSpeedup: 100 },
     onLearnedMessage:
-      "You listen, and the stone teaches you to read the dust. The world gives up more of what it hides.",
+      "You listen, and the stone teaches you to read the dust. The world gives up more of what it hides, and your hand finds it sooner.",
     tier: 3,
     col: 0,
     parents: ["vigilance"],

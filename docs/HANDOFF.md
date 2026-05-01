@@ -1,0 +1,138 @@
+# Handoff & Continuity
+
+This doc lets you (or a fresh AI assistant) pick up exactly where the previous session left off — on a different machine, after a long break, or in a brand-new conversation.
+
+Read this **first** when resuming work. The other docs are reference; this is the briefing.
+
+---
+
+## What is this project?
+
+**Namigatchi** is a long-arc incremental/idle game with cosmic horror flavor, built in React + Vite (browser-only for now, eventually Steam-bound).
+
+You wake in a poisoned post-apocalyptic wasteland. You find a rock that talks to you in whispers. You progress through 8 eras (Scavenger → Awakening → Settler → Awakened World → Arcane Industry → Eldritch Reckoning → Ascendant → Cosmic) while the rock evolves alongside you, your hidden alignment crystallizes (good/dark), and the world transforms.
+
+It's a passion project intended for eventual Steam release. Heavy emphasis on accessibility, moddability-readiness, and architectural integrity.
+
+---
+
+## Setup on a new machine
+
+```bash
+git clone https://github.com/Ayeager2/namigatchi.git
+cd namigatchi
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173` in browser. That's the whole setup.
+
+**To move your game save** between machines: open the in-game Settings (gear, bottom-right) → Save management → Export. On the new machine, Settings → Save management → Import the exported JSON file.
+
+**Settings** (themes, fonts, keybindings, volumes) do NOT transfer with the save file by design — they live in a separate `localStorage` key (`namigatchi-settings`). They're per-device preferences. Re-configure on each machine.
+
+---
+
+## Reading order for the docs
+
+Read in this order **before doing anything**:
+
+1. **`docs/roadmap.md`** — vision, era ladder, design decisions made, open questions
+2. **`docs/architecture.md`** — structural design (the v1 audit + v2 addendum at the bottom describes the *current* architecture)
+3. **`docs/systems.md`** — current state of every gameplay system, with status legend (🟢 shipped · 🟡 partial · ⬜ planned · 🔮 future-vision). This is the live "what's where" doc.
+4. **`tools/README.md`** — dev tools (audio import wizard, etc.)
+5. **This file** — current state and how to resume
+
+---
+
+## Architectural rules to internalize
+
+These are the patterns the codebase enforces. Don't violate them when adding features.
+
+- **Content as data.** Game content (resources, buildings, research, threats, events, audio) lives in `src/content/*.js` as plain data objects. **No functions inside content.** This keeps it moddable — JSON migration is a one-day refactor when needed.
+- **Thin reducer + system files.** `src/state/reducer.js` is a thin dispatcher; gameplay logic lives in `src/systems/*.js`. Each system is a pure function.
+- **Persistent vs run state separation.** `state.persistent` survives prestige forever (echoes, run history, unlocked music). `state.run` wipes on prestige. Save format already supports it.
+- **Pure scene composition.** UI doesn't decide what to show — `systems/scene.js` does. UI just renders.
+- **Modal pattern for content-heavy screens.** Trees (research, buildings) and rich UIs live in modals triggered from main UI.
+- **Accessibility first.** Reduced motion respects OS preference. Fonts include dyslexia-friendly Lexend and low-vision Atkinson Hyperlegible. Photosensitivity considered for any flashing content.
+- **Hidden alignment.** Good/evil counters track silently in run state. Never displayed to the player. Surfaces through consequences (NPC reactions, branching paths, tameable creatures), not numbers.
+- **Anti-spam from day one.** Gather has a cooldown; key-repeat doesn't auto-fire. Manual click → faster manual click → automation is the entire incremental progression curve.
+
+---
+
+## Current state (as of this commit)
+
+### What's playable end-to-end
+- **Era 0 (Scavenger):** gather → find rock → collect 10 fragments → rock awakens with consume animation
+- **Era 1 (Awakening):** build hut → research tree (8 nodes across 3 tiers) → build fire pit → manage hunger/thirst/energy/HP/resolve/sanity → defend against scavenger threats → respond to random events with hidden alignment
+
+### Major systems shipped (🟢 in systems.md)
+State management (persistent + run split), reducer pattern, content-as-data, scene composition, gathering loop, gather cooldown, keyboard shortcuts (G/R/E/D, customizable), rock awakening with consume + flash animation, splash screen, buildings (Hut + Fire Pit) in tree modal, teachings (research) in tree modal, survival (body stats: hunger/thirst/energy/HP), mind stats (Resolve + Sanity, with hard-core opening), threats (Scavenger only for now), random events (interval + gather-triggered, with choice events for moral decisions), hidden alignment, settings system (theme/font/size/motion/audio/save management/keybindings/credits), audio with era-driven music + progressive unlocks + crossfade, save/load with versioned migration + JSON export/import, prestige (gated behind era ≥ 2, hidden until then), stats observability (gated behind first prestige), responsive layout (desktop 3-column, mobile stack), three-tab right column (Recent / Unlocks / Stats), inventory categorization with collapsible sections (Materials / Food / Unknown for fragments).
+
+### Major systems planned (⬜ in systems.md)
+Era 2 content (Settler tier — would unlock the prestige UI + tools system), companions/villagers (with happiness, can rebel and set you back), tools system (Stone Axe, Bone Knife, etc.), idle/passive resource generation, more research nodes, more building types.
+
+### Notable design decisions on file
+- Tracks unlock as eras progress; persistent across prestige; player can pin any unlocked track
+- "Resolve" is the daily-wellbeing stat name (not Spirit, which is reserved for a future magic system)
+- Fragments display as "Unknown ???" in inventory until a future `arcaneAwakening` research unlocks the truth
+- Sanity drops only from horror events (threats, damage, future eldritch). Resolve drops from physical deprivation and rises from comfort/progression.
+- Era 2 transition condition (proposed): hut + fire pit + all tier 1 teachings learned
+
+---
+
+## Where to look when stuck
+
+- **"How does X work mechanically?"** → `docs/systems.md`, find the entry
+- **"Where is X in the code?"** → systems.md entry has "Where" pointer
+- **"What was decided about Y?"** → `docs/roadmap.md`
+- **"What patterns does the code use?"** → `docs/architecture.md` (v2 addendum at bottom)
+- **"How do I add audio?"** → `tools/README.md`, run `npm run add-audio`
+
+---
+
+## Likely next moves (pick one when resuming)
+
+These are the natural next things to work on. Pick whichever pulls strongest:
+
+1. **Era 2 transition.** Define the trigger condition properly, build the era-transition story event, add Smithing research, Forge building, the Tools resource category, first tools (Stone Axe, Bone Knife). This unlocks the prestige UI for the first time.
+2. **More Era 1 content.** Add 2–3 more research nodes (Cooking exists, but maybe Trapping for meat, Wells for passive water). Add 1–2 more buildings (Storage, Garden).
+3. **Companions / villagers.** Big system; designs exist in systems.md. Probably wait for Era 2.
+4. **Polish + playtest.** Run through Era 0 → Era 1 → reset → repeat. Tune balance. Fix paper cuts.
+5. **Audio expansion.** Add more music tracks for Era 1 variety; add SFX for gather/build/awaken/threat moments.
+
+When in doubt, ask before assuming.
+
+---
+
+## How to onboard a fresh AI assistant
+
+If starting a new conversation (different machine, new session, different model — anything that loses prior context), paste this prompt at the start:
+
+> I'm continuing work on **namigatchi**, a JS/React long-arc incremental game with cosmic horror flavor. Built in React 19 + Vite, browser-only for now, eventually Steam-bound.
+>
+> **Before suggesting anything, please read these in order:**
+> 1. `docs/HANDOFF.md` — current state and onboarding
+> 2. `docs/roadmap.md` — vision and design decisions
+> 3. `docs/architecture.md` — structural patterns
+> 4. `docs/systems.md` — every system's current state
+>
+> The codebase is **content-as-data**: game content lives in `src/content/*.js` as plain data objects (no functions inside content). Systems in `src/systems/*` read content and run logic. UI components in `src/ui/*` render state. Reducer is thin; logic lives in systems.
+>
+> We're in **Era 1** territory — gathering, research tree, hut, fire pit, survival, threats, random events, alignment all working. Last session we added gather cooldown and keyboard shortcuts. Next is probably Era 2 transition, but ask me what I want to work on rather than assuming.
+>
+> Please follow the patterns established in existing code. Accessibility-first (reduced motion, accessibility fonts, no flashing without a setting to disable). Hidden alignment never shown to the player as a number.
+
+That gets the new assistant into the same context. They'll read the docs, see the code, and be ready to continue.
+
+---
+
+## Committing
+
+Standard `git add . && git commit -m "..." && git push`. Suggested commit messages have been provided at the end of each iteration in chat — they're descriptive and follow no specific convention beyond clarity.
+
+For solo work (you), one big commit per feature is fine. If you ever collaborate, prefer smaller commits.
+
+---
+
+*Update this doc whenever a session ends with meaningful changes. The goal is for "next time you open this" to be a 30-second reorientation, not an archaeology project.*

@@ -40,8 +40,8 @@ export const BUILDINGS = {
     description: "A simple shelter of stone and wood. The wasteland will be less hostile from here.",
     cost: { wood: 20, stone: 15, water: 5 },
     requires: { rockAwakened: true },
-    effect: { gatherBonus: 1 },
-    effectSummary: "+1 to all gather yields · activates survival mechanics",
+    effect: { gatherBonus: 1, gatherSpeedup: 150 },
+    effectSummary: "+1 gather yield · –150ms gather cooldown · activates survival",
     onBuiltMessage:
       "You raise a small hut from gathered timber and stone. The wasteland is no longer empty.",
     whisperOnAvailable:
@@ -61,8 +61,8 @@ export const BUILDINGS = {
     description: "A ring of stones and a hollow of ember. The cold no longer rules you here.",
     cost: { wood: 8, stone: 10 },
     requires: { researched: "fire" },
-    effect: { gatherBonus: 1 },
-    effectSummary: "+1 to all gather yields · +20 to rest recovery",
+    effect: { gatherBonus: 1, gatherSpeedup: 100 },
+    effectSummary: "+1 gather yield · –100ms gather cooldown · +20 rest recovery",
     onBuiltMessage:
       "You strike sparks until something catches. The fire watches you back.",
     whisperOnBuilt:

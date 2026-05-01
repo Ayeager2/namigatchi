@@ -80,7 +80,11 @@ export default function Shell({ state, actions, settingsHook }) {
 
       <div className="shell-grid">
         <main className="shell-area shell-area--center">
-          <ActionPanel state={state} actions={actions} />
+          <ActionPanel
+            state={state}
+            actions={actions}
+            settings={settingsHook.settings}
+          />
         </main>
 
         <aside className="shell-area shell-area--left">

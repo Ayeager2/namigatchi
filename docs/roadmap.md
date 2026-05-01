@@ -304,6 +304,24 @@ The architecture also extends naturally: as we add more milestones, more buildin
 
 ---
 
+## The manual → automation curve
+
+The single most important pacing decision in this whole project: **the gather cooldown is the spine of the entire incremental progression**. This was added in Era 1 but it's worth calling out as a long-arc principle:
+
+- **Pre-anything:** 1500ms gather cooldown. Holding the key doesn't bypass it (`e.repeat` filtered). Player feels every gather. Wasteland is harsh.
+- **Era 1 fully built out:** 900ms (40% faster). Buildings + research stack reductions.
+- **Era 2 with tools:** ~400–600ms. Tools (Stone Axe, Bone Knife) add big reductions.
+- **Era 3 with magitek/automation research:** near-zero, OR auto-gather kicks in passively.
+- **Era 4+:** click-to-gather is largely obsolete. Player makes higher-tier decisions; resources flow.
+
+This is the curve players come for in incremental games. The early manual click feels slow. As they progress, the click feels FAST — and it feels fast *because* the early game was slow. Then automation takes over and the player ascends to managing higher-level concerns.
+
+**Architecturally:** anything that affects gather speed lives in building/research `effect.gatherSpeedup` (in milliseconds reduction). The system aggregates them. New content slots in by adding `gatherSpeedup` to its effect entry. No code changes.
+
+**Auto-gather** (Era 3+) will be a passive trickle that adds resources every N seconds without input. Same data shape — just a research effect like `passiveGatherInterval: 5000`. Trivially extensible from the existing pattern.
+
+---
+
 ## Things to keep doing
 
 A few habits worth maintaining as the project grows:

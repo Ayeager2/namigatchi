@@ -27,6 +27,11 @@ export const RUN_DEFAULTS = {
   // Total gather actions taken this run.
   gatherCount: 0,
 
+  // Timestamp of last successful gather. Drives the gather cooldown so the
+  // player can't spam-click (or hold a key) to bypass the harshness of the
+  // wasteland. Cooldown duration shrinks as buildings/research progress.
+  lastGatheredAt: 0,
+
   // Era 0 milestones
   rockFound: false,
   rockAwakened: false,

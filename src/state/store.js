@@ -38,6 +38,8 @@ export function useGameStore() {
     gather: () => dispatch({ type: ACTIONS.GATHER }),
     build: (buildingId) => dispatch({ type: ACTIONS.BUILD, buildingId }),
     research: (researchId) => dispatch({ type: ACTIONS.RESEARCH, researchId }),
+    craft: (toolId) => dispatch({ type: ACTIONS.CRAFT_TOOL, toolId }),
+    hunt: () => dispatch({ type: ACTIONS.HUNT }),
     eat: () => dispatch({ type: ACTIONS.EAT }),
     drink: () => dispatch({ type: ACTIONS.DRINK }),
     rest: () => dispatch({ type: ACTIONS.REST }),

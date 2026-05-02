@@ -24,6 +24,21 @@ export const SURVIVAL = {
     thirst: +0.5,
     energy: -2.0,
   },
+  // Bench work — making tools by hand. Easier than Build, harder than Research.
+  perCraft: {
+    hunger: +1.5,
+    thirst: +1.5,
+    energy: -5.0,
+  },
+  // Hunting is the most punishing physical action in early game. Long stalks,
+  // tense muscles, dry throat. Especially brutal when you don't know what
+  // you're doing yet (low Hunting skill). The numbers here are the BASE;
+  // the hunting system also adds a thirst spike on top per the user's call.
+  perHunt: {
+    hunger: +2.0,
+    thirst: +3.0,  // hunting makes you thirsty (per user direction)
+    energy: -10.0, // big energy drain — you don't know what you're doing
+  },
 
   // Action effects — what each survival action costs and gives.
   // Eat consumes any food-category resource (lowest-quality first by default).

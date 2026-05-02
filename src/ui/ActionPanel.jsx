@@ -1,7 +1,11 @@
 // The center column on desktop, top of stack on mobile.
 // The location header + the primary action (Gather, with live cooldown bar),
-// plus survival bars and secondary actions (Eat, Drink, Rest) once survival
-// is active.
+// the Hunt action (once a hunting tool is owned), survival bars, and
+// secondary actions (Eat, Drink, Rest) once survival is active.
+//
+// Hunt has its own cooldown — much longer than gather, shrinks with the
+// Hunting skill. The button only renders once the player owns a Net or
+// Snare; the cooldown bar fills the same way Gather's does.
 
 import { useEffect, useState } from "react";
 import {
@@ -9,27 +13,49 @@ import {
   canPerformSurvivalAction,
 } from "../systems/survival.js";
 import { canGatherFull, getGatherCooldownMs } from "../systems/gathering.js";
+import {
+  canHunt,
+  getHuntCooldownMs,
+  getHuntStatus,
+} from "../systems/hunting.js";
 import SurvivalBars from "./SurvivalBars.jsx";
 
 export default function ActionPanel({ state, actions, settings }) {
   const survival = survivalActive(state);
 
-  // Tick a re-render while the gather cooldown is active so the fill bar
-  // animates smoothly. Only ticks when needed; CPU is idle otherwise.
+  // Re-render while either cooldown is active so the fill bars animate.
+  // The interval only runs when at least one cooldown is in flight.
   const [now, setNow] = useState(Date.now());
   const lastGatheredAt = state.run.lastGatheredAt || 0;
-  const cooldownMs = getGatherCooldownMs(state);
-  const elapsed = now - lastGatheredAt;
-  const isCoolingDown = lastGatheredAt > 0 && elapsed < cooldownMs;
-  const cooldownProgress = Math.max(0, Math.min(1, elapsed / cooldownMs));
+  const gatherCooldownMs = getGatherCooldownMs(state);
+  const gatherElapsed = now - lastGatheredAt;
+  const gatherCooling =
+    lastGatheredAt > 0 && gatherElapsed < gatherCooldownMs;
+  const gatherProgress = Math.max(
+    0,
+    Math.min(1, gatherElapsed / gatherCooldownMs)
+  );
+
+  const huntStatus = getHuntStatus(state);
+  const lastHuntAt = state.run.lastHuntAt || 0;
+  const huntCooldownMs = huntStatus.cooldownMs;
+  const huntElapsed = now - lastHuntAt;
+  const huntCooling = lastHuntAt > 0 && huntElapsed < huntCooldownMs;
+  const huntProgress = Math.max(
+    0,
+    Math.min(1, huntElapsed / huntCooldownMs)
+  );
+
+  const anyCooling = gatherCooling || huntCooling;
 
   useEffect(() => {
-    if (!isCoolingDown) return;
+    if (!anyCooling) return;
     const id = setInterval(() => setNow(Date.now()), 50);
     return () => clearInterval(id);
-  }, [isCoolingDown]);
+  }, [anyCooling]);
 
   const gatherCheck = canGatherFull(state);
+  const huntCheck = canHunt(state);
   const eatCheck = canPerformSurvivalAction(state, "eat");
   const drinkCheck = canPerformSurvivalAction(state, "drink");
   const restCheck = canPerformSurvivalAction(state, "rest");
@@ -41,7 +67,9 @@ export default function ActionPanel({ state, actions, settings }) {
     <section className="action-panel">
       <div className="panel-header">
         <h2>The Wasteland</h2>
-        <p className="muted">There is nothing here. There is everything to find.</p>
+        <p className="muted">
+          There is nothing here. There is everything to find.
+        </p>
       </div>
 
       {survival && <SurvivalBars state={state} />}
@@ -49,7 +77,7 @@ export default function ActionPanel({ state, actions, settings }) {
       <div className="action-row">
         <button
           className={`btn btn-primary btn-gather ${
-            isCoolingDown ? "is-cooling" : ""
+            gatherCooling ? "is-cooling" : ""
           }`}
           onClick={actions.gather}
           disabled={!gatherCheck.ok}
@@ -62,9 +90,9 @@ export default function ActionPanel({ state, actions, settings }) {
           }
         >
           <span className="btn-label">
-            {!gatherCheck.ok && !isCoolingDown
+            {!gatherCheck.ok && !gatherCooling
               ? "Too tired"
-              : isCoolingDown
+              : gatherCooling
               ? "Gathering…"
               : "Gather"}
             {keybinds.gather && (
@@ -74,11 +102,48 @@ export default function ActionPanel({ state, actions, settings }) {
           <span
             className="btn-cooldown-fill"
             style={{
-              transform: `scaleX(${isCoolingDown ? cooldownProgress : 0})`,
-              opacity: isCoolingDown ? 1 : 0,
+              transform: `scaleX(${gatherCooling ? gatherProgress : 0})`,
+              opacity: gatherCooling ? 1 : 0,
             }}
           />
         </button>
+
+        {huntStatus.owned && (
+          <button
+            className={`btn btn-primary btn-hunt ${
+              huntCooling ? "is-cooling" : ""
+            }`}
+            onClick={actions.hunt}
+            disabled={!huntCheck.ok}
+            title={
+              huntCheck.ok
+                ? keybinds.hunt
+                  ? `Hunt birds (${formatKey(keybinds.hunt)}) · Lv ${
+                      huntStatus.level
+                    }`
+                  : `Hunt birds · Lv ${huntStatus.level}`
+                : huntCheck.reason
+            }
+          >
+            <span className="btn-label">
+              {huntCooling
+                ? "Hunting birds…"
+                : !huntCheck.ok
+                ? huntCheck.reason || "Cannot hunt"
+                : `Hunt birds · Lv ${huntStatus.level}`}
+              {keybinds.hunt && (
+                <span className="btn-hotkey">{formatKey(keybinds.hunt)}</span>
+              )}
+            </span>
+            <span
+              className="btn-cooldown-fill"
+              style={{
+                transform: `scaleX(${huntCooling ? huntProgress : 0})`,
+                opacity: huntCooling ? 1 : 0,
+              }}
+            />
+          </button>
+        )}
       </div>
 
       {survival && (

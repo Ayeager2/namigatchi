@@ -80,6 +80,32 @@ export const RESOURCES = {
       "Pale, wriggling. They squirm in the palm. Better than nothing. Barely.",
   },
 
+  // Bird meat — better food than grubs. Unlocked by hunting (which itself is
+  // unlocked by Net Weaving research + a crafted Net). The first food the
+  // player gets that actually feels like a meal.
+  bird_meat: {
+    id: "bird_meat",
+    name: "Bird Meat",
+    icon: "🍗",
+    category: "food",
+    nutrition: 22,
+    tier: 2,
+    description:
+      "Stringy, dark, faintly metallic. The first warm meal in a long time.",
+  },
+
+  // Feathers — non-food material. Drops from successful bird hunts. Used in
+  // future research (Fletching → arrows → ranged hunts). For now, a token of
+  // mastery that accumulates on the way to the next tier.
+  feathers: {
+    id: "feathers",
+    name: "Feathers",
+    icon: "🪶",
+    category: "materials",
+    description:
+      "Stiff vanes still flecked with old blood. Light. Useful, somehow.",
+  },
+
   // ============== Future food (placeholders, ungated by anything yet) ==============
   // Uncomment / add real research gating when the relevant teachings exist.
   //
@@ -126,4 +152,37 @@ export function getDisplayResource(state, resource) {
     };
   }
   return { ...resource, _displayCategory: resource.category };
+}
+
+// Unified inventory lookup. Inventory ids may resolve to either a resource
+// or a crafted tool. Returns a normalized display shape with id/name/icon/
+// category — the InventoryPanel doesn't need to know which kind it is.
+//
+// tools.js does not import from this file, so this static import is safe
+// (unidirectional dependency).
+import { TOOLS } from "./tools.js";
+
+export function getInventoryItem(state, id) {
+  // First try resources.
+  const res = getResource(id);
+  if (res) {
+    const displayed = getDisplayResource(state, res);
+    return {
+      kind: "resource",
+      id,
+      raw: res,
+      displayed,
+    };
+  }
+  // Fall through to tools.
+  const tool = TOOLS[id];
+  if (tool) {
+    return {
+      kind: "tool",
+      id,
+      raw: tool,
+      displayed: { ...tool, _displayCategory: "tool" },
+    };
+  }
+  return null;
 }

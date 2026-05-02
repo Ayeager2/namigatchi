@@ -8,6 +8,7 @@ import {
   survivalActive,
   boostStats,
 } from "./survival.js";
+import { gainXp } from "./skills.js";
 
 // Returns { ok: bool, reason: string }.
 export function canBuild(state, buildingId) {
@@ -110,6 +111,13 @@ export function performBuild(state, buildingId) {
       stats: boostStats(run.stats, { happiness: +5, sanity: +3 }),
     };
   }
+
+  // Skill XP — Building earns the most XP per action of any skill (builds
+  // are rare). Scaled by tier so later structures teach more.
+  const xpGain = (building.tier || 1) * 8;
+  const xpResult = gainXp(run, "building", xpGain);
+  run = { ...run, skills: xpResult.skills };
+  events.push(...xpResult.events);
 
   return { run, persistent, events };
 }

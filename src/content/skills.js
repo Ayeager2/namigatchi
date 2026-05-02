@@ -1,0 +1,188 @@
+// Skill definitions — DATA, not code.
+// Skills are the "learning by doing" axis. Every meaningful action grants XP
+// to the matching skill. Skills level up; levels grant declarative bonuses
+// that the systems read at runtime.
+//
+// Lifecycle: skills are RUN-LOCAL. They wipe on prestige. Each new awakening
+// is a new body learning the world fresh. Future Echo upgrades may grant
+// "start with +N levels in skill X" perks — that's the persistent layer's
+// job, not this one.
+//
+// Each skill has:
+//   id, name, icon, description     — basic identity
+//   active                          — true: earns XP today; false: stub for a future era
+//   category                        — grouping for UI ("survival" | "craft" | "industry" | "arcane")
+//   xpCurve                         — declarative XP curve. Currently:
+//                                     { type: "exponential", base, multiplier, cap }
+//                                     XP needed to reach level N is
+//                                     base * multiplier^(N-1), capped at maxLevel
+//   maxLevel                        — soft cap for current era; raised as content arrives
+//   bonuses                         — array of { stat, perLevel, max? } entries
+//                                     interpreted by skills.getBonus(state, stat)
+//   firstUnlockMessage              — log line on reaching level 1 (the "I'm getting it" beat)
+//
+// Bonuses are pure data: { stat: "huntCooldownReduction", perLevel: 300, max: 4500 }
+// means each level reduces hunt cooldown by 300ms, capped at 4500ms total.
+// New bonuses = new entries; the system reads whatever stats it cares about.
+
+export const SKILL_CATEGORIES = {
+  survival: { id: "survival", name: "Survival", order: 1 },
+  craft:    { id: "craft",    name: "Craft",    order: 2 },
+  industry: { id: "industry", name: "Industry", order: 3 },
+  arcane:   { id: "arcane",   name: "Arcane",   order: 4 },
+};
+
+// Standard XP curve used by all Era 1 skills. Tunable knob lives here.
+// Level 1: 5 XP. Level 2: 9. Level 3: 16. Level 5: 51. Level 10: 580.
+// Gentle early growth so the player feels progress within the first hour;
+// stiffens later so mastery still means something.
+const STANDARD_CURVE = { type: "exponential", base: 5, multiplier: 1.8 };
+
+export const SKILLS = {
+  // ==================== Active (Era 1) ====================
+  foraging: {
+    id: "foraging",
+    name: "Foraging",
+    icon: "🌿",
+    description: "Knowing where the wasteland still hides what it has.",
+    active: true,
+    category: "survival",
+    xpCurve: STANDARD_CURVE,
+    maxLevel: 20,
+    bonuses: [
+      // Each level adds a small flat bonus to gather yield (capped low so it
+      // doesn't dwarf research/building bonuses — skills are an additional
+      // smooth axis on top of the discrete ones).
+      { stat: "gatherBonus", perLevel: 0.05, max: 1.0 },
+      // Tiny gather speed-up — barely felt early, meaningful at high levels.
+      { stat: "gatherSpeedup", perLevel: 10, max: 200 },
+    ],
+    firstUnlockMessage:
+      "Your hands begin to know the dust. You see what others would miss.",
+  },
+
+  hunting: {
+    id: "hunting",
+    name: "Hunting",
+    icon: "🏹",
+    description:
+      "Stalking. Striking. Retrieving. Birds today; bigger things tomorrow.",
+    active: true,
+    category: "survival",
+    xpCurve: STANDARD_CURVE,
+    maxLevel: 20,
+    bonuses: [
+      // Reduces hunt cooldown by 300ms per level. Floor enforced in hunting.js.
+      // Level 0 = 8000ms; Level 5 = 6500ms; Level 10 = 5000ms; capped at 4500ms total reduction.
+      { stat: "huntCooldownReduction", perLevel: 300, max: 4500 },
+      // Adds a flat bonus to hunt drop quantities at higher levels.
+      { stat: "huntYieldBonus", perLevel: 0.08, max: 1.5 },
+      // Skews the hunt drop weights toward birds and away from grubs/nothing.
+      // Read by the hunting system when rolling drop weights.
+      { stat: "huntBirdWeightBonus", perLevel: 1.0, max: 15 },
+      { stat: "huntNothingWeightReduction", perLevel: 1.0, max: 18 },
+    ],
+    firstUnlockMessage:
+      "You learn the patience of stillness. The birds notice you less.",
+  },
+
+  crafting: {
+    id: "crafting",
+    name: "Crafting",
+    icon: "🪡",
+    description:
+      "Lashing, weaving, fitting. The work of small parts into useful wholes.",
+    active: true,
+    category: "craft",
+    xpCurve: STANDARD_CURVE,
+    maxLevel: 20,
+    bonuses: [
+      // Per-level chance to refund a single resource of one kind when crafting.
+      // The crafting system reads this on each successful craft.
+      { stat: "craftRefundChance", perLevel: 0.02, max: 0.30 },
+    ],
+    firstUnlockMessage:
+      "Your fingers find the rhythm. Cordage holds. Edges fit.",
+  },
+
+  building: {
+    id: "building",
+    name: "Building",
+    icon: "🏗️",
+    description: "Heavy work. Stones lifted. Beams set. Things that last.",
+    active: true,
+    category: "craft",
+    xpCurve: STANDARD_CURVE,
+    maxLevel: 20,
+    bonuses: [
+      // Reduces survival cost of building actions (energy/thirst/hunger drain).
+      // Read by survival.js as a multiplier (1.0 - this) on the perBuild decay.
+      { stat: "buildEffortReduction", perLevel: 0.03, max: 0.5 },
+    ],
+    firstUnlockMessage:
+      "Your back stops complaining. The frame goes up cleaner the second time.",
+  },
+
+  // ==================== Stubs (future eras) ====================
+  // These exist in the data file so the schema is stable and Era 2+ wiring
+  // is a one-line "set active: true and add an XP trigger" change.
+  pottery: {
+    id: "pottery",
+    name: "Pottery",
+    icon: "🏺",
+    description: "Clay, water, and patient hands. Vessels for what you keep.",
+    active: false,
+    category: "craft",
+    xpCurve: STANDARD_CURVE,
+    maxLevel: 20,
+    bonuses: [],
+    firstUnlockMessage: "",
+  },
+
+  mining: {
+    id: "mining",
+    name: "Mining",
+    icon: "⛏️",
+    description: "Following stone deeper. The earth keeps better things below.",
+    active: false,
+    category: "industry",
+    xpCurve: STANDARD_CURVE,
+    maxLevel: 20,
+    bonuses: [],
+    firstUnlockMessage: "",
+  },
+
+  smithing: {
+    id: "smithing",
+    name: "Smithing",
+    icon: "🔨",
+    description: "Heat. Hammer. Quench. The shape that won't break.",
+    active: false,
+    category: "industry",
+    xpCurve: STANDARD_CURVE,
+    maxLevel: 20,
+    bonuses: [],
+    firstUnlockMessage: "",
+  },
+
+  tracking: {
+    id: "tracking",
+    name: "Tracking",
+    icon: "🐾",
+    description:
+      "Reading sign. Broken twig, pressed dust, the world's quiet memory.",
+    // Tracking is currently a research node, not an active skill. The skill
+    // slot stays here as a stub for the deeper tracking system that arrives
+    // alongside Era 2 wildlife and trapping.
+    active: false,
+    category: "survival",
+    xpCurve: STANDARD_CURVE,
+    maxLevel: 20,
+    bonuses: [],
+    firstUnlockMessage: "",
+  },
+};
+
+export const getSkill = (id) => SKILLS[id] || null;
+export const getAllSkills = () => Object.values(SKILLS);
+export const getActiveSkills = () => Object.values(SKILLS).filter((s) => s.active);

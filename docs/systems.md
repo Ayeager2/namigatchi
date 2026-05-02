@@ -193,6 +193,53 @@ With everything Era 1 has to offer: 900ms (about 40% faster than base). Holding 
 
 ---
 
+### 🟢 Skills (learning by doing)
+**State.** Per-skill XP and level, run-local. Wipes on prestige. Each meaningful action grants XP to the matching skill — no points to spend, no UI to navigate. Skills surface as a tab in the right column once any XP is earned.
+
+**Active skills (Era 1):** Foraging (every gather), Hunting (every hunt), Crafting (every tool crafted), Building (every building). Stub data for future skills (Pottery, Mining, Smithing, Tracking) lives in the same content file with `active: false` so Era 2 wires them up by flipping a flag and adding XP triggers.
+
+**Bonuses are declarative.** Each skill defines `bonuses: [{ stat, perLevel, max }]`. Systems aggregate via `getBonus(state, statName)`. Foraging adds a tiny per-level gather yield + speed reduction. Hunting reduces hunt cooldown (300ms/level), boosts hunt yield, and shifts drop weights toward birds. Crafting adds a per-level chance to refund a single material per tool. Building reduces the survival cost of building actions.
+
+**XP curve.** Standard exponential — Level 1: 5 XP. Level 5: ~80. Level 10: ~580. Tunable in `content/skills.js` (`STANDARD_CURVE`).
+
+**First-unlock messaging.** Crossing 0→1 in any skill emits a flavor log entry (`skill_unlock`, lands in Unlocks tab). Subsequent level-ups are quieter (`skill_levelup`, Recent tab).
+
+**Where.** `src/content/skills.js`, `src/systems/skills.js`, `src/state/run.js` (`skills` slice), `src/ui/SkillsPanel.jsx`, `src/ui/RightColumn.jsx` (tab integration).
+
+**Long arc.** Era 2 activates Pottery/Mining/Smithing by adding XP triggers. Echo upgrades (post-prestige) likely grant "start with +N levels in skill X" perks — that's the persistent layer's job. Higher max levels per skill as content arrives. Skill thresholds gate higher-tier tools/research (Snare already requires Hunting lvl 2).
+
+---
+
+### 🟢 Crafting (primitive tools)
+**State.** Research → recipe known → resources spent → tool added to inventory under `category: "tool"`. Tools' declarative effects apply automatically while owned. The Forge (Era 2) is NOT required for primitives; these are hand-made.
+
+**Era 1 tools:** Net (12 hunts, unlocks Hunt action), Snare (20 hunts, better hunt yield + cooldown reduction; gated behind Trapping research + Hunting lvl 2), Digging Stick (25 gathers, –100ms gather + extra water), Water Skin (30 water gathers, extra water on water gathers).
+
+**Durability.** Each tool declares `durability: { max, wearsOn }` in content. `wearsOn` is one of `"hunt" | "gather" | "waterGather"` — that's the action that ticks durability down by 1. When durability hits 0, the tool is removed from inventory and a flavored breakage message logs ("The net comes apart in your hands…"). The system function `applyToolWear(run, actionTag)` runs at the end of `performGather` (twice when the drop was water — generic gather wear plus water-specific wear) and `performHunt`. Old saves without `toolDurability` gracefully default each tool to `max - 1` on first wear.
+
+**Each craft action** consumes resources, grants Crafting XP (scales with tool tier), drains survival stats (perCraft decay sits between Build and Research in severity), and gives a small Resolve/Sanity boost (the "I made something" beat). Higher Crafting skill grants a per-resource refund chance — gentle but felt by ~level 5.
+
+**UI.** Tool detail in the Crafts modal renders a durability bar with remaining-uses count. Bar shifts gold → orange (warn) → red (danger) as it depletes. Re-crafting is blocked while a tool is owned, so the natural rhythm is craft → use until broken → re-craft.
+
+**Where.** `src/content/tools.js`, `src/systems/crafting.js` (`performCraft` + `applyToolWear`), `src/state/run.js` (`toolDurability` slice), `src/state/reducer.js` (CRAFT_TOOL action), `src/ui/ToolsModal.jsx` (DurabilityBar component), `src/ui/CraftsPanel.jsx` (left-column trigger card).
+
+**Long arc.** Era 2 introduces Forge-required tools (Stone Axe, Bone Knife, Stone Pickaxe) with much higher durability. Repair-at-Forge mechanic arrives the same era — visit Forge, spend a fraction of the recipe cost to restore N durability. Era 3+ arcane tools have unconventional durability rules (a Fragment Knife's wear might tie to sanity instead of uses). Wear rates may eventually scale with skill — high Crafting/Hunting making your tools last longer.
+
+---
+
+### 🟢 Hunting
+**State.** Separate action with its own long cooldown (8000ms base, floored at 2500ms). Gated behind owning a Net or Snare in inventory. Drains energy (-10) and thirst (+3) per attempt; successful bird drops add another +2 thirst spike. Yield table is weighted heavily toward "nothing" and grubs at level 0; bird meat and feathers climb in frequency as Hunting skill levels up. The Hunt button shows a live cooldown bar like Gather. Bindable to a key (default H).
+
+**The first hunts are mostly failures.** This is intentional — narrative framing as "you don't know what you're doing yet, the birds are quick, the wasteland isn't kind." Log messages call out that you ARE hunting birds even when you scared up grubs instead.
+
+**Drop tags drive skill scaling.** Each row in `content/huntTable.js` has a `tag` (`bird | grub | graze | nothing`). Skills modify weights by tag. New drop types slot in by adding rows + tags; no system code changes.
+
+**Where.** `src/content/huntTable.js` (drop table + cooldown config), `src/systems/hunting.js` (logic), `src/state/reducer.js` (HUNT action), `src/state/run.js` (`lastHuntAt`), `src/ui/ActionPanel.jsx` (Hunt button).
+
+**Long arc.** Era 2 introduces ranged hunting via Fletching research → arrows (consume feathers). Era 2 also adds bigger game (deer-ish, boar-ish) with combat mechanics rather than weighted rolls. Era 3+ hunts include strange creatures whose meat carries side effects (sanity drain, magical buffs). The "bird flock" pest event is on the future-events list — currently birds are exclusively a hunt target.
+
+---
+
 ### 🟢 Resources & categories (with progressive disclosure)
 **State.** Resources have a `category` field (`materials | food | fragment | tool | mystic | unknown`). Food resources additionally have `nutrition` and `tier`. Resources can be HIDDEN behind unlock conditions via `hiddenUntil` — fragments currently appear under "Unknown" with name `???` and icon `❓` until the future `arcaneAwakening` research is learned. Inventory groups by category in collapsible sections; collapse state persists in user settings. The eat action consumes any food-category resource (lowest-nutrition first). Cooking adds +5 nutrition per food.
 
@@ -200,9 +247,11 @@ With everything Era 1 has to offer: 900ms (about 40% faster than base). Holding 
 
 **Hidden-until pattern.** When a resource has `hiddenUntil: { researched: "X" }` and that research isn't learned, the inventory shows it under "Unknown" with placeholder name/icon. Once X is learned, the reveal is automatic — no code changes needed. Same pattern can gate behind buildings, era, etc.
 
-**Early-game balance.** Pre-rock gather quantities are 1 (one) per drop, with high "nothing" weight (28%). The wasteland is barren. Once the rock is found, quantities climb to 1–2. Post-awakening, 1–3. Player feels the world warming to them as they progress.
+**Early-game balance.** Pre-rock gather quantities are 1 (one) per drop, with high "nothing" weight (28%). The wasteland is barren. Once the rock is found, quantities climb to 1–2 and grubs appear at low weight (4) so the player can scratch up the occasional meal even before Foraging research. Post-awakening, 1–3 and grub weight rises to 5. Foraging research stacks on top with weight 15 — researching it is still the moment grubs become a reliable food source. This base presence prevents the prior dead-end where tier-2 research (which costs grubs) was unreachable when water for Foraging research was scarce.
 
-**Next steps.** Add berries (Foraging tier 2). Roasted grubs (Cooking unlocks). Meat (Trapping research). Add `arcaneAwakening` research that reveals fragments as Arcane shards.
+**Currently shipped foods:** Grubs (gather, nutrition 10), Bird Meat (hunt drop, nutrition 22, tier 2 — first warm meal). Feathers (material from hunts, used in future fletching research).
+
+**Next steps.** Add berries (Foraging tier 2). Roasted grubs (Cooking unlocks). Add `arcaneAwakening` research that reveals fragments as Arcane shards. Add Fletching (parent: Net Weaving + Trapping) that consumes feathers to produce arrows for the Era 2 bow.
 
 **Long arc.** Era 2 farming and water collection. Era 3 magical foods. Spoilage/storage when abundance is real.
 
@@ -325,14 +374,16 @@ Live in `tools/`. See `tools/README.md` for the full list.
 
 ---
 
-### ⬜ Tools system
-**Vision.** Tools are *crafted items* that provide passive bonuses or unlock specific actions. Stored in inventory under `category: "tool"`. Crafting requires a Forge. Each tool has a recipe (resources + research prerequisites). Some tools unlock new resources from gathering (an Axe → Lumber, a Pickaxe → Ore). Some boost existing yields (Knife → +1 to all gather). Some have durability (degrade with use, repair at Forge).
+### 🟡 Tools system (primitive tier shipped)
+**Status.** Primitive tier is live as part of Era 1 (Net, Snare, Digging Stick, Water Skin) — see the **Crafting** entry above. Era 2 forge-required tools are still planned.
 
-**MVP at Era 2.** A small set of tools: Stone Axe, Stone Pickaxe, Bone Knife. Each unlocked by Smithing research, each crafted at the Forge.
+**Era 1 (shipped).** Hand-made tools that don't require a Forge. Stored in inventory under `category: "tool"`. Crafting consumes resources and grants Crafting XP. Effects apply passively while owned. No durability yet.
+
+**Era 2 (planned).** Stone Axe, Stone Pickaxe, Bone Knife. Each unlocked by Smithing research, each crafted at the Forge. Likely first tier with durability (degrades with use, repair at Forge).
 
 **Long arc.** Tool tiers across eras (Stone → Bronze → Iron → Steel → Magitek → Eldritch). Higher tiers boost more. Magic tiers do strange things (a Fragment Knife also drops sanity when used? — fits the lore).
 
-**Trigger to build.** Concurrent with Era 2.
+**Trigger to expand.** Era 2 brings the Forge.
 
 ---
 

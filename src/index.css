@@ -1999,6 +1999,51 @@ body.motion-reduced .settings-trigger:hover {
   opacity: 0.85;
 }
 
+/* ---- hunt button ---- */
+/* Same cooldown bar mechanic as Gather, but with a "blood and dusk" palette
+   to sit visually distinct from the green-leaning gather action. */
+
+.btn-hunt {
+  position: relative;
+  overflow: hidden;
+  margin-left: 12px;
+  background: linear-gradient(180deg, #5a4632 0%, #3d2f22 100%);
+  border-color: #7a5e42;
+  color: #e8d4a8;
+}
+
+.btn-hunt:hover {
+  background: linear-gradient(180deg, #6f553c 0%, #4a3a29 100%);
+  border-color: #a07b54;
+  color: #f4e2bc;
+}
+
+.btn-hunt .btn-label {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-hunt.is-cooling {
+  cursor: wait;
+  opacity: 0.85;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 600px) {
+  .btn-hunt {
+    margin-left: 0;
+  }
+}
+
 /* Reduced motion: no smooth transition on the cooldown fill — just snap */
 body.motion-reduced .btn-cooldown-fill {
   transition: none;
@@ -2139,6 +2184,540 @@ body.motion-reduced .btn-cooldown-fill {
   text-shadow: 0 0 4px rgba(178, 158, 197, 0.5);
 }
 
+/* ---- skills panel (right column tab) ---- */
+
+.skills-panel {
+  padding: 4px 2px;
+}
+
+.skills-intro {
+  font-size: 12px;
+  margin-bottom: 12px;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.skills-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skill-row {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.skill-row--dim {
+  opacity: 0.55;
+}
+
+.skill-row--max {
+  border-color: var(--accent-dim);
+}
+
+.skill-row-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.skill-icon {
+  font-size: 16px;
+}
+
+.skill-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.skill-level {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.skill-row--max .skill-level {
+  color: var(--awaken);
+}
+
+.skill-bar {
+  background: var(--bg-elev);
+  border-radius: 3px;
+  height: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.skill-bar-fill {
+  height: 100%;
+  background: linear-gradient(to right, var(--accent-dim), var(--accent));
+  transition: width 0.3s ease-out;
+}
+
+.skill-row--dim .skill-bar-fill {
+  background: var(--text-faint);
+}
+
+.skill-row--max .skill-bar-fill {
+  background: linear-gradient(to right, var(--accent), var(--awaken));
+  width: 100% !important;
+}
+
+.skill-row-meta {
+  font-size: 10px;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+body.motion-reduced .skill-bar-fill {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body:not(.motion-full) .skill-bar-fill {
+    transition: none;
+  }
+}
+
+/* ---- tools modal (Crafts list) ---- */
+
+.modal--tools {
+  max-width: 880px;
+}
+
+.modal-body--tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+  gap: 18px;
+  padding: 16px;
+}
+
+@media (max-width: 760px) {
+  .modal-body--tools {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tools-list {
+  min-width: 0;
+}
+
+.tools-group {
+  margin-bottom: 18px;
+}
+
+.tools-group-name {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-faint);
+  margin-bottom: 8px;
+}
+
+.tools-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tool-row {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.1s, background 0.1s;
+}
+
+.tool-row:hover {
+  border-color: var(--accent-dim);
+}
+
+.tool-row.is-selected {
+  border-color: var(--accent);
+  background: var(--bg-elev);
+}
+
+.tool-row--locked {
+  opacity: 0.5;
+}
+
+.tool-row--owned {
+  border-color: var(--accent-dim);
+}
+
+.tool-row-btn {
+  width: 100%;
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 10px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  font: inherit;
+}
+
+.tool-row-btn .tool-icon {
+  font-size: 22px;
+}
+
+.tool-row-btn .tool-name {
+  flex: 1;
+  font-weight: 600;
+}
+
+.tool-tag {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-elev);
+  color: var(--text-muted);
+}
+
+.tool-tag--owned {
+  background: var(--accent-dim);
+  color: var(--bg);
+}
+
+.tool-reqs {
+  font-size: 12px;
+  margin: 8px 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tool-req--short {
+  color: var(--bad);
+}
+
 /* ---- utilities ---- */
 
 .muted { color: var(--text-muted); }
+ar-fill {
+  background: var(--warn);
+}
+
+.sb-bar--resolve.sb-bar--danger .sb-bar-fill {
+  background: linear-gradient(to right, #6a4a3a, #c98a4f);
+  opacity: 0.7;
+}
+
+.sb-bar--resolve.sb-bar--danger .sb-bar-value {
+  color: var(--warn);
+}
+
+/* Sanity — cool purple, more eldritch when low */
+.sb-bar--sanity .sb-bar-fill {
+  background: linear-gradient(to right, #5a4870, #b29ec5);
+}
+
+.sb-bar--sanity.sb-bar--warn .sb-bar-fill {
+  background: linear-gradient(to right, #5a4870, #8a7a9c);
+}
+
+.sb-bar--sanity.sb-bar--danger .sb-bar-fill {
+  background: linear-gradient(to right, #3a2a4a, #6a4a7a);
+  box-shadow: 0 0 6px rgba(178, 158, 197, 0.3);
+}
+
+.sb-bar--sanity.sb-bar--danger .sb-bar-value {
+  color: #b29ec5;
+  text-shadow: 0 0 4px rgba(178, 158, 197, 0.5);
+}
+
+/* ---- skills panel (right column tab) ---- */
+
+.skills-panel {
+  padding: 4px 2px;
+}
+
+.skills-intro {
+  font-size: 12px;
+  margin-bottom: 12px;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.skills-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skill-row {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.skill-row--dim {
+  opacity: 0.55;
+}
+
+.skill-row--max {
+  border-color: var(--accent-dim);
+}
+
+.skill-row-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.skill-icon {
+  font-size: 16px;
+}
+
+.skill-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.skill-level {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.skill-row--max .skill-level {
+  color: var(--awaken);
+}
+
+.skill-bar {
+  background: var(--bg-elev);
+  border-radius: 3px;
+  height: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.skill-bar-fill {
+  height: 100%;
+  background: linear-gradient(to right, var(--accent-dim), var(--accent));
+  transition: width 0.3s ease-out;
+}
+
+.skill-row--dim .skill-bar-fill {
+  background: var(--text-faint);
+}
+
+.skill-row--max .skill-bar-fill {
+  background: linear-gradient(to right, var(--accent), var(--awaken));
+  width: 100% !important;
+}
+
+.skill-row-meta {
+  font-size: 10px;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+body.motion-reduced .skill-bar-fill {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body:not(.motion-full) .skill-bar-fill {
+    transition: none;
+  }
+}
+
+/* ---- tools modal (Crafts list) ---- */
+
+.modal--tools {
+  max-width: 880px;
+}
+
+.modal-body--tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+  gap: 18px;
+  padding: 16px;
+}
+
+@media (max-width: 760px) {
+  .modal-body--tools {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tools-list {
+  min-width: 0;
+}
+
+.tools-group {
+  margin-bottom: 18px;
+}
+
+.tools-group-name {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-faint);
+  margin-bottom: 8px;
+}
+
+.tools-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tool-row {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.1s, background 0.1s;
+}
+
+.tool-row:hover {
+  border-color: var(--accent-dim);
+}
+
+.tool-row.is-selected {
+  border-color: var(--accent);
+  background: var(--bg-elev);
+}
+
+.tool-row--locked {
+  opacity: 0.5;
+}
+
+.tool-row--owned {
+  border-color: var(--accent-dim);
+}
+
+.tool-row-btn {
+  width: 100%;
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 10px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  font: inherit;
+}
+
+.tool-row-btn .tool-icon {
+  font-size: 22px;
+}
+
+.tool-row-btn .tool-name {
+  flex: 1;
+  font-weight: 600;
+}
+
+.tool-tag {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-elev);
+  color: var(--text-muted);
+}
+
+.tool-tag--owned {
+  background: var(--accent-dim);
+  color: var(--bg);
+}
+
+.tool-reqs {
+  font-size: 12px;
+  margin: 8px 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tool-req--short {
+  color: var(--bad);
+}
+
+/* ---- utilities ---- */
+
+.muted { color: var(--text-muted); }
+
+/* ---- tool durability bar ---- */
+
+.tool-durability {
+  margin-top: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.tool-durability-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.tool-durability-bar {
+  background: var(--bg-elev);
+  border-radius: 3px;
+  height: 6px;
+  overflow: hidden;
+}
+
+.tool-durability-fill {
+  height: 100%;
+  background: linear-gradient(to right, var(--accent-dim), var(--accent));
+  transition: width 0.3s ease-out;
+}
+
+.tool-durability.is-warn .tool-durability-fill {
+  background: var(--warn);
+}
+
+.tool-durability.is-warn .tool-durability-label {
+  color: var(--warn);
+}
+
+.tool-durability.is-danger .tool-durability-fill {
+  background: var(--bad);
+  box-shadow: 0 0 6px rgba(184, 91, 91, 0.4);
+}
+
+.tool-durability.is-danger .tool-durability-label {
+  color: var(--bad);
+  font-weight: 600;
+}
+
+body.motion-reduced .tool-durability-fill {
+  transition: none;
+}

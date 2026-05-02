@@ -9,8 +9,7 @@
 // content/resources.js getDisplayResource() / isResourceHidden().
 
 import {
-  getResource,
-  getDisplayResource,
+  getInventoryItem,
   RESOURCE_CATEGORIES,
 } from "../content/resources.js";
 
@@ -34,14 +33,14 @@ export default function InventoryPanel({ state, settingsHook }) {
   const collapsedMap = settingsHook?.settings?.inventoryCollapsed || {};
   const toggle = settingsHook?.toggleInventoryCollapse || (() => {});
 
-  // Build items list with display info baked in
+  // Build items list — resolves via unified resource+tool lookup so crafted
+  // tools (Net, Snare, etc.) render alongside resources.
   const items = Object.entries(run.inventory)
     .filter(([, qty]) => qty > 0)
     .map(([id, qty]) => {
-      const res = getResource(id);
-      if (!res) return null;
-      const displayed = getDisplayResource(state, res);
-      return { id, qty, displayed, real: res };
+      const item = getInventoryItem(state, id);
+      if (!item) return null;
+      return { id, qty, displayed: item.displayed, real: item.raw };
     })
     .filter(Boolean);
 

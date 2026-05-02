@@ -64,13 +64,13 @@ These are the patterns the codebase enforces. Don't violate them when adding fea
 
 ### What's playable end-to-end
 - **Era 0 (Scavenger):** gather → find rock → collect 10 fragments → rock awakens with consume animation
-- **Era 1 (Awakening):** build hut → research tree (8 nodes across 3 tiers) → build fire pit → manage hunger/thirst/energy/HP/resolve/sanity → defend against scavenger threats → respond to random events with hidden alignment
+- **Era 1 (Awakening):** build hut → research tree (13 nodes across 4 tiers) → build fire pit → craft primitive tools (Net, Snare, Digging Stick, Water Skin) → hunt birds (separate action with long cooldown that shrinks with skill) → manage hunger/thirst/energy/HP/resolve/sanity → defend against scavenger threats → respond to random events with hidden alignment → watch four skills (Foraging/Hunting/Crafting/Building) level from doing the work
 
 ### Major systems shipped (🟢 in systems.md)
-State management (persistent + run split), reducer pattern, content-as-data, scene composition, gathering loop, gather cooldown, keyboard shortcuts (G/R/E/D, customizable), rock awakening with consume + flash animation, splash screen, buildings (Hut + Fire Pit) in tree modal, teachings (research) in tree modal, survival (body stats: hunger/thirst/energy/HP), mind stats (Resolve + Sanity, with hard-core opening), threats (Scavenger only for now), random events (interval + gather-triggered, with choice events for moral decisions), hidden alignment, settings system (theme/font/size/motion/audio/save management/keybindings/credits), audio with era-driven music + progressive unlocks + crossfade, save/load with versioned migration + JSON export/import, prestige (gated behind era ≥ 2, hidden until then), stats observability (gated behind first prestige), responsive layout (desktop 3-column, mobile stack), three-tab right column (Recent / Unlocks / Stats), inventory categorization with collapsible sections (Materials / Food / Unknown for fragments).
+State management (persistent + run split), reducer pattern, content-as-data, scene composition, gathering loop, gather cooldown, keyboard shortcuts (G/R/E/D/H, customizable), rock awakening with consume + flash animation, splash screen, buildings (Hut + Fire Pit) in tree modal, teachings (research, 13 nodes) in tree modal, primitive crafting (Net/Snare/Digging Stick/Water Skin) with its own Tools modal + trigger card, hunting (separate action button with long cooldown, skill-driven yield curve, brutal energy + thirst cost), skills system (4 active + 4 stubbed for future eras, levels from doing the work, declarative bonuses) with right-column tab, survival (body stats: hunger/thirst/energy/HP), mind stats (Resolve + Sanity, with hard-core opening), threats (Scavenger only for now), random events (interval + gather-triggered, with choice events for moral decisions), hidden alignment, settings system (theme/font/size/motion/audio/save management/keybindings/credits), audio with era-driven music + progressive unlocks + crossfade, save/load with versioned migration + JSON export/import, prestige (gated behind era ≥ 2, hidden until then), stats observability (gated behind first prestige), responsive layout (desktop 3-column, mobile stack), four-tab right column (Recent / Unlocks / Skills / Stats), inventory categorization with collapsible sections (Materials / Food / Tools / Unknown for fragments).
 
 ### Major systems planned (⬜ in systems.md)
-Era 2 content (Settler tier — would unlock the prestige UI + tools system), companions/villagers (with happiness, can rebel and set you back), tools system (Stone Axe, Bone Knife, etc.), idle/passive resource generation, more research nodes, more building types.
+Era 2 content (Settler tier — would unlock the prestige UI + Forge-required tool tier), companions/villagers (with happiness, can rebel and set you back), Forge-tier tools (Stone Axe, Bone Knife, etc.), Fletching → arrows (consumes feathers from hunts), idle/passive resource generation, more research nodes, more building types, more threat types, bigger game/combat-style hunts.
 
 ### Notable design decisions on file
 - Tracks unlock as eras progress; persistent across prestige; player can pin any unlocked track
@@ -78,6 +78,10 @@ Era 2 content (Settler tier — would unlock the prestige UI + tools system), co
 - Fragments display as "Unknown ???" in inventory until a future `arcaneAwakening` research unlocks the truth
 - Sanity drops only from horror events (threats, damage, future eldritch). Resolve drops from physical deprivation and rises from comfort/progression.
 - Era 2 transition condition (proposed): hut + fire pit + all tier 1 teachings learned
+- **Skills are run-only**, fully reset on prestige. The "I have to relearn it every life" rhythm is intentional — future Echo upgrades will grant "start with +N skill levels" perks rather than carrying XP across runs.
+- **Primitive tools sidestep the Forge.** Era 1 tools are hand-made (cordage, fire-tempered wood, stitched skins). The Forge is reserved for Era 2 and unlocks Stone Axe / Bone Knife / etc.
+- **Hunting is brutal at first, by design.** Base 8s cooldown, energy -10, thirst +3 per attempt, and successful bird hits add another +2 thirst. Drop weights at level 0 favor empty/grub; they shift toward birds with skill. Per the user direction: "you suck at hunting, you don't know how" — this is the curve.
+- **Tracking research** stays in research-land for now (gates Trapping). The Tracking *skill* is stubbed but not active — the Hunting skill subsumes "getting better at finding things" for Era 1.
 
 ---
 
@@ -95,11 +99,12 @@ Era 2 content (Settler tier — would unlock the prestige UI + tools system), co
 
 These are the natural next things to work on. Pick whichever pulls strongest:
 
-1. **Era 2 transition.** Define the trigger condition properly, build the era-transition story event, add Smithing research, Forge building, the Tools resource category, first tools (Stone Axe, Bone Knife). This unlocks the prestige UI for the first time.
-2. **More Era 1 content.** Add 2–3 more research nodes (Cooking exists, but maybe Trapping for meat, Wells for passive water). Add 1–2 more buildings (Storage, Garden).
-3. **Companions / villagers.** Big system; designs exist in systems.md. Probably wait for Era 2.
-4. **Polish + playtest.** Run through Era 0 → Era 1 → reset → repeat. Tune balance. Fix paper cuts.
-5. **Audio expansion.** Add more music tracks for Era 1 variety; add SFX for gather/build/awaken/threat moments.
+1. **Era 2 transition.** Define the trigger condition properly, build the era-transition story event, add Smithing research, Forge building, the Era-2 tool tier (Stone Axe, Bone Knife — Forge-required), Fletching → arrows. This unlocks the prestige UI for the first time.
+2. **More Era 1 content.** Add 2–3 more research nodes (Cooking exists, maybe Wells for passive water). Add 1–2 more buildings (Storage, Garden). Add a "bird flock" pest event that drops grub yield until hunted off.
+3. **Hunting depth.** Add a Tracking skill (currently stubbed) that surfaces over time as you hunt — fold it into hunt success math. Add a `huntFail` cooldown variant where missed shots cost less energy than completed stalks.
+4. **Companions / villagers.** Big system; designs exist in systems.md. Probably wait for Era 2.
+5. **Polish + playtest.** Run through Era 0 → Era 1 → craft Net → hunt birds → reset → repeat. Tune the hunt cost/yield curve, balance Crafting refund chance, sanity-check the Foraging/Building XP rates.
+6. **Audio expansion.** Add more music tracks for Era 1 variety; add SFX for gather/build/awaken/threat/hunt moments.
 
 When in doubt, ask before assuming.
 
@@ -119,7 +124,7 @@ If starting a new conversation (different machine, new session, different model 
 >
 > The codebase is **content-as-data**: game content lives in `src/content/*.js` as plain data objects (no functions inside content). Systems in `src/systems/*` read content and run logic. UI components in `src/ui/*` render state. Reducer is thin; logic lives in systems.
 >
-> We're in **Era 1** territory — gathering, research tree, hut, fire pit, survival, threats, random events, alignment all working. Last session we added gather cooldown and keyboard shortcuts. Next is probably Era 2 transition, but ask me what I want to work on rather than assuming.
+> We're in **Era 1** territory — gathering, research tree, hut, fire pit, survival, threats, random events, alignment all working. Last session we expanded Era 1 with **skills** (4 active: Foraging/Hunting/Crafting/Building, levels from doing the work, declarative bonuses), **primitive tool crafting** (Net/Snare/Digging Stick/Water Skin via research → recipe → resources), and **hunting** (separate action, long cooldown that shrinks with skill, brutal energy + thirst cost, drops grubs/bird meat/feathers). Next is probably Era 2 transition or more Era 1 polish, but ask me what I want to work on rather than assuming.
 >
 > Please follow the patterns established in existing code. Accessibility-first (reduced motion, accessibility fonts, no flashing without a setting to disable). Hidden alignment never shown to the player as a number.
 

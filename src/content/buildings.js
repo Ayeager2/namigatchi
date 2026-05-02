@@ -38,7 +38,7 @@ export const BUILDINGS = {
     icon: "🛖",
     category: "shelter",
     description: "A simple shelter of stone and wood. The wasteland will be less hostile from here.",
-    cost: { wood: 20, stone: 15, water: 5 },
+    cost: { wood: 60, stone: 25, water: 2 },
     requires: { rockAwakened: true },
     effect: { gatherBonus: 1, gatherSpeedup: 150 },
     effectSummary: "+1 gather yield · –150ms gather cooldown · activates survival",

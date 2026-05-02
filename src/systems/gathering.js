@@ -14,10 +14,13 @@ import {
   FRAGMENTS_TO_AWAKEN,
 } from "../content/gatherTable.js";
 import { RESOURCES } from "../content/resources.js";
-import { getBuilding, getAllBuildings } from "../content/buildings.js";
-import { getResearch, getAllResearch } from "../content/research.js";
+import { getBuilding } from "../content/buildings.js";
+import { getResearch } from "../content/research.js";
+import { getToolEffects } from "../content/tools.js";
 import { getBuildingBonuses } from "./building.js";
 import { getResearchBonuses } from "./research.js";
+import { getBonus, gainXp } from "./skills.js";
+import { applyToolWear } from "./crafting.js";
 import {
   survivalActive,
   decayForAction,
@@ -29,9 +32,10 @@ import { rollGatherEvent } from "./events.js";
 import { pickWeighted, randInt } from "../util/rng.js";
 import { SURVIVAL } from "../content/survival.js";
 
-// Compute the current gather cooldown in ms. Buildings and research reduce
-// the base. Floored at SURVIVAL.gather.minCooldownMs so there's always SOME
-// pause — full automation is a separate (future) system.
+// Compute the current gather cooldown in ms. Buildings, research, owned
+// tools, and Foraging skill all reduce the base. Floored at
+// SURVIVAL.gather.minCooldownMs so there's always SOME pause — full
+// automation is a separate (future) system.
 export function getGatherCooldownMs(state) {
   const cfg = SURVIVAL.gather || {};
   let ms = cfg.baseCooldownMs ?? 1500;
@@ -46,6 +50,11 @@ export function getGatherCooldownMs(state) {
     const r = getResearch(id);
     if (r?.effect?.gatherSpeedup) ms -= r.effect.gatherSpeedup;
   }
+  // Tools (e.g. Digging Stick contributes -100ms)
+  const toolEff = getToolEffects(state.run);
+  if (toolEff.gatherSpeedup) ms -= toolEff.gatherSpeedup;
+  // Skills (Foraging adds a tiny per-level reduction)
+  ms -= getBonus(state.run, "gatherSpeedup");
 
   return Math.max(cfg.minCooldownMs ?? 250, ms);
 }
@@ -108,7 +117,8 @@ export function performGather(state, rng = Math.random) {
   }
 
   // Build new state from immutable copies.
-  const run = {
+  // `let` so the skill-XP step at the end can replace the skills slice.
+  let run = {
     ...state.run,
     inventory: { ...state.run.inventory },
     gathered: { ...(state.run.gathered || {}) },
@@ -128,8 +138,14 @@ export function performGather(state, rng = Math.random) {
 
   const buildingBonuses = getBuildingBonuses(run);
   const researchBonuses = getResearchBonuses(run);
+  const toolEff = getToolEffects(run);
+  // Skills add a fractional gather bonus (rounded into the qty calc).
+  const skillGatherBonus = getBonus(run, "gatherBonus");
   const gatherBonus =
-    (buildingBonuses.gatherBonus || 0) + (researchBonuses.gatherBonus || 0);
+    (buildingBonuses.gatherBonus || 0) +
+    (researchBonuses.gatherBonus || 0) +
+    (toolEff.gatherBonus || 0) +
+    skillGatherBonus;
 
   // Survival yield penalty (only when survival active).
   const yieldMult = survivalActive(state) ? getYieldMultiplier(run.stats) : 1.0;
@@ -149,8 +165,11 @@ export function performGather(state, rng = Math.random) {
     case "resource": {
       const [lo, hi] = result.qty;
       const baseQty = randInt(rng, lo, hi);
-      // Apply gather bonus, then yield multiplier (rounded, min 1 if anything).
-      const rawQty = baseQty + gatherBonus;
+      // Water-specific bonus from Digging Stick / Water Skin tools.
+      const waterBonus = result.id === "water" ? (toolEff.waterBonus || 0) : 0;
+      // Apply gather bonus + water bonus, then yield multiplier
+      // (rounded, min 1 if anything).
+      const rawQty = baseQty + gatherBonus + waterBonus;
       const qty = Math.max(1, Math.round(rawQty * yieldMult));
       run.inventory[result.id] = (run.inventory[result.id] || 0) + qty;
       run.gathered[result.id] = (run.gathered[result.id] || 0) + qty;
@@ -247,5 +266,27 @@ export function performGather(state, rng = Math.random) {
     }
   }
 
+  // Skill XP — Foraging earns from every gather. Bonus on food drops
+  // (the rarer outcome that teaches the most about reading the wasteland).
+  // XP grants happen LAST so any earlier state changes are visible.
+  let xpGain = 1;
+  if (result.kind === "resource" && result.id === "food") xpGain += 1;
+  if (result.kind === "rockFind") xpGain += 2;
+  const xpResult = gainXp(run, "foraging", xpGain);
+  run = { ...run, skills: xpResult.skills };
+  events.push(...xpResult.events);
+
+  // Tool wear — generic gather first (Digging Stick), then water-specific
+  // (Water Skin) only when this was a water drop.
+  const wearGather = applyToolWear(run, "gather");
+  run = wearGather.run;
+  events.push(...wearGather.events);
+  if (result.kind === "resource" && result.id === "water") {
+    const wearWater = applyToolWear(run, "waterGather");
+    run = wearWater.run;
+    events.push(...wearWater.events);
+  }
+
   return { run, persistent, events };
+
 }

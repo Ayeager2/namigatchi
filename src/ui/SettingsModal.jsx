@@ -212,6 +212,7 @@ export default function SettingsModal({ settings, update, state, onClose }) {
             </p>
             {[
               { action: "gather", label: "Gather" },
+              { action: "hunt", label: "Hunt" },
               { action: "eat", label: "Eat" },
               { action: "drink", label: "Drink" },
               { action: "rest", label: "Rest" },
@@ -416,3 +417,4 @@ export default function SettingsModal({ settings, update, state, onClose }) {
     </div>
   );
 }
+

@@ -17,6 +17,7 @@ const ACTION_HANDLERS = {
   rest: (actions) => actions.rest(),
   eat: (actions) => actions.eat(),
   drink: (actions) => actions.drink(),
+  hunt: (actions) => actions.hunt(),
 };
 
 export function useKeybindings(settings, actions, pauseAll = false) {

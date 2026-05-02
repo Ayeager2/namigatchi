@@ -150,6 +150,75 @@ export const RESEARCH = {
     col: 0,
     parents: ["vigilance"],
   },
+
+  // ============== Tool-craft teachings (Era 1) ==============
+  // These nodes don't add gather bonuses themselves — they unlock CRAFTING
+  // RECIPES for primitive tools. The tool, once crafted, provides the
+  // passive effects. Pattern: research → recipe → craft → effect.
+
+  netWeaving: {
+    id: "netWeaving",
+    name: "Net Weaving",
+    icon: "🕸️",
+    whisper:
+      "The stone speaks of cordage. Of fibers twisted against themselves until they hold what they would not alone.",
+    cost: { wood: 8, stone: 3 },
+    requires: { hutBuilt: true },
+    effect: { unlocksTool: "net" },
+    onLearnedMessage:
+      "You listen, and the stone teaches you weaving. You can make a net now — and what is a net for, if not the things that fly?",
+    tier: 2,
+    col: 3,
+    parents: ["knapping"],
+  },
+
+  diggingStickCraft: {
+    id: "diggingStickCraft",
+    name: "Hardened Wood",
+    icon: "🥢",
+    whisper:
+      "The stone speaks of fire and patience. Of wood held over embers until the tip refuses to break.",
+    cost: { wood: 6, stone: 2 },
+    requires: { hutBuilt: true },
+    effect: { unlocksTool: "diggingStick" },
+    onLearnedMessage:
+      "You listen, and the stone teaches you the fire-tempered point. The earth will give up what it has hidden.",
+    tier: 2,
+    col: 4,
+    parents: ["fire"],
+  },
+
+  waterCarrying: {
+    id: "waterCarrying",
+    name: "Water Carrying",
+    icon: "🧴",
+    whisper:
+      "The stone speaks of vessels. Of skins stitched and sealed, of the slow generosity of water that does not run away.",
+    cost: { water: 5, wood: 3 },
+    requires: { hutBuilt: true },
+    effect: { unlocksTool: "waterSkin" },
+    onLearnedMessage:
+      "You listen, and the stone teaches you to carry. Water no longer runs through your hands.",
+    tier: 3,
+    col: 2,
+    parents: ["mending"],
+  },
+
+  trapping: {
+    id: "trapping",
+    name: "Trapping",
+    icon: "🪤",
+    whisper:
+      "The stone speaks of waiting. Of the loop set where the foot will find it, of the patience that needs no muscle.",
+    cost: { wood: 12, stone: 6, feathers: 1 },
+    requires: { hutBuilt: true },
+    effect: { unlocksTool: "snare" },
+    onLearnedMessage:
+      "You listen, and the stone teaches you the snare. The wasteland feeds those who set their loops well.",
+    tier: 4,
+    col: 0,
+    parents: ["tracking"],
+  },
 };
 
 export const getResearch = (id) => RESEARCH[id] || null;

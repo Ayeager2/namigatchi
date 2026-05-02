@@ -7,8 +7,13 @@
 //   id:     resource id (for "resource" kind only)
 //   qty:    [min, max] inclusive (for "resource" kind only)
 //
-// Note: Food is NOT in any base table — it's added dynamically by the
-// gathering system once Foraging research is complete. See systems/gathering.js.
+// Food (grubs) appears in the base table at small weights once the rock is
+// found — the wasteland is barren but not empty, and you can scratch up the
+// occasional grub from rotting wood. Foraging research dramatically boosts
+// the rate via GATHER_ADDITIONS — researching it is still the moment grubs
+// become a reliable food source. This base presence prevents the player from
+// being hard-walled out of tier-2 research (which costs grubs) when water is
+// scarce and Foraging is hard to afford.
 //
 // Water is intentionally rare (~8% of rolls) — the lore is a poisoned dead
 // earth, and water is the limiting reagent for all major early-game unlocks
@@ -27,21 +32,26 @@ export const GATHER_TABLE = {
   ],
 
   // Rock found, not yet awakened: a little better. You have purpose now.
+  // Grubs at weight 4 — uncommon but findable. Foraging research multiplies
+  // their availability later.
   postRockPreAwaken: [
     { weight: 30, kind: "resource", id: "wood",  qty: [1, 2] },
     { weight: 30, kind: "resource", id: "stone", qty: [1, 2] },
     { weight: 7,  kind: "resource", id: "water", qty: [1, 1] },
-    { weight: 12, kind: "nothing" },
-    { weight: 21, kind: "resource", id: "fragments", qty: [1, 1] },
+    { weight: 4,  kind: "resource", id: "food",  qty: [1, 1] },
+    { weight: 10, kind: "nothing" },
+    { weight: 19, kind: "resource", id: "fragments", qty: [1, 1] },
   ],
 
   // Rock awakened: the world feels more generous. The earth gives more freely.
+  // Grubs at weight 5 — slightly more frequent than pre-awakening.
   postAwaken: [
-    { weight: 38, kind: "resource", id: "wood",  qty: [1, 3] },
-    { weight: 38, kind: "resource", id: "stone", qty: [1, 3] },
+    { weight: 36, kind: "resource", id: "wood",  qty: [1, 3] },
+    { weight: 36, kind: "resource", id: "stone", qty: [1, 3] },
     { weight: 8,  kind: "resource", id: "water", qty: [1, 1] },
+    { weight: 5,  kind: "resource", id: "food",  qty: [1, 1] },
     { weight: 11, kind: "resource", id: "fragments", qty: [1, 1] },
-    { weight: 5,  kind: "nothing" },
+    { weight: 4,  kind: "nothing" },
   ],
 };
 

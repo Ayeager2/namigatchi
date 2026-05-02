@@ -31,6 +31,7 @@ export const SETTINGS_DEFAULTS = {
     rest: "r",
     eat: "e",
     drink: "d",
+    hunt: "h",
   },
   // Inventory section collapse state. true = collapsed, missing/false = open.
   inventoryCollapsed: {},

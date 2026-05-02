@@ -34,6 +34,20 @@ export const LOG_KINDS = {
 
   // Music unlocks — narrative beat (you've heard a new sound for this era).
   music_unlocked: { category: "unlocks" },
+
+  // Skill progression — the "I'm getting good at this" beats.
+  // The 0→1 unlock is unlocks-tab worthy; routine level-ups stay in Recent
+  // so the unlocks tab doesn't fill with noise on long runs.
+  skill_unlock:  { category: "unlocks" },
+  skill_levelup: { category: "recent" },
+
+  // Crafting — making a tool is a Recent beat (transient feedback).
+  craft:     { category: "recent" },
+  craftFail: { category: "recent" },
+
+  // Hunting — feedback during a hunt action.
+  hunt:     { category: "recent" },
+  huntFail: { category: "recent" },
 };
 
 export function getLogCategory(kind) {

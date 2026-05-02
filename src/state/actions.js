@@ -13,6 +13,8 @@ export const ACTIONS = {
   // Era 1
   BUILD: "BUILD",
   RESEARCH: "RESEARCH",
+  CRAFT_TOOL: "CRAFT_TOOL",
+  HUNT: "HUNT",
 
   // Survival
   EAT: "EAT",

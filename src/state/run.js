@@ -76,6 +76,29 @@ export const RUN_DEFAULTS = {
     evil: 0,
   },
 
+  // Skills — the "learning by doing" axis. Per-skill XP and level. Run-local;
+  // wipes on prestige. Shape: { skillId: { xp: number, level: number } }.
+  // Defaults to {} (empty); systems/skills.js fills in entries lazily as XP
+  // is earned. See content/skills.js for definitions.
+  skills: {},
+
+  // Tools (crafted items) discovered/created this run. Tools also live in
+  // inventory under category "tool"; this map exists for "have you ever
+  // crafted X this run?" queries and for log display order. Shape:
+  // { toolId: { craftedAt: ms, count: number } }.
+  toolsCrafted: {},
+
+  // Per-tool current durability. Set on craft to the tool's `durability.max`,
+  // decremented on the corresponding action (gather/hunt/waterGather). When a
+  // tool hits 0 durability, it's removed from inventory (broken) and its
+  // entry here is dropped. Shape: { toolId: number }.
+  toolDurability: {},
+
+  // Timestamp of last hunt action. Drives the hunt cooldown the same way
+  // lastGatheredAt drives the gather cooldown. Hunt cooldown is much longer
+  // than gather (you suck at it) and shrinks as Hunting skill levels up.
+  lastHuntAt: 0,
+
   // Recent in-run events (latest first, capped).
   log: [],
 };

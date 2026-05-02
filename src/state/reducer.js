@@ -7,6 +7,8 @@ import { freshRun } from "./run.js";
 import { performGather } from "../systems/gathering.js";
 import { performBuild } from "../systems/building.js";
 import { performListen } from "../systems/research.js";
+import { performCraft } from "../systems/crafting.js";
+import { performHunt } from "../systems/hunting.js";
 import { performSurvivalAction } from "../systems/survival.js";
 import {
   maybeRollInterval,
@@ -100,6 +102,22 @@ export function reducer(state, action) {
 
     case ACTIONS.RESEARCH: {
       const { run, persistent, events } = performListen(state, action.researchId);
+      return {
+        persistent,
+        run: appendLog(run, events),
+      };
+    }
+
+    case ACTIONS.CRAFT_TOOL: {
+      const { run, persistent, events } = performCraft(state, action.toolId);
+      return {
+        persistent,
+        run: appendLog(run, events),
+      };
+    }
+
+    case ACTIONS.HUNT: {
+      const { run, persistent, events } = performHunt(state);
       return {
         persistent,
         run: appendLog(run, events),

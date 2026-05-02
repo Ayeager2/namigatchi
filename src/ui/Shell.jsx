@@ -1,19 +1,5 @@
-// Top-level layout. Composes the smaller UI components into a responsive grid.
-//
-// Mobile (≤900px): single column, ordered for best mobile flow.
-// Desktop (>900px): three columns — Inventory/Buildings | Wasteland | Right.
-// Stone strip spans full width below the grid (clickable once hut is built).
-//
-// Prestige UI (Echoes counter, "Channel the Rock" button) is gated behind
-// `era >= 2`. Hidden in early game; revealed as a reward for progress.
-//
-// Teachings live in their own modal (TeachingsTreeModal) — opened by clicking
-// the stone strip. Building list is also a modal trigger card.
-//
-// Settings (theme, font, accessibility, save management) live behind a
-// floating gear icon at bottom-right.
-
 import { useState } from "react";
+import DevPanel, { useDevPanelToggle, isDevAvailable } from "./DevPanel.jsx";
 import Scene from "./Scene.jsx";
 import ActionPanel from "./ActionPanel.jsx";
 import InventoryPanel from "./InventoryPanel.jsx";
@@ -35,6 +21,8 @@ export default function Shell({ state, actions, settingsHook }) {
   const [buildingsOpen, setBuildingsOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [devOpen, setDevOpen] = useDevPanelToggle(settingsHook.settings);
+  const devAvailable = isDevAvailable(settingsHook.settings);
 
   const era = computeEra(state);
   const eraInfo = getEra(state);
@@ -145,6 +133,25 @@ export default function Shell({ state, actions, settingsHook }) {
       <EventModal state={state} actions={actions} />
 
       <SettingsTrigger onOpen={() => setSettingsOpen(true)} />
+
+      {devAvailable && (
+        <button
+          className="dev-floating-btn"
+          onClick={() => setDevOpen(true)}
+          title="Open dev panel (Ctrl+Shift+D)"
+          type="button"
+        >
+          🛠️
+        </button>
+      )}
+
+      {devOpen && (
+        <DevPanel
+          state={state}
+          actions={actions}
+          onClose={() => setDevOpen(false)}
+        />
+      )}
 
       {settingsOpen && (
         <SettingsModal

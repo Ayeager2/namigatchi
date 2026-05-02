@@ -356,6 +356,19 @@ With everything Era 1 has to offer: 900ms (about 40% faster than base). Holding 
 Scripts that help work on the project but aren't shipped as part of the game.
 Live in `tools/`. See `tools/README.md` for the full list.
 
+### 🟢 Dev panel (in-game debug overlay)
+**State.** A full-screen modal with one-click buttons to skip the grind: unlock everything, give 999 of every resource, build all buildings, learn all research, craft all tools, level all skills, max stats, skip time, trigger pests, etc. Toggled via Ctrl+Shift+D or a floating 🛠️ button bottom-left.
+
+**Gated by `import.meta.env.DEV`.** The panel and its keyboard shortcut do not ship in production builds. Escape hatch: `settings.devUnlocked = true` re-enables it in a built game (no UI for that yet — flip in the save JSON).
+
+**Architecture.** All dev actions are pure functions in `src/systems/dev.js` that return a `{ run, persistent, msg }` patch. The DEV_PATCH reducer action applies it. This keeps mutations predictable and replayable, and means new dev helpers slot in alongside without touching the reducer.
+
+**Adding a new dev button.** Write a `devXxx(state, ...args)` helper in `systems/dev.js` returning `{ run, msg }`. Add a `<Btn>` in DevPanel.jsx that calls `apply(dev.devXxx(state))`.
+
+**Where.** `src/systems/dev.js` (helpers), `src/state/actions.js` (DEV_PATCH), `src/state/reducer.js` (DEV_PATCH case), `src/ui/DevPanel.jsx` (UI + Ctrl+Shift+D hook), `src/ui/Shell.jsx` (mount + floating button).
+
+---
+
 ### 🟢 `tools/add-audio.js` — audio import wizard
 **State.** Walks through adding a music track or SFX. Asks for a source URL, fetches the page to suggest a title, attempts to find and download a direct MP3 link (works on hosts that expose URLs in HTML; falls back to manual file path otherwise). Prompts for id/title/artist/tags/volume/loop/license, auto-detects license from common source domains (Pixabay, FMA, Incompetech, Freesound, Tabletop Audio, Uppbeat, Bensound), copies the file into `public/audio/`, and appends a properly-formatted entry to `src/content/audio.js`. The Credits section auto-renders the new entry.
 

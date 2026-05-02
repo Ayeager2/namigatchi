@@ -160,7 +160,6 @@ export function reducer(state, action) {
     }
 
     case ACTIONS.TICK: {
-      // 1) passive production, 2) spoilage, 3) pest expiry, 4) interval roll.
       let run = state.run;
       let persistent = state.persistent;
       const allEvents = [];
@@ -184,11 +183,7 @@ export function reducer(state, action) {
         allEvents.push(...eventResult.events);
       }
 
-      if (
-        run === state.run &&
-        persistent === state.persistent &&
-        allEvents.length === 0
-      ) {
+      if (run === state.run && persistent === state.persistent && allEvents.length === 0) {
         return state;
       }
 
@@ -205,6 +200,19 @@ export function reducer(state, action) {
 
     case ACTIONS.CLEAR_LOG:
       return { ...state, run: { ...state.run, log: [] } };
+
+    case ACTIONS.DEV_PATCH: {
+      // Apply a dev/debug patch from a helper in systems/dev.js. The patch
+      // shape is { run?, persistent?, msg? } — we merge top-level slices and
+      // log msg as a "dev" log line.
+      const patch = action.patch || {};
+      const run = patch.run || state.run;
+      const persistent = patch.persistent || state.persistent;
+      const events = patch.msg
+        ? [{ kind: "dev", message: patch.msg }]
+        : [];
+      return { persistent, run: appendLog(run, events) };
+    }
 
     default:
       return state;

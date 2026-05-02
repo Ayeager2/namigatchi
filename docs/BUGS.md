@@ -1,0 +1,53 @@
+# Bug Log
+
+Open issues to tackle when we do a polish pass. Each entry has:
+- **Status** — `open` / `in-progress` / `fixed` (commit ref)
+- **Severity** — `paper-cut` / `medium` / `bad`
+- **Repro** — how to see it
+- **Notes** — design decisions / approach
+
+Add new bugs at the top. When fixing, leave the entry with status `fixed` and a date so we have a history.
+
+---
+
+## #003 — Buildings & Research tree modals need pan + zoom
+
+**Status:** ✅ fixed — 2026-05
+**Severity:** medium
+
+**Fix:** Built a shared `<PanZoomSvg>` component (`src/ui/PanZoomSvg.jsx`) that wraps the SVG in a transformable `<g>`. Both BuildingsTreeModal and TeachingsTreeModal now use it. Features:
+- Click and drag to pan (pointer events, captures pointer for smooth dragging)
+- Mouse wheel to zoom toward the cursor (so the point under your mouse stays fixed)
+- + / − / 0 keyboard shortcuts when the SVG is focused
+- Floating control panel: zoom in, zoom out, fit (resets), and live percent indicator
+- Bounded panning so the tree can't be lost off-screen
+- Node `data-no-pan` attribute so clicks on nodes register as selects, not pan starts
+
+**Note:** Edge tags get the `data-no-pan` skip from being inside the click target check, but actual node clicks still work as selects.
+
+---
+
+## #002 — Food spoilage countdown bar in inventory
+
+**Status:** ✅ fixed — 2026-05
+**Severity:** paper-cut
+
+**Fix:** Added `spoilStatusFromDef(resource, capStatus, accum)` to `src/systems/storage.js` that computes time-to-next-loss + percent toward the next loss. InventoryPanel renders a `<SpoilBar>` for each resource that has a `spoilage` def. Features:
+- Slim 3px dead-green bar (`#3a4a2a → #5a6a3a` gradient) under each spoiling food row
+- When at cap, color shifts to rot-red and the at-cap multiplier is reflected in the rate
+- Tooltip on hover: `"{name} is spoiling — about ~N min until next loss."` (with extra "(rotting fast — storage is full)" when at cap)
+- Re-renders every 5s so the bar visibly creeps
+- When future preservation tech reduces spoilage rate to 0, the bar will naturally disappear (no UI changes needed)
+
+---
+
+## #001 — Gather button width changes mid-cooldown, shoves Hunt below
+
+**Status:** ✅ fixed — 2026-05
+**Severity:** paper-cut
+
+**Fix:** Added `min-width: 11ch` (mobile) / `13ch` (desktop) to `.btn-gather` and `min-width: 16ch` / `19ch` to `.btn-hunt` in `src/index.css`. The longer label ("Gathering…" / "Hunting birds…") now reserves enough space that the button doesn't grow when the text changes — Hunt stays put.
+
+---
+
+*Last updated: 2026-05*

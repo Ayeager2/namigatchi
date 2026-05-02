@@ -2782,3 +2782,232 @@ body.motion-reduced .tool-durability-fill {
   color: var(--bad);
   font-weight: 600;
 }
+
+/* ---- dev panel ---- */
+
+.modal--dev {
+  max-width: 920px;
+  max-height: 90vh;
+}
+
+.dev-header {
+  border-bottom: 2px solid #e8a64f;
+  background: linear-gradient(180deg, #3a2f1a 0%, #2a241a 100%);
+}
+
+.dev-header h2 {
+  color: #e8a64f;
+}
+
+.dev-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.dev-section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.dev-section h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  margin: 0 0 8px;
+}
+
+.dev-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dev-btn {
+  background: var(--bg-elev);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.dev-btn:hover {
+  background: var(--bg-elev2);
+  border-color: var(--accent-dim);
+}
+
+.dev-btn--danger {
+  color: var(--bad);
+  border-color: rgba(184, 91, 91, 0.3);
+}
+
+.dev-btn--danger:hover {
+  background: rgba(184, 91, 91, 0.1);
+  border-color: var(--bad);
+}
+
+.dev-row-stats {
+  font-size: 10px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  margin-top: 6px;
+  word-break: break-all;
+}
+
+/* Floating "DEV" button — visible only in dev mode. */
+
+.dev-floating-btn {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #4a3f1a 0%, #2a241a 100%);
+  border: 2px solid #e8a64f;
+  color: #e8a64f;
+  font-size: 18px;
+  cursor: pointer;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 12px rgba(232, 166, 79, 0.3);
+}
+
+.dev-floating-btn:hover {
+  background: linear-gradient(180deg, #5a4f2a 0%, #3a342a 100%);
+  border-color: #f0c870;
+  box-shadow: 0 0 16px rgba(232, 166, 79, 0.5);
+}
+
+/* ---- bug #001: keep primary action buttons stable when text changes ---- */
+/* Gather/Hunt swap labels mid-cooldown ("Gather" → "Gathering…", "Hunt" →
+   "Hunting birds…"). Reserve enough width that the longer label fits, so
+   the row layout doesn't reflow. */
+
+.btn-gather {
+  min-width: 11ch;
+}
+
+.btn-hunt {
+  min-width: 16ch;
+}
+
+@media (min-width: 900px) {
+  .btn-gather {
+    min-width: 13ch;
+  }
+  .btn-hunt {
+    min-width: 19ch;
+  }
+}
+
+/* ---- bug #002: spoilage countdown bar ---- */
+
+.spoil-bar {
+  flex-basis: 100%;
+  height: 3px;
+  margin-top: 2px;
+  background: #1f1a14;
+  border-radius: 2px;
+  overflow: hidden;
+  cursor: help;
+}
+
+.spoil-bar-fill {
+  height: 100%;
+  background: linear-gradient(to right, #3a4a2a, #5a6a3a);
+  transition: width 1s linear;
+}
+
+.spoil-bar--rotting .spoil-bar-fill {
+  background: linear-gradient(to right, #5a3a2a, #7a4a3a);
+  box-shadow: 0 0 4px rgba(184, 91, 91, 0.3);
+}
+
+.inventory-list li {
+  flex-wrap: wrap;
+}
+
+/* ---- bug #003: pan + zoom on tree modals ---- */
+
+.panzoom-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.panzoom-svg {
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  user-select: none;
+  outline: none;
+  touch-action: none; /* let pointer events handle pan instead of native scroll */
+}
+
+.panzoom-svg.is-dragging {
+  cursor: grabbing;
+}
+
+.panzoom-svg:focus-visible {
+  outline: 1px solid var(--accent-dim);
+  outline-offset: 2px;
+}
+
+.panzoom-controls {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(20, 16, 12, 0.7);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 6px;
+  backdrop-filter: blur(2px);
+  z-index: 2;
+}
+
+.panzoom-btn {
+  background: var(--bg-elev);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.panzoom-btn:hover {
+  background: var(--bg-elev2);
+  border-color: var(--accent-dim);
+}
+
+.panzoom-zoom {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  padding: 0 6px;
+  min-width: 36px;
+  text-align: center;
+}

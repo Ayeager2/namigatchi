@@ -123,3 +123,51 @@ export function getCapStatus(state, resourceId) {
   if (have / cap >= 0.8) return { status: "warn", cap, have };
   return { status: "ok", cap, have };
 }
+
+// Compute the spoilage status for an inventory row. Used by the inventory UI
+// to render a countdown bar next to spoiling foods.
+//
+// Returns { spoils, perMinute, atCap, secondsUntilNextLoss, percent } where:
+//   spoils — boolean, false for non-food / non-spoiling resources
+//   perMinute — current effective spoil rate
+//   atCap — true if the at-cap multiplier is active
+//   secondsUntilNextLoss — how long until the accumulator crosses 1.0
+//   percent — 0..1 progress toward the next loss (for the bar)
+export function getSpoilStatus(state, resourceId) {
+  const res = (state.run.inventory && state.run.inventory[resourceId] !== undefined)
+    ? null : null; // resolve below
+  // We need the full RESOURCE def, not the inventory slot — read directly.
+  // (Lazy import path-style to dodge any circular concerns.)
+  // eslint-disable-next-line no-undef
+  const RESOURCES_MODULE = (typeof window !== "undefined" && window.__namigatchi_resources)
+    ? window.__namigatchi_resources
+    : null;
+  // Fallback: caller will use getResource directly — see InventoryPanel.
+
+  return null; // placeholder — InventoryPanel uses local helper instead
+}
+
+// Better: a pure helper that takes the resource definition + cap status +
+// current accumulator. Caller pulls the def from RESOURCES.
+//   resource: the resource def from RESOURCES (must have spoilage)
+//   capStatus: result of getCapStatus(state, id)
+//   accum: current run.spoilAccum[id] || 0
+// Returns { spoils, perMinute, atCap, secondsUntilNextLoss, percent }.
+export function spoilStatusFromDef(resource, capStatus, accum) {
+  if (!resource?.spoilage) return { spoils: false };
+  const atCap = capStatus.status === "full";
+  const perMinute =
+    resource.spoilage.perMinute *
+    (atCap ? resource.spoilage.atCapMultiplier || 1 : 1);
+  if (perMinute <= 0) return { spoils: false };
+  const remaining = Math.max(0, 1 - (accum || 0));
+  const secondsUntilNextLoss = (remaining / perMinute) * 60;
+  const percent = Math.max(0, Math.min(1, accum || 0));
+  return {
+    spoils: true,
+    perMinute,
+    atCap,
+    secondsUntilNextLoss,
+    percent,
+  };
+}

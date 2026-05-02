@@ -13,6 +13,7 @@ import {
 } from "../content/buildings.js";
 import { getResource } from "../content/resources.js";
 import { canBuild, getVisibleBuildings } from "../systems/building.js";
+import PanZoomSvg from "./PanZoomSvg.jsx";
 
 // Tree canvas dimensions (viewBox coords; CSS scales the SVG).
 const W = 820;
@@ -127,11 +128,7 @@ export default function BuildingsTreeModal({ state, actions, onClose }) {
 
         <div className="modal-body modal-body--tree">
           <div className="tree-canvas">
-            <svg
-              viewBox={`0 0 ${W} ${H}`}
-              className="tree-svg"
-              preserveAspectRatio="xMidYMid meet"
-            >
+            <PanZoomSvg width={W} height={H} className="tree-svg" ariaLabel="Buildings tree (drag to pan, wheel to zoom)">
               {/* Edges */}
               {edges.map((e) => (
                 <line
@@ -185,6 +182,7 @@ export default function BuildingsTreeModal({ state, actions, onClose }) {
                     onClick={() => setSelectedId(b.id)}
                     role="button"
                     tabIndex={0}
+                    data-no-pan
                   >
                     <circle
                       cx={pos.x}
@@ -211,7 +209,7 @@ export default function BuildingsTreeModal({ state, actions, onClose }) {
                   </g>
                 );
               })}
-            </svg>
+            </PanZoomSvg>
           </div>
 
           <aside className="tree-detail">
@@ -277,6 +275,12 @@ export default function BuildingsTreeModal({ state, actions, onClose }) {
               </div>
             )}
           </aside>
+        </div>
+      </div>
+    </div>
+  );
+}
+e>
         </div>
       </div>
     </div>

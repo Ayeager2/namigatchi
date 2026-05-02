@@ -40,8 +40,9 @@ Read in this order **before doing anything**:
 1. **`docs/roadmap.md`** — vision, era ladder, design decisions made, open questions
 2. **`docs/architecture.md`** — structural design (the v1 audit + v2 addendum at the bottom describes the *current* architecture)
 3. **`docs/systems.md`** — current state of every gameplay system, with status legend (🟢 shipped · 🟡 partial · ⬜ planned · 🔮 future-vision). This is the live "what's where" doc.
-4. **`tools/README.md`** — dev tools (audio import wizard, etc.)
-5. **This file** — current state and how to resume
+4. **`docs/BUGS.md`** — known bugs / paper-cuts to fix in polish passes. Add new bugs here as you find them.
+5. **`tools/README.md`** — dev tools (audio import wizard, etc.)
+6. **This file** — current state and how to resume
 
 ---
 
@@ -92,6 +93,30 @@ Era 2 content (Settler tier — would unlock the prestige UI + Forge-required to
 - **"What was decided about Y?"** → `docs/roadmap.md`
 - **"What patterns does the code use?"** → `docs/architecture.md` (v2 addendum at bottom)
 - **"How do I add audio?"** → `tools/README.md`, run `npm run add-audio`
+
+---
+
+## Dev panel (skip the grind while testing)
+
+A debug overlay is available in dev mode (`npm run dev`). Press **Ctrl+Shift+D** or click the floating 🛠️ button at bottom-left to open it.
+
+Sections:
+- **One-shots**: 🚀 Unlock everything (Era 1), Jump to Era 1, Find rock, Force awakening, Give 10 fragments
+- **Resources**: +999 / +99 of all, clear inventory
+- **Buildings**: build all, or one at a time
+- **Research**: learn all, or one at a time
+- **Tools**: craft all (full durability), or one at a time
+- **Skills**: set all to lvl 5 / 10 / 20, reset
+- **Survival**: max stats, hurt to red zones (test danger UI)
+- **Time**: skip 1 / 10 / 60 / 480 minutes (rewinds passive + spoilage timestamps so the next TICK processes them)
+- **Pests + Events**: trigger bird flock, clear pests
+- **Reset**: wipe run, nuke save (clears localStorage + reload)
+
+Gated by `import.meta.env.DEV`, so it does NOT ship in production builds. If you want it in a built game for testing, set `settings.devUnlocked = true` (no UI for that yet — flip it via the save export/import flow).
+
+All dev actions emit a "🛠️ Foo done." log line so you can see what changed. They use the same DEV_PATCH reducer action, which keeps state changes predictable.
+
+**Typical workflow:** open the panel → "🚀 Unlock everything (Era 1)" → close → test the thing you wanted to see.
 
 ---
 

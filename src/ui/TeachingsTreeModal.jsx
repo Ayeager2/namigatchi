@@ -14,6 +14,7 @@ import {
 } from "../content/research.js";
 import { getResource } from "../content/resources.js";
 import { canListen } from "../systems/research.js";
+import PanZoomSvg from "./PanZoomSvg.jsx";
 
 // Tree canvas dimensions (in viewBox coords; CSS scales the SVG).
 const W = 600;
@@ -124,11 +125,7 @@ export default function TeachingsTreeModal({ state, actions, onClose }) {
 
         <div className="modal-body modal-body--tree">
           <div className="tree-canvas">
-            <svg
-              viewBox={`0 0 ${W} ${H}`}
-              className="tree-svg"
-              preserveAspectRatio="xMidYMid meet"
-            >
+            <PanZoomSvg width={W} height={H} className="tree-svg" ariaLabel="Teachings tree (drag to pan, wheel to zoom)">
               {/* Edges */}
               {edges.map((e) => (
                 <line
@@ -181,6 +178,7 @@ export default function TeachingsTreeModal({ state, actions, onClose }) {
                     onClick={() => setSelectedId(r.id)}
                     role="button"
                     tabIndex={0}
+                    data-no-pan
                   >
                     <circle
                       cx={pos.x}
@@ -207,7 +205,7 @@ export default function TeachingsTreeModal({ state, actions, onClose }) {
                   </g>
                 );
               })}
-            </svg>
+            </PanZoomSvg>
           </div>
 
           <aside className="tree-detail">
@@ -264,6 +262,12 @@ export default function TeachingsTreeModal({ state, actions, onClose }) {
               </div>
             )}
           </aside>
+        </div>
+      </div>
+    </div>
+  );
+}
+e>
         </div>
       </div>
     </div>

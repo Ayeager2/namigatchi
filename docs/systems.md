@@ -116,8 +116,23 @@ With everything Era 1 has to offer: 900ms (about 40% faster than base). Holding 
 
 ## Era 1 — Awakening
 
+### 🟢 Storage / inventory caps / spoilage
+**State.** Each resource declares an optional `baseCap` in content/resources.js (omit = uncapped, e.g. fragments). Buildings declare `storageCaps: { resourceId: capIncrease }`. Effective cap = baseCap + sum of storage from owned buildings. `getResourceCap(state, resourceId)` reads it. `clampToCap(inventory, state, prevInventory)` enforces caps on additions while preserving existing oversupply (old saves keep what they had). Caps clamp on every gather/hunt and pace passive production (Garden/Well stop adding past cap).
+
+**Spoilage.** Food resources declare `spoilage: { perMinute, atCapMultiplier }`. `processSpoilage(state)` runs in TICK after passive production, decays food by elapsed real time. Past-cap stockpiles spoil at the multiplier rate (grubs: 0.2/min normally, 0.8/min at cap; bird meat: 0.4/min normally, 2.0/min at cap). Catch-up capped at 30 minutes for offline absences. Fractional spoilage carried in `run.spoilAccum`.
+
+**UI.** Inventory panel shows `12/30` for capped resources (just `12` for uncapped). Color shifts to warn at ≥80% of cap and danger when at cap. Spoilage events log to Recent: "🦠 1 grub spoiled."
+
+**Cairn (storage building).** Tier-4 building, parent: hut. Requires hiddenStores research (already exists). Cost wood:30, stone:50. Storage caps: +50 wood, +50 stone, +20 water, +15 grubs, +10 bird meat, +20 feathers. The first cap-raise path Era 1 offers.
+
+**Where.** `src/content/resources.js` (baseCap + spoilage data), `src/content/buildings.js` (Cairn + storageCaps), `src/systems/storage.js` (getResourceCap, clampToCap, processSpoilage, getCapStatus), `src/state/run.js` (lastSpoilTickAt, spoilAccum), `src/state/reducer.js` (TICK calls processSpoilage), `src/systems/gathering.js` + `hunting.js` + `passive.js` (clamp on add), `src/ui/InventoryPanel.jsx` (cap display).
+
+**Long arc.** Era 2 introduces a Granary (food-only cap raise) and Cellars (preservation = lower spoilage). Era 3 magic preservation. The cap+spoilage shape is the foundation for late-game economy decisions ("do I build more storage or more producers?").
+
+---
+
 ### 🟢 Buildings
-**State.** Tree-based modal with left-to-right SVG layout. Currently 4 buildings (Hut, Fire Pit, Well, Garden). Hut requires rock awakening. Fire Pit requires Fire research. Well requires Water Carrying research; Garden requires Foraging. Well & Garden produce resources passively (see Idle / passive generation entry). Buildings have categories (shelter, comfort, tools, industry, arcane, sovereignty, cosmos) for future grouping. Each provides effects (gather bonus, rest bonus, passive output, etc.).
+**State.** Tree-based modal with left-to-right SVG layout. Currently 5 buildings (Hut, Fire Pit, Well, Garden, Cairn). Hut requires rock awakening. Fire Pit requires Fire research. Well requires Water Carrying research; Garden requires Foraging. Well & Garden produce resources passively (see Idle / passive generation entry). Buildings have categories (shelter, comfort, tools, industry, arcane, sovereignty, cosmos) for future grouping. Each provides effects (gather bonus, rest bonus, passive output, etc.).
 
 **Where.** `src/systems/building.js`, `src/content/buildings.js`, `src/ui/BuildingsTreeModal.jsx`, `src/ui/BuildingsPanel.jsx` (trigger).
 

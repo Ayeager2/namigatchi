@@ -1,12 +1,4 @@
 // Gathering system. Pure function: takes state + rng, returns new state + events.
-// Reducer dispatches GATHER; this file owns all the actual logic.
-//
-// The gather table is composed dynamically: a base table (depending on rock
-// state) + additional entries injected by completed research. So Foraging
-// research adds Food to the loot pool, automatically and without UI changes.
-//
-// Survival: when the hut is built, gathering applies stat decay and yield
-// multipliers. Energy must be > 0 to gather (caller checks via canGather).
 
 import {
   GATHER_TABLE,
@@ -22,6 +14,7 @@ import { getResearchBonuses } from "./research.js";
 import { getBonus, gainXp } from "./skills.js";
 import { applyToolWear } from "./crafting.js";
 import { isPestActive } from "./passive.js";
+import { clampToCap } from "./storage.js";
 import {
   survivalActive,
   decayForAction,
@@ -33,41 +26,27 @@ import { rollGatherEvent } from "./events.js";
 import { pickWeighted, randInt } from "../util/rng.js";
 import { SURVIVAL } from "../content/survival.js";
 
-// Compute the current gather cooldown in ms. Buildings, research, owned
-// tools, and Foraging skill all reduce the base. Floored at
-// SURVIVAL.gather.minCooldownMs so there's always SOME pause — full
-// automation is a separate (future) system.
 export function getGatherCooldownMs(state) {
   const cfg = SURVIVAL.gather || {};
   let ms = cfg.baseCooldownMs ?? 1500;
-
-  // Buildings
   for (const id of Object.keys(state.run.built || {})) {
     const b = getBuilding(id);
     if (b?.effect?.gatherSpeedup) ms -= b.effect.gatherSpeedup;
   }
-  // Research
   for (const id of Object.keys(state.run.researched || {})) {
     const r = getResearch(id);
     if (r?.effect?.gatherSpeedup) ms -= r.effect.gatherSpeedup;
   }
-  // Tools (e.g. Digging Stick contributes -100ms)
   const toolEff = getToolEffects(state.run);
   if (toolEff.gatherSpeedup) ms -= toolEff.gatherSpeedup;
-  // Skills (Foraging adds a tiny per-level reduction)
   ms -= getBonus(state.run, "gatherSpeedup");
-
   return Math.max(cfg.minCooldownMs ?? 250, ms);
 }
 
-// Returns { ok, reason, msRemaining } for the gather action including
-// both survival energy gating and the new cooldown.
 export function canGatherFull(state) {
-  // Energy gate (existing)
   const survivalCheck = canGatherSurvival(state);
   if (!survivalCheck.ok) return { ...survivalCheck, msRemaining: 0 };
 
-  // Cooldown gate (new)
   const lastAt = state.run.lastGatheredAt || 0;
   if (lastAt > 0) {
     const cooldownMs = getGatherCooldownMs(state);
@@ -83,9 +62,6 @@ export function canGatherFull(state) {
   return { ok: true, msRemaining: 0 };
 }
 
-// Build the live gather table from base + research additions.
-// While the bird-flock pest is active, grub weights are halved (the flock
-// has eaten what was easy to find).
 function buildGatherTable(run) {
   let entries;
   if (!run.rockFound) entries = [...GATHER_TABLE.preRock];
@@ -97,9 +73,6 @@ function buildGatherTable(run) {
     if (addition) entries.push({ ...addition });
   }
 
-  // Pest modulation — entries with id "food" get their weight halved while
-  // a bird flock is active. Done after additions so the effect catches both
-  // the base table and Foraging's bonus food weight.
   if (isPestActive(run, "birdFlock")) {
     entries = entries.map((e) =>
       e.kind === "resource" && e.id === "food"
@@ -112,16 +85,10 @@ function buildGatherTable(run) {
 }
 
 export function performGather(state, rng = Math.random) {
-  // Energy gate AND cooldown gate.
   const gateCheck = canGatherFull(state);
   if (!gateCheck.ok) {
-    // Cooldown rejections happen silently — no log spam from key-mashing.
     if (gateCheck.msRemaining > 0) {
-      return {
-        run: state.run,
-        persistent: state.persistent,
-        events: [],
-      };
+      return { run: state.run, persistent: state.persistent, events: [] };
     }
     return {
       run: state.run,
@@ -130,8 +97,6 @@ export function performGather(state, rng = Math.random) {
     };
   }
 
-  // Build new state from immutable copies.
-  // `let` so the skill-XP step at the end can replace the skills slice.
   let run = {
     ...state.run,
     inventory: { ...state.run.inventory },
@@ -153,7 +118,6 @@ export function performGather(state, rng = Math.random) {
   const buildingBonuses = getBuildingBonuses(run);
   const researchBonuses = getResearchBonuses(run);
   const toolEff = getToolEffects(run);
-  // Skills add a fractional gather bonus (rounded into the qty calc).
   const skillGatherBonus = getBonus(run, "gatherBonus");
   const gatherBonus =
     (buildingBonuses.gatherBonus || 0) +
@@ -161,7 +125,6 @@ export function performGather(state, rng = Math.random) {
     (toolEff.gatherBonus || 0) +
     skillGatherBonus;
 
-  // Survival yield penalty (only when survival active).
   const yieldMult = survivalActive(state) ? getYieldMultiplier(run.stats) : 1.0;
 
   persistent.lifetimeStats.totalGathers += 1;
@@ -170,19 +133,12 @@ export function performGather(state, rng = Math.random) {
 
   switch (result.kind) {
     case "nothing":
-      events.push({
-        kind: "nothing",
-        message: "You search and find nothing of value.",
-      });
+      events.push({ kind: "nothing", message: "You search and find nothing of value." });
       break;
-
     case "resource": {
       const [lo, hi] = result.qty;
       const baseQty = randInt(rng, lo, hi);
-      // Water-specific bonus from Digging Stick / Water Skin tools.
       const waterBonus = result.id === "water" ? (toolEff.waterBonus || 0) : 0;
-      // Apply gather bonus + water bonus, then yield multiplier
-      // (rounded, min 1 if anything).
       const rawQty = baseQty + gatherBonus + waterBonus;
       const qty = Math.max(1, Math.round(rawQty * yieldMult));
       run.inventory[result.id] = (run.inventory[result.id] || 0) + qty;
@@ -191,13 +147,9 @@ export function performGather(state, rng = Math.random) {
       persistent.lifetimeStats.resourcesByType[result.id] =
         (persistent.lifetimeStats.resourcesByType[result.id] || 0) + qty;
       const res = RESOURCES[result.id];
-      events.push({
-        kind: "resource",
-        message: `${res.icon} +${qty} ${res.name}`,
-      });
+      events.push({ kind: "resource", message: `${res.icon} +${qty} ${res.name}` });
       break;
     }
-
     case "rockFind":
       run.rockFound = true;
       persistent.lifetimeStats.rocksFound += 1;
@@ -206,27 +158,18 @@ export function performGather(state, rng = Math.random) {
         message: "Among the dust, a smooth stone — warm, somehow. You pocket it.",
       });
       break;
-
     default:
       events.push({ kind: "nothing", message: "Nothing happens." });
   }
 
-  // Awakening check — uses the UPDATED run state.
-  if (
-    run.rockFound &&
-    !run.rockAwakened &&
-    run.inventory.fragments >= FRAGMENTS_TO_AWAKEN
-  ) {
+  if (run.rockFound && !run.rockAwakened && run.inventory.fragments >= FRAGMENTS_TO_AWAKEN) {
     run.rockAwakened = true;
     run.rockAwakenedAt = Date.now();
-    // The rock consumes the fragments — all of them. Player sees the
-    // Unknown inventory section vanish in real time.
     run.inventory.fragments = 0;
     persistent.lifetimeStats.rocksAwakened += 1;
     events.push({
       kind: "awaken",
-      message:
-        "The fragments leap from your hand to the stone — and the stone OPENS its eye.",
+      message: "The fragments leap from your hand to the stone — and the stone OPENS its eye.",
     });
     const hut = getBuilding("hut");
     if (hut?.whisperOnAvailable) {
@@ -234,8 +177,6 @@ export function performGather(state, rng = Math.random) {
     }
   }
 
-  // Tracking research: separate chance to find a bonus fragment after the rock
-  // is found. Pure additive — doesn't intrude on the main gather table.
   if (run.rockFound) {
     for (const id of Object.keys(run.researched || {})) {
       const r = getResearch(id);
@@ -245,20 +186,15 @@ export function performGather(state, rng = Math.random) {
         persistent.lifetimeStats.totalResourcesGathered += 1;
         persistent.lifetimeStats.resourcesByType.fragments =
           (persistent.lifetimeStats.resourcesByType.fragments || 0) + 1;
-        events.push({
-          kind: "resource",
-          message: "✨ +1 (something extra glints in the dust)",
-        });
+        events.push({ kind: "resource", message: "✨ +1 (something extra glints in the dust)" });
       }
     }
   }
 
-  // Apply survival decay (after gather, AFTER any awakening/build state changes).
   if (survivalActive({ ...state, run })) {
     run.stats = decayForAction(run.stats || {}, "Gather");
   }
 
-  // Threat encounter — roll AFTER decay so defense/HP reflect current state.
   if (survivalActive({ ...state, run })) {
     const threat = rollThreatEncounter({ ...state, run }, rng);
     if (threat) {
@@ -270,7 +206,6 @@ export function performGather(state, rng = Math.random) {
     }
   }
 
-  // Random event — roll for a gather-triggered event after threats resolve.
   if (survivalActive({ ...state, run })) {
     const ev = rollGatherEvent({ ...state, run, persistent }, rng);
     if (ev) {
@@ -280,9 +215,7 @@ export function performGather(state, rng = Math.random) {
     }
   }
 
-  // Skill XP — Foraging earns from every gather. Bonus on food drops
-  // (the rarer outcome that teaches the most about reading the wasteland).
-  // XP grants happen LAST so any earlier state changes are visible.
+  // Skill XP
   let xpGain = 1;
   if (result.kind === "resource" && result.id === "food") xpGain += 1;
   if (result.kind === "rockFind") xpGain += 2;
@@ -290,8 +223,7 @@ export function performGather(state, rng = Math.random) {
   run = { ...run, skills: xpResult.skills };
   events.push(...xpResult.events);
 
-  // Tool wear — generic gather first (Digging Stick), then water-specific
-  // (Water Skin) only when this was a water drop.
+  // Tool wear
   const wearGather = applyToolWear(run, "gather");
   run = wearGather.run;
   events.push(...wearGather.events);
@@ -301,21 +233,16 @@ export function performGather(state, rng = Math.random) {
     events.push(...wearWater.events);
   }
 
-  return { run, persistent, events };
-
-}inXp(run, "foraging", xpGain);
-  run = { ...run, skills: xpResult.skills };
-  events.push(...xpResult.events);
-
-  // Tool wear — generic gather first (Digging Stick), then water-specific
-  // (Water Skin) only when this was a water drop.
-  const wearGather = applyToolWear(run, "gather");
-  run = wearGather.run;
-  events.push(...wearGather.events);
-  if (result.kind === "resource" && result.id === "water") {
-    const wearWater = applyToolWear(run, "waterGather");
-    run = wearWater.run;
-    events.push(...wearWater.events);
+  // Clamp to cap. Existing oversupply preserved; new additions past cap dropped.
+  const clamped = clampToCap(run.inventory, { ...state, run }, state.run.inventory);
+  run = { ...run, inventory: clamped.inventory };
+  for (const [id, lost] of Object.entries(clamped.overflow)) {
+    if (lost > 0) {
+      events.push({
+        kind: "actionFail",
+        message: `📦 ${lost} ${id} wasted — nowhere to put it.`,
+      });
+    }
   }
 
   return { run, persistent, events };

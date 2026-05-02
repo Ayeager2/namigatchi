@@ -1,27 +1,18 @@
 // Inventory card with collapsible categories. Lives in the left column.
-//
-// Items are grouped by category (Materials / Food / Arcane / Tools / Mystic /
-// Unknown). Each group has a caret that toggles open/closed; collapse state
-// persists in user settings.
-//
-// Hidden resources (e.g., fragments before the player has researched what
-// they are) display under "Unknown" with placeholder name and icon — see
-// content/resources.js getDisplayResource() / isResourceHidden().
 
 import {
   getInventoryItem,
   RESOURCE_CATEGORIES,
 } from "../content/resources.js";
+import { getCapStatus } from "../systems/storage.js";
 
 function groupItems(items) {
-  // items: [{ id, qty, displayed: { name, icon, _displayCategory, ... } }]
   const groups = {};
   for (const it of items) {
     const cat = it.displayed._displayCategory || "materials";
     if (!groups[cat]) groups[cat] = [];
     groups[cat].push(it);
   }
-  // Return ordered by category.order
   return Object.keys(groups)
     .map((catId) => RESOURCE_CATEGORIES[catId] || { id: catId, name: catId, order: 50 })
     .sort((a, b) => (a.order ?? 50) - (b.order ?? 50))
@@ -33,14 +24,15 @@ export default function InventoryPanel({ state, settingsHook }) {
   const collapsedMap = settingsHook?.settings?.inventoryCollapsed || {};
   const toggle = settingsHook?.toggleInventoryCollapse || (() => {});
 
-  // Build items list — resolves via unified resource+tool lookup so crafted
-  // tools (Net, Snare, etc.) render alongside resources.
   const items = Object.entries(run.inventory)
     .filter(([, qty]) => qty > 0)
     .map(([id, qty]) => {
       const item = getInventoryItem(state, id);
       if (!item) return null;
-      return { id, qty, displayed: item.displayed, real: item.raw };
+      // Skip the special "rocks" / hidden fragment display category check —
+      // baseCap lookup is done via the real id.
+      const cap = item.kind === "resource" ? getCapStatus(state, id) : { status: "uncapped" };
+      return { id, qty, displayed: item.displayed, real: item.raw, cap };
     })
     .filter(Boolean);
 
@@ -70,13 +62,25 @@ export default function InventoryPanel({ state, settingsHook }) {
                 </button>
                 {!collapsed && (
                   <ul className="inventory-list">
-                    {items.map((item) => (
-                      <li key={item.id}>
-                        <span className="icon">{item.displayed.icon}</span>
-                        <span className="name">{item.displayed.name}</span>
-                        <span className="qty">{item.qty}</span>
-                      </li>
-                    ))}
+                    {items.map((item) => {
+                      const capClass =
+                        item.cap.status === "full"
+                          ? "qty--full"
+                          : item.cap.status === "warn"
+                          ? "qty--warn"
+                          : "";
+                      return (
+                        <li key={item.id}>
+                          <span className="icon">{item.displayed.icon}</span>
+                          <span className="name">{item.displayed.name}</span>
+                          <span className={`qty ${capClass}`}>
+                            {item.cap.status === "uncapped"
+                              ? item.qty
+                              : `${item.qty}/${item.cap.cap}`}
+                          </span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </div>

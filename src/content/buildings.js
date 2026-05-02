@@ -10,6 +10,10 @@ export const BUILDING_CATEGORIES = {
   cosmos:      { id: "cosmos",      name: "Cosmos",      order: 7 },
 };
 
+// Buildings can declare:
+//   passiveProduce: { resourceId: { perMinute } } — TICK-driven production.
+//   storageCaps:    { resourceId: capIncrease }   — adds to that resource's cap.
+
 export const BUILDINGS = {
   hut: {
     id: "hut",
@@ -79,6 +83,36 @@ export const BUILDINGS = {
     whisperOnBuilt: "The stone whispers: the dust remembers being a garden, once.",
     tier: 3,
     col: 1,
+    parents: ["hut"],
+  },
+
+  // ===== Storage (Era 1 cap raise) =====
+  cairn: {
+    id: "cairn",
+    name: "Cairn",
+    icon: "🗿",
+    category: "shelter",
+    description:
+      "A stacked-stone cellar dug half into the dust. Holds what you would otherwise lose.",
+    cost: { wood: 30, stone: 50 },
+    requires: { researched: "hiddenStores" },
+    effect: {},
+    storageCaps: {
+      wood: 50,
+      stone: 50,
+      water: 20,
+      food: 15,
+      bird_meat: 10,
+      feathers: 20,
+    },
+    effectSummary:
+      "+50 wood/stone · +20 water · +15 grubs · +10 bird meat · +20 feathers — caps raised.",
+    onBuiltMessage:
+      "🗿 You stack the cairn slow, fitting stone to stone. The hollow inside will hold what you cannot carry.",
+    whisperOnBuilt:
+      "The stone whispers: keeping is its own kind of work. What you save, you save twice.",
+    tier: 4,
+    col: 0,
     parents: ["hut"],
   },
 };

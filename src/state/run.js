@@ -20,27 +20,22 @@ export const RUN_DEFAULTS = {
   activeEvent: null,
   alignment: { good: 0, evil: 0 },
 
-  // Skills — per-skill XP and level. Run-local; wipes on prestige.
   skills: {},
-
-  // Tools (crafted items) discovered/created this run.
   toolsCrafted: {},
-
-  // Per-tool current durability. Set on craft; decremented on the
-  // corresponding action. Tool removed from inventory at 0.
   toolDurability: {},
-
-  // Hunt cooldown timestamp.
   lastHuntAt: 0,
 
-  // Passive production. Buildings like Well/Garden produce over real time.
-  // passiveAccum holds fractional carry-over per resource.
+  // Passive production
   lastPassiveTickAt: 0,
   passiveAccum: {},
 
-  // Active pests / temporary world hazards.
-  // Shape: { pestId: { until: <ms>, intensity?: number } }
+  // Pests
   activePests: {},
+
+  // Spoilage tracking. lastSpoilTickAt = wall-clock ms of last process.
+  // spoilAccum carries fractional spoilage between ticks.
+  lastSpoilTickAt: 0,
+  spoilAccum: {},
 
   log: [],
 };

@@ -302,28 +302,3 @@ export function maybeRollInterval(state, rng = Math.random) {
   };
   return next;
 }
-st = state.run.events?.lastIntervalMs ?? 0;
-  if (now - last < INTERVAL_MS) return null;
-
-  // Update lastIntervalMs even if no event fires (so we don't catch up by spam).
-  let next = rollIntervalEvent(state, rng);
-  if (!next) {
-    return {
-      run: {
-        ...state.run,
-        events: { ...(state.run.events || {}), lastIntervalMs: now },
-      },
-      persistent: state.persistent,
-      events: [],
-    };
-  }
-  next.run = {
-    ...next.run,
-    events: { ...(next.run.events || {}), lastIntervalMs: now },
-  };
-  return next;
-}
-IntervalMs: now },
-  };
-  return next;
-}

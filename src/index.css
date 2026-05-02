@@ -2771,3 +2771,14 @@ body.motion-reduced .tool-durability-fill {
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
+
+/* ---- inventory cap states ---- */
+
+.qty--warn {
+  color: var(--warn);
+}
+
+.qty--full {
+  color: var(--bad);
+  font-weight: 600;
+}

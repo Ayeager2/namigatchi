@@ -1,6 +1,4 @@
 // The reducer is intentionally THIN. It dispatches to systems for actual logic.
-// Everything that mutates game state goes through this funnel — no exceptions.
-// That property is what makes save/load, debugging, and undo trivial later.
 
 import { ACTIONS } from "./actions.js";
 import { freshRun } from "./run.js";
@@ -14,6 +12,7 @@ import {
   applyPassiveProduction,
   clearStalePests,
 } from "../systems/passive.js";
+import { processSpoilage } from "../systems/storage.js";
 import {
   maybeRollInterval,
   respondToActiveEvent,
@@ -29,8 +28,6 @@ import {
 
 const MAX_LOG = 30;
 
-// `events` may be a single event or an array of events.
-// Single actions can emit multiple log entries (e.g. an awakening + a whisper).
 function appendLog(run, events) {
   if (!events) return run;
   const arr = Array.isArray(events) ? events : [events];
@@ -43,8 +40,6 @@ function appendLog(run, events) {
   return { ...run, log: log.slice(0, MAX_LOG) };
 }
 
-// Captures a snapshot of the run that's about to end and merges it into
-// persistent lifetime stats and run history. Used by both RESET_RUN and PRESTIGE.
 function endRunAndSnapshot(state, ending) {
   const snapshot = snapshotRun(state, ending);
   const lifetimeStats = updateLifetime(state.persistent.lifetimeStats, snapshot);
@@ -58,7 +53,6 @@ export function reducer(state, action) {
       return action.payload || state;
 
     case ACTIONS.RESET_RUN: {
-      // Wipe the current run with NO Echo grant. Snapshot the run for stats.
       const { lifetimeStats, runHistory } = endRunAndSnapshot(state, "reset");
       const persistent = {
         ...state.persistent,
@@ -72,7 +66,6 @@ export function reducer(state, action) {
     }
 
     case ACTIONS.PRESTIGE: {
-      // Channel the Rock: wipe run, grant Echoes, snapshot for stats.
       const reward = getPrestigeReward(state);
       const { lifetimeStats, runHistory } = endRunAndSnapshot(state, "prestige");
       const persistent = {
@@ -90,42 +83,27 @@ export function reducer(state, action) {
 
     case ACTIONS.GATHER: {
       const { run, persistent, events } = performGather(state);
-      return {
-        persistent,
-        run: appendLog(run, events),
-      };
+      return { persistent, run: appendLog(run, events) };
     }
 
     case ACTIONS.BUILD: {
       const { run, persistent, events } = performBuild(state, action.buildingId);
-      return {
-        persistent,
-        run: appendLog(run, events),
-      };
+      return { persistent, run: appendLog(run, events) };
     }
 
     case ACTIONS.RESEARCH: {
       const { run, persistent, events } = performListen(state, action.researchId);
-      return {
-        persistent,
-        run: appendLog(run, events),
-      };
+      return { persistent, run: appendLog(run, events) };
     }
 
     case ACTIONS.CRAFT_TOOL: {
       const { run, persistent, events } = performCraft(state, action.toolId);
-      return {
-        persistent,
-        run: appendLog(run, events),
-      };
+      return { persistent, run: appendLog(run, events) };
     }
 
     case ACTIONS.HUNT: {
       const { run, persistent, events } = performHunt(state);
-      return {
-        persistent,
-        run: appendLog(run, events),
-      };
+      return { persistent, run: appendLog(run, events) };
     }
 
     case ACTIONS.EAT: {
@@ -148,8 +126,6 @@ export function reducer(state, action) {
       return { ...state, run: { ...state.run, splashSeen: true } };
 
     case ACTIONS.SYNC_MUSIC_UNLOCKS: {
-      // Walk all defined music tracks. Any track tagged with eraN where
-      // current era >= N gets added to unlockedMusic (one-way ratchet).
       const era = computeEra(state);
       const unlockedMusic = { ...(state.persistent.unlockedMusic || {}) };
       const newEvents = [];
@@ -184,11 +160,7 @@ export function reducer(state, action) {
     }
 
     case ACTIONS.TICK: {
-      // Real-time tick. Three steps in order:
-      //   1. Apply passive production (Wells, Gardens, etc.) so newly
-      //      produced resources are available to events.
-      //   2. Clear pests whose duration has expired.
-      //   3. Roll for an interval event (most ticks: nothing).
+      // 1) passive production, 2) spoilage, 3) pest expiry, 4) interval roll.
       let run = state.run;
       let persistent = state.persistent;
       const allEvents = [];
@@ -197,48 +169,9 @@ export function reducer(state, action) {
       run = passiveResult.run;
       allEvents.push(...passiveResult.events);
 
-      const pestResult = clearStalePests(run);
-      run = pestResult.run;
-      allEvents.push(...pestResult.events);
-
-      const eventResult = maybeRollInterval({ run, persistent });
-      if (eventResult) {
-        run = eventResult.run;
-        persistent = eventResult.persistent;
-        allEvents.push(...eventResult.events);
-      }
-
-      // No state changes? Bail without logging.
-      if (
-        run === state.run &&
-        persistent === state.persistent &&
-        allEvents.length === 0
-      ) {
-        return state;
-      }
-
-      return {
-        persistent,
-        run: appendLog(run, allEvents),
-      };
-    }
-
-    case ACTIONS.RESPOND_TO_EVENT: {
-      const result = respondToActiveEvent(state, action.choiceId);
-      return {
-        persistent: result.persistent,
-        run: appendLog(result.run, result.events),
-      };
-    }
-
-    case ACTIONS.CLEAR_LOG:
-      return { ...state, run: { ...state.run, log: [] } };
-
-    default:
-      return state;
-  }
-}
-nts);
+      const spoilResult = processSpoilage({ run, persistent });
+      run = spoilResult.run;
+      allEvents.push(...spoilResult.events);
 
       const pestResult = clearStalePests(run);
       run = pestResult.run;
@@ -251,7 +184,6 @@ nts);
         allEvents.push(...eventResult.events);
       }
 
-      // No state changes? Bail without logging.
       if (
         run === state.run &&
         persistent === state.persistent &&
@@ -260,10 +192,7 @@ nts);
         return state;
       }
 
-      return {
-        persistent,
-        run: appendLog(run, allEvents),
-      };
+      return { persistent, run: appendLog(run, allEvents) };
     }
 
     case ACTIONS.RESPOND_TO_EVENT: {

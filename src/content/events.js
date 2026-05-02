@@ -1,22 +1,4 @@
 // Random event definitions — DATA, not code.
-// Adding an event = new entry here. The events system rolls these on intervals
-// and on gather actions.
-//
-// Each event has:
-//   id, name, flavor                    — identity
-//   trigger: "interval" | "gather" | "any"
-//   weight                              — relative pick weight in roll
-//   requires: { era, hutBuilt, ... }    — gating predicates
-//   cooldownMs                          — minimum ms before this event can fire again
-//   onFire.effects                      — fire-and-react effects (no choice)
-//     stats        — partial stats delta to apply
-//     inventory    — partial inventory delta
-//     alignment    — { good: +N, evil: +N } HIDDEN tracking
-//     log          — { kind, message } log entry
-//   choices: [...]                       — optional; if present, modal asks player
-//     id, label, cost, effect            — same shape as onFire.effects, plus optional cost
-//
-// Severity scales with era — see systems/events.js for the multiplier formula.
 
 export const EVENTS = {
   // ============== Fire-and-react events ==============
@@ -92,8 +74,7 @@ export const EVENTS = {
         inventory: { fragments: 2 },
         log: {
           kind: "event_strange",
-          message:
-            "✨ Lights in the sky that should not be there. Your hand twitches around the stone. Two more fragments fall from the dark.",
+          message: "✨ Lights in the sky that should not be there. Your hand twitches around the stone. Two more fragments fall from the dark.",
         },
       },
     },
@@ -112,11 +93,116 @@ export const EVENTS = {
         stats: { sanity: -2, happiness: -3 },
         log: {
           kind: "event_strange",
-          message:
-            "🩸 A blood moon. The world feels thin, like a held breath. You see shapes in the dust that move when you do not look at them directly.",
+          message: "🩸 A blood moon. The world feels thin. You see shapes in the dust that move when you do not look at them directly.",
         },
       },
     },
+  },
+
+  // ============== Pest events ==============
+
+  carrionFlock: {
+    id: "carrionFlock",
+    name: "Carrion Flock",
+    trigger: "any",
+    weight: 5,
+    requires: { era: 1, hasBuilding: "garden" },
+    cooldownMs: 12 * 60 * 1000,
+    flavor: "A flock of carrion birds settles on the garden.",
+    onFire: {
+      effects: {
+        setsPest: { pestId: "birdFlock", durationMs: 5 * 60 * 1000 },
+        log: {
+          kind: "event_strange",
+          message: "🦅 A flock of carrion birds settles over the garden. They strut, they pluck, they eat. Hunt them off — or wait them out.",
+        },
+      },
+    },
+  },
+
+  // ============== Atmospheric Era 1 events ==============
+
+  blackRain: {
+    id: "blackRain",
+    name: "Black Rain",
+    trigger: "interval",
+    weight: 3,
+    requires: { era: 1 },
+    cooldownMs: 15 * 60 * 1000,
+    flavor: "Black rain. Old soot in the clouds. But it is water, still.",
+    onFire: {
+      effects: {
+        stats: { sanity: -1, happiness: -1 },
+        inventory: { water: 6 },
+        log: {
+          kind: "event_strange",
+          message: "🌧️ The rain comes black with old soot. You catch what you can in cupped hands. Water is water. +6 water.",
+        },
+      },
+    },
+  },
+
+  burrowingThing: {
+    id: "burrowingThing",
+    name: "A Burrowing Thing",
+    trigger: "interval",
+    weight: 3,
+    requires: { era: 1 },
+    cooldownMs: 18 * 60 * 1000,
+    flavor: "Something pale and many-legged is in your stores. It chitters when you approach.",
+    choices: [
+      {
+        id: "kill",
+        label: "Kill it",
+        effect: {
+          stats: { hp: -3, happiness: -1 },
+          inventory: { food: 4 },
+          alignment: { evil: 1 },
+          log: { kind: "event_strange", message: "🪲 You crush it. There is more meat on it than you thought. +4 grubs." },
+        },
+      },
+      {
+        id: "let",
+        label: "Let it pass",
+        effect: {
+          stats: { sanity: 2, happiness: 1 },
+          inventory: { food: -2 },
+          alignment: { good: 1 },
+          log: { kind: "event_good", message: "🪲 You step back. It eats what it came for and is gone. (-2 grubs taken.)" },
+        },
+      },
+    ],
+  },
+
+  howlInTheDark: {
+    id: "howlInTheDark",
+    name: "Howl in the Dark",
+    trigger: "interval",
+    weight: 2,
+    requires: { era: 1 },
+    cooldownMs: 22 * 60 * 1000,
+    flavor: "A long howl, far off. Something with too many lungs. It calls again, closer.",
+    choices: [
+      {
+        id: "investigate",
+        label: "Walk toward it",
+        effect: {
+          stats: { sanity: -3, hp: -2 },
+          inventory: { fragments: 2, stone: 6 },
+          alignment: { evil: 1 },
+          log: { kind: "event_strange", message: "👁️ You follow the sound. A depression in the dust where something curled. +2 fragments, +6 stone — and your hand will not stop shaking." },
+        },
+      },
+      {
+        id: "hide",
+        label: "Hide and wait",
+        effect: {
+          stats: { sanity: 3, happiness: 2 },
+          alignment: { good: 1 },
+          log: { kind: "event_good", message: "🛖 You sit still inside the hut. The howl passes. You keep breathing. There are smaller victories than glory." },
+        },
+      },
+    ],
   },
 
   // ============== Choice events ==============
@@ -128,8 +214,7 @@ export const EVENTS = {
     weight: 4,
     requires: { era: 1 },
     cooldownMs: 20 * 60 * 1000,
-    flavor:
-      "A child has wandered close to your hut. Hungry. Watching. They have no one with them.",
+    flavor: "A child has wandered close to your hut. Hungry. Watching. They have no one with them.",
     choices: [
       {
         id: "share",
@@ -137,13 +222,9 @@ export const EVENTS = {
         cost: { food: 2 },
         missingMessage: "You have no food to share.",
         effect: {
-          stats: { happiness: +5, sanity: +3 },
-          alignment: { good: +2 },
-          log: {
-            kind: "event_good",
-            message:
-              "🤝 You give what you can. The child eats and slips back into the dust. Your chest feels lighter.",
-          },
+          stats: { happiness: 5, sanity: 3 },
+          alignment: { good: 2 },
+          log: { kind: "event_good", message: "🤝 You give what you can. The child eats and slips back into the dust. Your chest feels lighter." },
         },
       },
       {
@@ -151,12 +232,8 @@ export const EVENTS = {
         label: "Look away",
         effect: {
           stats: { happiness: -2 },
-          alignment: { evil: +1 },
-          log: {
-            kind: "event_strange",
-            message:
-              "You look away. The child watches a moment longer, then is gone. The wind picks up.",
-          },
+          alignment: { evil: 1 },
+          log: { kind: "event_strange", message: "You look away. The child watches a moment longer, then is gone. The wind picks up." },
         },
       },
     ],
@@ -169,8 +246,7 @@ export const EVENTS = {
     weight: 2,
     requires: { era: 1 },
     cooldownMs: 25 * 60 * 1000,
-    flavor:
-      "An elder lies by the path, bleeding from a wound. They look at you, their eyes clouded but knowing.",
+    flavor: "An elder lies by the path, bleeding from a wound. They look at you, their eyes clouded but knowing.",
     choices: [
       {
         id: "help",
@@ -178,13 +254,9 @@ export const EVENTS = {
         cost: { water: 1, food: 1 },
         missingMessage: "You haven't enough to spare.",
         effect: {
-          stats: { happiness: +5, sanity: +5 },
-          alignment: { good: +3 },
-          log: {
-            kind: "event_good",
-            message:
-              "🩹 You tend their wounds. They tell you a story of the world before, then go quiet. You feel something steady inside you.",
-          },
+          stats: { happiness: 5, sanity: 5 },
+          alignment: { good: 3 },
+          log: { kind: "event_good", message: "🩹 You tend their wounds. They tell you a story of the world before, then go quiet. You feel something steady inside you." },
         },
       },
       {
@@ -192,12 +264,8 @@ export const EVENTS = {
         label: "Walk past",
         effect: {
           stats: { happiness: -5, sanity: -2 },
-          alignment: { evil: +2 },
-          log: {
-            kind: "event_strange",
-            message:
-              "You walk past. Their breath rasps. You do not look back. Something inside you goes quiet.",
-          },
+          alignment: { evil: 2 },
+          log: { kind: "event_strange", message: "You walk past. Their breath rasps. You do not look back. Something inside you goes quiet." },
         },
       },
     ],

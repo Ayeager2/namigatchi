@@ -11,6 +11,10 @@ import { performCraft } from "../systems/crafting.js";
 import { performHunt } from "../systems/hunting.js";
 import { performSurvivalAction } from "../systems/survival.js";
 import {
+  applyPassiveProduction,
+  clearStalePests,
+} from "../systems/passive.js";
+import {
   maybeRollInterval,
   respondToActiveEvent,
 } from "../systems/events.js";
@@ -180,12 +184,85 @@ export function reducer(state, action) {
     }
 
     case ACTIONS.TICK: {
-      // Real-time tick — checks if an interval event should fire.
-      const result = maybeRollInterval(state);
-      if (!result) return state;
+      // Real-time tick. Three steps in order:
+      //   1. Apply passive production (Wells, Gardens, etc.) so newly
+      //      produced resources are available to events.
+      //   2. Clear pests whose duration has expired.
+      //   3. Roll for an interval event (most ticks: nothing).
+      let run = state.run;
+      let persistent = state.persistent;
+      const allEvents = [];
+
+      const passiveResult = applyPassiveProduction({ run, persistent });
+      run = passiveResult.run;
+      allEvents.push(...passiveResult.events);
+
+      const pestResult = clearStalePests(run);
+      run = pestResult.run;
+      allEvents.push(...pestResult.events);
+
+      const eventResult = maybeRollInterval({ run, persistent });
+      if (eventResult) {
+        run = eventResult.run;
+        persistent = eventResult.persistent;
+        allEvents.push(...eventResult.events);
+      }
+
+      // No state changes? Bail without logging.
+      if (
+        run === state.run &&
+        persistent === state.persistent &&
+        allEvents.length === 0
+      ) {
+        return state;
+      }
+
+      return {
+        persistent,
+        run: appendLog(run, allEvents),
+      };
+    }
+
+    case ACTIONS.RESPOND_TO_EVENT: {
+      const result = respondToActiveEvent(state, action.choiceId);
       return {
         persistent: result.persistent,
         run: appendLog(result.run, result.events),
+      };
+    }
+
+    case ACTIONS.CLEAR_LOG:
+      return { ...state, run: { ...state.run, log: [] } };
+
+    default:
+      return state;
+  }
+}
+nts);
+
+      const pestResult = clearStalePests(run);
+      run = pestResult.run;
+      allEvents.push(...pestResult.events);
+
+      const eventResult = maybeRollInterval({ run, persistent });
+      if (eventResult) {
+        run = eventResult.run;
+        persistent = eventResult.persistent;
+        allEvents.push(...eventResult.events);
+      }
+
+      // No state changes? Bail without logging.
+      if (
+        run === state.run &&
+        persistent === state.persistent &&
+        allEvents.length === 0
+      ) {
+        return state;
+      }
+
+      return {
+        persistent,
+        run: appendLog(run, allEvents),
       };
     }
 

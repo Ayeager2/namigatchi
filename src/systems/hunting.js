@@ -214,6 +214,25 @@ export function performHunt(state, rng = Math.random) {
   run = wear.run;
   events.push(...wear.events);
 
+  // Pest dispersal: if a bird flock is active, every successful hunt has a
+  // chance to scare the whole flock off. Higher chance with bird/feather
+  // drops (you're hitting them where it counts), lower with grubs/whiff.
+  if (run.activePests?.birdFlock?.until > Date.now()) {
+    let dispersalChance = 0.20;
+    if (result.tag === "bird") dispersalChance = 0.55;
+    else if (result.tag === "graze") dispersalChance = 0.40;
+    else if (result.tag === "grub") dispersalChance = 0.10;
+    if (rng() < dispersalChance) {
+      const pests = { ...run.activePests };
+      delete pests.birdFlock;
+      run = { ...run, activePests: pests };
+      events.push({
+        kind: "event_good",
+        message: "🦅 The flock breaks. They scatter into the dust. The garden is safe again.",
+      });
+    }
+  }
+
   return { run, persistent, events };
 }
 
@@ -227,6 +246,37 @@ export function getHuntStatus(state) {
     owned,
     level,
     cooldownMs: getHuntCooldownMs(state),
+    ready: canHunt(state).ok,
+  };
+}
+ub") dispersalChance = 0.10;
+    if (rng() < dispersalChance) {
+      const pests = { ...run.activePests };
+      delete pests.birdFlock;
+      run = { ...run, activePests: pests };
+      events.push({
+        kind: "event_good",
+        message: "🦅 The flock breaks. They scatter into the dust. The garden is safe again.",
+      });
+    }
+  }
+
+  return { run, persistent, events };
+}
+
+// UI helper — human-readable hunting summary for the action panel.
+export function getHuntStatus(state) {
+  const toolEff = getToolEffects(state.run);
+  const owned = !!toolEff.unlocksAction?.hunt;
+  const { level } = getSkillState(state.run, "hunting");
+  return {
+    owned,
+    level,
+    cooldownMs: getHuntCooldownMs(state),
+    ready: canHunt(state).ok,
+  };
+}
+Ms(state),
     ready: canHunt(state).ok,
   };
 }

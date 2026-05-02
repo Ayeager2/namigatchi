@@ -117,7 +117,7 @@ With everything Era 1 has to offer: 900ms (about 40% faster than base). Holding 
 ## Era 1 — Awakening
 
 ### 🟢 Buildings
-**State.** Tree-based modal with left-to-right SVG layout. Currently 2 buildings (Hut, Fire Pit). Hut requires rock awakening. Fire Pit requires Fire research. Buildings have categories (shelter, comfort, tools, industry, arcane, sovereignty, cosmos) for future grouping. Each provides effects (gather bonus, rest bonus, etc.).
+**State.** Tree-based modal with left-to-right SVG layout. Currently 4 buildings (Hut, Fire Pit, Well, Garden). Hut requires rock awakening. Fire Pit requires Fire research. Well requires Water Carrying research; Garden requires Foraging. Well & Garden produce resources passively (see Idle / passive generation entry). Buildings have categories (shelter, comfort, tools, industry, arcane, sovereignty, cosmos) for future grouping. Each provides effects (gather bonus, rest bonus, passive output, etc.).
 
 **Where.** `src/systems/building.js`, `src/content/buildings.js`, `src/ui/BuildingsTreeModal.jsx`, `src/ui/BuildingsPanel.jsx` (trigger).
 
@@ -174,7 +174,9 @@ With everything Era 1 has to offer: 900ms (about 40% faster than base). Holding 
 ### 🟢 Random events
 **State.** Two trigger paths: real-time interval (every ~60s of play, mostly nothing happens) and gather-triggered (4% chance per gather). Fire-and-react events apply effects directly. Choice events open a modal with options. Severity scales with era. Cooldowns prevent repeats. Currently 7 events: 5 fire-and-react (Wind from East, Cracked Earth, Hidden Spring, Strange Lights, Blood Moon) + 2 choice events (Wandering Child, Hurt Elder).
 
-**Where.** `src/systems/events.js`, `src/content/events.js`, `src/ui/EventModal.jsx`.
+**Pests** — events can set a temporary pest via `effects.setsPest: { pestId, durationMs }`. The pest lives in `run.activePests` and modulates other systems (gather, passive production) until its `until` timestamp passes. The TICK handler clears expired pests automatically. First example: **Carrion Flock** — fires only when a Garden exists, halves Garden output and grub gather rate for 5 minutes; each successful Hunt has a chance to disperse the flock (highest with bird drops). Pest indicator surfaces in the Action panel with remaining time.
+
+**Where.** `src/systems/events.js`, `src/content/events.js`, `src/ui/EventModal.jsx`, `src/ui/PestIndicator.jsx`, `src/systems/passive.js` (pest modulators + expiry).
 
 **Next steps.** Era 2+ events with bigger stakes. NPC encounter events that lead to companions (deferred — see Companions). Negative events that damage buildings (require maintenance later).
 
@@ -387,10 +389,18 @@ Live in `tools/`. See `tools/README.md` for the full list.
 
 ---
 
-### ⬜ Idle / passive generation
-**Vision.** Buildings like Garden, Well, Forge can produce resources passively over real time. While the player is active or idle, these tick at a slow rate (e.g., +1 food per minute from Garden). This is the foundation of the idle/incremental loop scaling — without it, the player is bound to clicking forever. With it, late-game players manage their colony rather than gathering by hand.
+### 🟢 Idle / passive generation (infrastructure live)
+**State.** Buildings can declare `passiveProduce: { resourceId: { perMinute: N } }`. On every TICK (every 15 seconds), `applyPassiveProduction(state)` walks owned buildings, sums per-minute rates, applies pest modulators, multiplies by the elapsed real time since `lastPassiveTickAt` (capped at 30 minutes for offline catch-up), and spills whole units into inventory. Fractional carry-over lives in `run.passiveAccum` so a 0.7-unit/tick rate doesn't lose its tail.
 
-**Trigger to build.** Era 2 (introduces farming/wells), but the *infrastructure* (a tick system on real-time intervals) might come earlier. We already have a 15s TICK action for events; this would extend it to also process passive production.
+**Era 1 producers (shipped).** Well — water +2/min. Garden — grubs (food) +3/min, halved while a bird flock is active.
+
+**Pest modulation.** `passive.js` exposes `getProductionModulators(run)` — declarative read on `run.activePests`. Currently: bird-flock active → all food production × 0.5. Adding new pests = new entry in the modulator map.
+
+**Catch-up.** When the player closes the tab and returns, `lastPassiveTickAt` is hours behind. The system credits up to 30 minutes of passive output on first re-tick, so overnight returns feel meaningful but not exploitable.
+
+**Where.** `src/systems/passive.js`, `src/state/run.js` (`lastPassiveTickAt`, `passiveAccum`, `activePests`), `src/state/reducer.js` (TICK handler), `src/content/buildings.js` (`passiveProduce` field).
+
+**Long arc.** Era 2 adds Forge passive production (slag, ingots). Era 3+ arcane buildings produce mystic resources at low rates. Era 4+ industrial automation drastically raises rates and adds compound chains (Garden → Granary → Bakery). Same `passiveProduce` data shape carries forward.
 
 ---
 

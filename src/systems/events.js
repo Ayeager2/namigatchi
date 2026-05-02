@@ -33,10 +33,16 @@ function severityMultiplier(state) {
 function isEventEligible(state, event, triggerType) {
   // Trigger match
   if (event.trigger !== "any" && event.trigger !== triggerType) return false;
-  // Era / hut gate
+  // Era / hut / building gate
   const era = computeEra(state);
   if (event.requires?.era && era < event.requires.era) return false;
   if (event.requires?.hutBuilt && !state.run.built?.hut) return false;
+  if (
+    event.requires?.hasBuilding &&
+    !state.run.built?.[event.requires.hasBuilding]
+  ) {
+    return false;
+  }
   // Cooldown
   const cd = state.run.events?.cooldowns?.[event.id] || 0;
   if (Date.now() < cd) return false;
@@ -67,6 +73,7 @@ function applyEventEffects(state, effects, multiplier = 1.0) {
     inventory: { ...state.run.inventory },
     stats: { ...(state.run.stats || {}) },
     alignment: { ...(state.run.alignment || { good: 0, evil: 0 }) },
+    activePests: { ...(state.run.activePests || {}) },
   };
   const persistent = { ...state.persistent };
   const events = [];
@@ -92,6 +99,18 @@ function applyEventEffects(state, effects, multiplier = 1.0) {
   if (effects.alignment) {
     run.alignment.good = (run.alignment.good || 0) + (effects.alignment.good || 0);
     run.alignment.evil = (run.alignment.evil || 0) + (effects.alignment.evil || 0);
+  }
+
+  // Pest activation — durationMs is NOT scaled; pests are environmental,
+  // not severity-driven. Sets `until` from current time + duration.
+  if (effects.setsPest) {
+    const { pestId, durationMs, intensity } = effects.setsPest;
+    if (pestId && durationMs) {
+      run.activePests[pestId] = {
+        until: Date.now() + durationMs,
+        intensity: intensity || 1,
+      };
+    }
   }
 
   // Log entry
@@ -280,6 +299,31 @@ export function maybeRollInterval(state, rng = Math.random) {
   next.run = {
     ...next.run,
     events: { ...(next.run.events || {}), lastIntervalMs: now },
+  };
+  return next;
+}
+st = state.run.events?.lastIntervalMs ?? 0;
+  if (now - last < INTERVAL_MS) return null;
+
+  // Update lastIntervalMs even if no event fires (so we don't catch up by spam).
+  let next = rollIntervalEvent(state, rng);
+  if (!next) {
+    return {
+      run: {
+        ...state.run,
+        events: { ...(state.run.events || {}), lastIntervalMs: now },
+      },
+      persistent: state.persistent,
+      events: [],
+    };
+  }
+  next.run = {
+    ...next.run,
+    events: { ...(next.run.events || {}), lastIntervalMs: now },
+  };
+  return next;
+}
+IntervalMs: now },
   };
   return next;
 }

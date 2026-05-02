@@ -21,6 +21,7 @@ import { getBuildingBonuses } from "./building.js";
 import { getResearchBonuses } from "./research.js";
 import { getBonus, gainXp } from "./skills.js";
 import { applyToolWear } from "./crafting.js";
+import { isPestActive } from "./passive.js";
 import {
   survivalActive,
   decayForAction,
@@ -83,6 +84,8 @@ export function canGatherFull(state) {
 }
 
 // Build the live gather table from base + research additions.
+// While the bird-flock pest is active, grub weights are halved (the flock
+// has eaten what was easy to find).
 function buildGatherTable(run) {
   let entries;
   if (!run.rockFound) entries = [...GATHER_TABLE.preRock];
@@ -92,6 +95,17 @@ function buildGatherTable(run) {
   for (const researchId of Object.keys(run.researched || {})) {
     const addition = GATHER_ADDITIONS[researchId];
     if (addition) entries.push({ ...addition });
+  }
+
+  // Pest modulation — entries with id "food" get their weight halved while
+  // a bird flock is active. Done after additions so the effect catches both
+  // the base table and Foraging's bonus food weight.
+  if (isPestActive(run, "birdFlock")) {
+    entries = entries.map((e) =>
+      e.kind === "resource" && e.id === "food"
+        ? { ...e, weight: Math.max(1, Math.floor(e.weight * 0.5)) }
+        : e
+    );
   }
 
   return entries;
@@ -289,4 +303,20 @@ export function performGather(state, rng = Math.random) {
 
   return { run, persistent, events };
 
+}inXp(run, "foraging", xpGain);
+  run = { ...run, skills: xpResult.skills };
+  events.push(...xpResult.events);
+
+  // Tool wear — generic gather first (Digging Stick), then water-specific
+  // (Water Skin) only when this was a water drop.
+  const wearGather = applyToolWear(run, "gather");
+  run = wearGather.run;
+  events.push(...wearGather.events);
+  if (result.kind === "resource" && result.id === "water") {
+    const wearWater = applyToolWear(run, "waterGather");
+    run = wearWater.run;
+    events.push(...wearWater.events);
+  }
+
+  return { run, persistent, events };
 }

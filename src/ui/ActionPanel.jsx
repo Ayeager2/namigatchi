@@ -15,10 +15,10 @@ import {
 import { canGatherFull, getGatherCooldownMs } from "../systems/gathering.js";
 import {
   canHunt,
-  getHuntCooldownMs,
   getHuntStatus,
 } from "../systems/hunting.js";
 import SurvivalBars from "./SurvivalBars.jsx";
+import PestIndicator from "./PestIndicator.jsx";
 
 export default function ActionPanel({ state, actions, settings }) {
   const survival = survivalActive(state);
@@ -73,6 +73,8 @@ export default function ActionPanel({ state, actions, settings }) {
       </div>
 
       {survival && <SurvivalBars state={state} />}
+
+      <PestIndicator state={state} />
 
       <div className="action-row">
         <button

@@ -5,16 +5,10 @@
 //   children       — SVG content (already laid out in those coords)
 //   minZoom, maxZoom — clamp range (default 0.5..2.5)
 //
-// Features:
-//   - Click and drag (pointer events) to pan
-//   - Mouse wheel to zoom toward the cursor
-//   - "Fit" button resets translation/scale
-//   - +/-/0 keyboard shortcuts (when focused) for accessibility
-//   - Bounded panning so the tree can't be lost off-screen entirely
-//
-// Implementation note: we pan/zoom by transforming a single <g> wrapping the
-// children. The outer SVG keeps its original viewBox; the transform maps it
-// to whatever the user has dragged/zoomed to.
+// React quirk that bit us (bug #004): React attaches `onWheel` as a passive
+// listener by default, which means `e.preventDefault()` is silently ignored
+// and the page scrolls behind the modal. Workaround: attach the wheel
+// handler manually with `addEventListener(..., { passive: false })`.
 
 import { useEffect, useRef, useState } from "react";
 
@@ -34,19 +28,12 @@ export default function PanZoomSvg({
   const [dragging, setDragging] = useState(false);
   const dragRef = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
 
-  // Convert client coordinates to SVG coordinates given the current viewBox.
-  const clientToSvg = (clientX, clientY) => {
-    const svg = svgRef.current;
-    if (!svg) return { x: 0, y: 0 };
-    const rect = svg.getBoundingClientRect();
-    const x = ((clientX - rect.left) / rect.width) * width;
-    const y = ((clientY - rect.top) / rect.height) * height;
-    return { x, y };
-  };
+  // Latest scale/tx/ty for the wheel handler (which is registered once).
+  const latestRef = useRef({ scale, tx, ty });
+  latestRef.current = { scale, tx, ty };
 
-  // Bound pan so the tree stays in view. Roughly: at scale=1, pan range is
-  // half the canvas in each direction. At higher zoom, we allow more pan.
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
   const applyBounds = (nextTx, nextTy, nextScale) => {
     const rangeX = (width * (nextScale - 0.4)) / 2;
     const rangeY = (height * (nextScale - 0.4)) / 2;
@@ -57,7 +44,6 @@ export default function PanZoomSvg({
   };
 
   const onPointerDown = (e) => {
-    // Don't start a pan if the click hit an interactive node.
     if (e.target.closest("[data-no-pan]")) return;
     setDragging(true);
     dragRef.current = { x: e.clientX, y: e.clientY, tx, ty };
@@ -65,7 +51,7 @@ export default function PanZoomSvg({
       try {
         e.target.setPointerCapture(e.pointerId);
       } catch {
-        /* ignore — some elements don't support capture */
+        /* some elements don't support capture */
       }
     }
   };
@@ -79,35 +65,46 @@ export default function PanZoomSvg({
     const rect = svg.getBoundingClientRect();
     const svgDx = (dx / rect.width) * width;
     const svgDy = (dy / rect.height) * height;
-    const next = applyBounds(dragRef.current.tx + svgDx, dragRef.current.ty + svgDy, scale);
+    const next = applyBounds(
+      dragRef.current.tx + svgDx,
+      dragRef.current.ty + svgDy,
+      scale
+    );
     setTx(next.tx);
     setTy(next.ty);
   };
 
-  const onPointerUp = () => {
-    setDragging(false);
-  };
+  const onPointerUp = () => setDragging(false);
 
-  const onWheel = (e) => {
-    e.preventDefault();
-    const delta = -e.deltaY;
-    const factor = delta > 0 ? 1.1 : 1 / 1.1;
-    const nextScale = clamp(scale * factor, minZoom, maxZoom);
-    if (nextScale === scale) return;
-    // Zoom toward the cursor — adjust translation so the SVG point under
-    // the cursor stays under the cursor.
-    const { x, y } = clientToSvg(e.clientX, e.clientY);
-    // Current SVG coord under cursor in pre-transform space:
-    const cx = (x - tx) / scale;
-    const cy = (y - ty) / scale;
-    // Target translation so (cx, cy) maps to (x, y) at next scale:
-    const newTx = x - cx * nextScale;
-    const newTy = y - cy * nextScale;
-    const bounded = applyBounds(newTx, newTy, nextScale);
-    setScale(nextScale);
-    setTx(bounded.tx);
-    setTy(bounded.ty);
-  };
+  // Manual wheel listener — non-passive so preventDefault() actually blocks
+  // the page scroll behind the modal.
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const handleWheel = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const { scale: curScale, tx: curTx, ty: curTy } = latestRef.current;
+      const factor = -e.deltaY > 0 ? 1.1 : 1 / 1.1;
+      const nextScale = clamp(curScale * factor, minZoom, maxZoom);
+      if (nextScale === curScale) return;
+      // Convert client → SVG coords for cursor-anchored zoom.
+      const rect = svg.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * width;
+      const y = ((e.clientY - rect.top) / rect.height) * height;
+      const cx = (x - curTx) / curScale;
+      const cy = (y - curTy) / curScale;
+      const newTx = x - cx * nextScale;
+      const newTy = y - cy * nextScale;
+      const bounded = applyBounds(newTx, newTy, nextScale);
+      setScale(nextScale);
+      setTx(bounded.tx);
+      setTy(bounded.ty);
+    };
+    svg.addEventListener("wheel", handleWheel, { passive: false });
+    return () => svg.removeEventListener("wheel", handleWheel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [width, height, minZoom, maxZoom]);
 
   const reset = () => {
     setScale(1);
@@ -115,7 +112,7 @@ export default function PanZoomSvg({
     setTy(0);
   };
 
-  // Keyboard shortcuts when the SVG has focus.
+  // Keyboard shortcuts when SVG focused.
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;
@@ -151,7 +148,6 @@ export default function PanZoomSvg({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        onWheel={onWheel}
         tabIndex={0}
         aria-label={ariaLabel}
       >

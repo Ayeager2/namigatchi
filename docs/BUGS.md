@@ -10,6 +10,19 @@ Add new bugs at the top. When fixing, leave the entry with status `fixed` and a 
 
 ---
 
+## #004 — Wheel-zoom in tree modals scrolls the page behind
+
+**Status:** ✅ fixed — 2026-05
+**Severity:** medium
+
+**Repro:** Open Buildings or Teachings tree modal. Mouse-wheel to zoom. The page behind the modal scrolls up/down at the same time.
+
+**Root cause:** React attaches `onWheel` handlers as **passive** by default (since React 17). Passive listeners can't call `preventDefault()` — the call is silently ignored. So my `e.preventDefault()` in the SVG's onWheel was a no-op, and the browser scrolled the page through to the body underneath.
+
+**Fix:** Replace the React-prop `onWheel` with a manual `addEventListener('wheel', handler, { passive: false })` inside a `useEffect`. The handler now actually blocks the page scroll. Plus added `overscroll-behavior: contain` on `.modal-overlay` as a belt-and-suspenders for any future scroll-throughs.
+
+---
+
 ## #003 — Buildings & Research tree modals need pan + zoom
 
 **Status:** ✅ fixed — 2026-05

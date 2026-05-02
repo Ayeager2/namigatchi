@@ -3011,3 +3011,13 @@ body.motion-reduced .tool-durability-fill {
   min-width: 36px;
   text-align: center;
 }
+
+/* ---- bug #004: prevent wheel-zoom from scrolling page behind modals ---- */
+/* `overscroll-behavior: contain` on the overlay means scroll events that
+   would chain to the page body get stopped at the modal boundary. The real
+   fix is the non-passive wheel listener in PanZoomSvg, but this protects
+   against future scrollable content inside other modals too. */
+
+.modal-overlay {
+  overscroll-behavior: contain;
+}

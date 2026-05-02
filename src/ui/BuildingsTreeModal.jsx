@@ -280,9 +280,3 @@ export default function BuildingsTreeModal({ state, actions, onClose }) {
     </div>
   );
 }
-e>
-        </div>
-      </div>
-    </div>
-  );
-}

@@ -267,9 +267,3 @@ export default function TeachingsTreeModal({ state, actions, onClose }) {
     </div>
   );
 }
-e>
-        </div>
-      </div>
-    </div>
-  );
-}

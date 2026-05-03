@@ -56,10 +56,12 @@ Add new bugs at the top. When fixing, leave the entry with status `fixed` and a 
 
 ## #001 — Gather button width changes mid-cooldown, shoves Hunt below
 
-**Status:** ✅ fixed — 2026-05
+**Status:** ✅ fixed (twice) — 2026-05 (initial), 2026-05 (redux)
 **Severity:** paper-cut
 
-**Fix:** Added `min-width: 11ch` (mobile) / `13ch` (desktop) to `.btn-gather` and `min-width: 16ch` / `19ch` to `.btn-hunt` in `src/index.css`. The longer label ("Gathering…" / "Hunting birds…") now reserves enough space that the button doesn't grow when the text changes — Hunt stays put.
+**First fix (didn't stick):** `min-width` on `.btn-gather` / `.btn-hunt`. But the parent `.action-row` had `flex-wrap: wrap` set elsewhere, which still let Hunt wrap when Gather grew its label.
+
+**Redux fix:** Higher-specificity rule on `.action-panel .action-row`: `flex-wrap: nowrap !important`, plus `flex: 1 1 0` and `min-width: 0` on each child button so they share the row equally and shrink with ellipsis if they truly run out of room. Also shortened the labels: "Hunt birds" → "Hunt", "Hunting birds…" → "Hunting…" so the row breathes.
 
 ---
 

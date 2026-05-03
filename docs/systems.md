@@ -391,8 +391,16 @@ Live in `tools/`. See `tools/README.md` for the full list.
 
 ---
 
-### ⬜ Era 2 — Settler (Bronze/Iron)
-**Vision.** Smithing, agriculture (Garden building → passive food trickle), permanent settlement structures, first organized threats (bandits), **tool-tier upgrades**, the prestige UI revealed.
+### 🟢 Era 2 — Settler (first pass shipped)
+**State.** Era 2 entry condition is met when: hut + fire pit built AND foraging + fire + knapping researched. `computeEra(state)` returns 2 from this state. The first time the player crosses into Era 2, a story-event modal fires (🌅 narrative log + sanity/resolve boost), tracked via `run.eraMilestonesSeen` so it only fires once per run.
+
+**Shipped Era-2 content.** Smithing research (parent: knapping + fire, requires era≥2). Forge building (requires Smithing). Fletching research (parent: netWeaving + tracking, requires era≥2). Era-2 tools (Forge-required): Stone Axe (-150ms gather + 2 wood/wood-gather, 50 durability), Stone Pickaxe (-100ms gather + 2 stone/stone-gather, 50 durability), Bone Knife (+1 hunt yield + 1 food/food-gather, 60 durability), Bow (+2 hunt yield, -2500ms hunt cooldown, way more birds, 60 durability).
+
+**Tool effect plumbing extended.** `getToolEffects` now aggregates resource-specific bonuses: `woodBonus`, `stoneBonus`, `foodBonus`, `waterBonus`. Gathering applies the right bonus based on what dropped. Crafting now supports `requires.builtBuilding: "forge"` for tier-2 tools.
+
+**Prestige UI auto-reveals at era ≥ 2** — the existing prestige system was already gated; reaching Era 2 makes the "Channel the Rock" button appear.
+
+**Vision (next, not built yet).** Permanent settlement structures, first organized threats (bandits), more research nodes (Trapping refinements, ranged combat upgrades), eventual companions/villagers system.
 
 **Era 2 entry condition (proposed).** Hut + Fire Pit built AND all tier 1 teachings learned (Foraging, Fire, Knapping). The transition itself is a story event — "you have made a place; now make a settlement."
 

@@ -10,10 +10,6 @@ export const BUILDING_CATEGORIES = {
   cosmos:      { id: "cosmos",      name: "Cosmos",      order: 7 },
 };
 
-// Buildings can declare:
-//   passiveProduce: { resourceId: { perMinute } } — TICK-driven production.
-//   storageCaps:    { resourceId: capIncrease }   — adds to that resource's cap.
-
 export const BUILDINGS = {
   hut: {
     id: "hut",
@@ -28,9 +24,7 @@ export const BUILDINGS = {
     onBuiltMessage: "You raise a small hut from gathered timber and stone. The wasteland is no longer empty.",
     whisperOnAvailable: "The stone whispers: shelter, warmth, a place to call your own. Build a hut.",
     whisperOnBuilt: "The stone whispers: there are skills to learn. Listen, and the world will open.",
-    tier: 1,
-    col: 0,
-    parents: [],
+    tier: 1, col: 0, parents: [],
   },
 
   firepit: {
@@ -45,9 +39,7 @@ export const BUILDINGS = {
     effectSummary: "+1 gather yield · -100ms gather cooldown · +20 rest recovery",
     onBuiltMessage: "You strike sparks until something catches. The fire watches you back.",
     whisperOnBuilt: "The stone whispers: the cold is no longer your master. What else will you ask of the world?",
-    tier: 2,
-    col: 0,
-    parents: ["hut"],
+    tier: 2, col: 0, parents: ["hut"],
   },
 
   well: {
@@ -62,10 +54,8 @@ export const BUILDINGS = {
     passiveProduce: { water: { perMinute: 2 } },
     effectSummary: "+2 water / minute — passive trickle, even while away.",
     onBuiltMessage: "🪣 The well goes deep. Water seeps in slow.",
-    whisperOnBuilt: "The stone whispers: the earth has been thirsty too. It will share, if you ask kindly.",
-    tier: 3,
-    col: 0,
-    parents: ["hut"],
+    whisperOnBuilt: "The stone whispers: the earth has been thirsty too.",
+    tier: 3, col: 0, parents: ["hut"],
   },
 
   garden: {
@@ -78,42 +68,43 @@ export const BUILDINGS = {
     requires: { researched: "foraging" },
     effect: {},
     passiveProduce: { food: { perMinute: 3 } },
-    effectSummary: "+3 grubs / minute — passive trickle. Halved while a flock is feeding.",
-    onBuiltMessage: "🌱 You break the dust into soil. Something pale wriggles up. The wasteland accepts the offering.",
+    effectSummary: "+3 grubs / minute · halved while a flock is feeding.",
+    onBuiltMessage: "🌱 You break the dust into soil. Something pale wriggles up.",
     whisperOnBuilt: "The stone whispers: the dust remembers being a garden, once.",
-    tier: 3,
-    col: 1,
-    parents: ["hut"],
+    tier: 3, col: 1, parents: ["hut"],
   },
 
-  // ===== Storage (Era 1 cap raise) =====
+  forge: {
+    id: "forge",
+    name: "Forge",
+    icon: "⚒️",
+    category: "industry",
+    description: "Stones stacked into a hollow. Coal and bellows. Heat enough to soften the world's hardest pieces.",
+    cost: { stone: 80, wood: 50, water: 10 },
+    requires: { researched: "smithing" },
+    effect: {},
+    effectSummary: "Required for Era 2 tools (Stone Axe, Pickaxe, Bone Knife, Bow).",
+    onBuiltMessage: "⚒️ The forge takes shape. The first heat rises. The wasteland's old shapes give way.",
+    whisperOnBuilt: "The stone whispers: now there is no edge the world can hold against you that you cannot break.",
+    tier: 5, col: 0, parents: ["firepit"],
+  },
+
   cairn: {
     id: "cairn",
     name: "Cairn",
     icon: "🗿",
     category: "shelter",
-    description:
-      "A stacked-stone cellar dug half into the dust. Holds what you would otherwise lose.",
+    description: "A stacked-stone cellar dug half into the dust. Holds what you would otherwise lose.",
     cost: { wood: 30, stone: 50 },
     requires: { researched: "hiddenStores" },
     effect: {},
     storageCaps: {
-      wood: 50,
-      stone: 50,
-      water: 20,
-      food: 15,
-      bird_meat: 10,
-      feathers: 20,
+      wood: 50, stone: 50, water: 20, food: 15, bird_meat: 10, feathers: 20,
     },
-    effectSummary:
-      "+50 wood/stone · +20 water · +15 grubs · +10 bird meat · +20 feathers — caps raised.",
-    onBuiltMessage:
-      "🗿 You stack the cairn slow, fitting stone to stone. The hollow inside will hold what you cannot carry.",
-    whisperOnBuilt:
-      "The stone whispers: keeping is its own kind of work. What you save, you save twice.",
-    tier: 4,
-    col: 0,
-    parents: ["hut"],
+    effectSummary: "+50 wood/stone · +20 water · +15 grubs · +10 bird meat · +20 feathers — caps raised.",
+    onBuiltMessage: "🗿 You stack the cairn slow, fitting stone to stone.",
+    whisperOnBuilt: "The stone whispers: keeping is its own kind of work.",
+    tier: 4, col: 0, parents: ["hut"],
   },
 };
 

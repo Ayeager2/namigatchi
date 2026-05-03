@@ -3021,3 +3021,134 @@ body.motion-reduced .tool-durability-fill {
 .modal-overlay {
   overscroll-behavior: contain;
 }
+
+/* ---- bug #001 redux: definitive action-row lock ---- */
+/* Higher-specificity override to defeat the earlier flex-wrap: wrap rule.
+   When two .btn-primary buttons are in an action-row, split equally; never
+   let them wrap to a new line. */
+
+.action-panel .action-row {
+  display: flex;
+  flex-wrap: nowrap !important;
+  gap: 8px;
+  width: 100%;
+}
+
+.action-panel .action-row .btn-primary {
+  flex: 1 1 0;
+  min-width: 0;
+  margin-left: 0 !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.action-panel .action-row .btn-primary .btn-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* ---- eat button with food preference dropdown ---- */
+
+.eat-btn-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.eat-btn-main {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 14px;
+}
+
+.eat-btn-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.eat-btn-label {
+  font-size: 14px;
+}
+
+.eat-btn-chevron {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: none;
+  padding: 10px 8px;
+  font-size: 11px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.eat-btn-chevron:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.eat-btn-menu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  min-width: 220px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+  padding: 4px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.eat-btn-menu-header {
+  padding: 6px 10px 4px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.eat-btn-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 8px 10px;
+  cursor: pointer;
+  border-radius: 5px;
+  color: inherit;
+  font: inherit;
+}
+
+.eat-btn-menu-item:hover {
+  background: var(--bg-elev2);
+}
+
+.eat-btn-menu-item.is-active {
+  background: var(--accent-dim);
+  color: var(--bg);
+}
+
+.eat-btn-menu-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.eat-btn-menu-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.eat-btn-menu-meta {
+  font-size: 10px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}

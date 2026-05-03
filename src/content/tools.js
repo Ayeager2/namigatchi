@@ -1,37 +1,4 @@
-// Primitive tool definitions — DATA, not code.
-// Adding a tool = new entry here. No code changes needed elsewhere.
-//
-// Tools are CRAFTED INVENTORY ITEMS in category "tool". They live alongside
-// resources in run.inventory but render in the Tools section. While owned,
-// each tool's effects apply passively. The Forge (Era 2) is NOT required for
-// these — they're primitive enough to be made by hand. Era 2 tools (Stone
-// Axe, Bone Knife, etc.) will require a Forge.
-//
-// Each tool has:
-//   id, name, icon, description     — basic identity
-//   category                         — UI grouping (currently always "primitive")
-//   cost: { resourceId: qty }        — consumed when crafted
-//   requires:                        — gating predicates
-//     researched: "researchId"          require this research learned
-//     skill: { skillId: minLevel, ... } require these minimum skill levels
-//     toolOwned: "toolId"               require this tool already in inventory
-//   effect:                          — declarative passive bonuses while owned
-//     unlocksAction: "hunt"             gates a UI action button
-//     gatherSpeedup: <ms>               reduce gather cooldown
-//     gatherBonus: <int>                add to gather yield
-//     waterBonus: <int>                 specifically boost water gathers
-//     huntYieldBonus: <int>             add to hunt drop quantities
-//     huntCooldownReduction: <ms>       trim hunt cooldown
-//     huntBetterBirds: <num>            shift hunt weights toward birds
-//   durability:                      — how the tool wears out
-//     max: <int>                        starting / max durability charges
-//     wearsOn: "hunt" | "gather" | "waterGather"
-//                                       which action ticks down durability by 1
-//   effectSummary                    — human-readable summary for UI
-//   onCraftedMessage                 — log line on creation
-//   onBrokenMessage                  — log line when durability hits 0
-//   tier                             — column in the tools modal (1 = primitive, 2 = Era 2, ...)
-//   col                              — vertical position within tier
+// Primitive + Era 2 tool definitions — DATA, not code.
 
 export const TOOL_CATEGORIES = {
   primitive: { id: "primitive", name: "Primitive", order: 1 },
@@ -41,113 +8,142 @@ export const TOOL_CATEGORIES = {
 };
 
 export const TOOLS = {
-  // Net — the gateway to hunting. Crude but it works on slow birds.
-  // Wears each hunt — primitive cordage frays fast.
+  // ===== Primitive (Era 1) =====
+
   net: {
     id: "net",
     name: "Net",
     icon: "🕸️",
     category: "primitive",
-    description:
-      "A loose weave of cordage and lashings. Throw it; pray. The birds are slow at first.",
+    description: "A loose weave of cordage and lashings. Throw it; pray.",
     cost: { wood: 6, stone: 2 },
     requires: { researched: "netWeaving" },
     effect: { unlocksAction: "hunt" },
     durability: { max: 12, wearsOn: "hunt" },
     effectSummary: "Unlocks the Hunt action. · 12 hunts before it frays.",
-    onCraftedMessage:
-      "🕸️ You finish the net. The lashings hold. You think you can throw it.",
-    onBrokenMessage:
-      "🕸️ The net comes apart in your hands. You'll need to weave another.",
-    tier: 1,
-    col: 0,
+    onCraftedMessage: "🕸️ You finish the net. The lashings hold.",
+    onBrokenMessage: "🕸️ The net comes apart in your hands.",
+    tier: 1, col: 0,
   },
 
-  // Snare — the second-tier primitive tool. Adds reliability to hunts.
-  // Gated behind Trapping research (which requires Tracking research) + a
-  // Hunting skill threshold so the player has actually hunted with the Net first.
-  // Lasts longer than the Net — set, leave, retrieve.
   snare: {
     id: "snare",
     name: "Snare",
     icon: "🪤",
     category: "primitive",
-    description:
-      "A loop of cordage hidden where birds land. Quieter than the net. More patient.",
+    description: "A loop of cordage hidden where birds land.",
     cost: { wood: 8, stone: 3, feathers: 2 },
-    requires: {
-      researched: "trapping",
-      skill: { hunting: 2 },
-    },
-    effect: {
-      huntYieldBonus: 1,
-      huntCooldownReduction: 1500,
-      huntBetterBirds: 4,
-    },
+    requires: { researched: "trapping", skill: { hunting: 2 } },
+    effect: { huntYieldBonus: 1, huntCooldownReduction: 1500, huntBetterBirds: 4 },
     durability: { max: 20, wearsOn: "hunt" },
-    effectSummary:
-      "+1 hunt yield · –1500ms hunt cooldown · more birds, fewer empty hunts. · 20 hunts before the loop breaks.",
-    onCraftedMessage:
-      "🪤 The snare is set. You crouch and wait. The wasteland feels different from this side of patience.",
-    onBrokenMessage:
-      "🪤 The snare line snaps. The set is ruined. Make another.",
-    tier: 1,
-    col: 1,
+    effectSummary: "+1 hunt yield · -1500ms hunt cooldown · 20 hunts.",
+    onCraftedMessage: "🪤 The snare is set.",
+    onBrokenMessage: "🪤 The snare line snaps.",
+    tier: 1, col: 1,
   },
 
-  // Digging Stick — primitive water/root tool. Improves gather a bit
-  // generally and adds a little extra to water specifically. Wears with each
-  // gather (any kind).
   diggingStick: {
     id: "diggingStick",
     name: "Digging Stick",
     icon: "🥢",
     category: "primitive",
-    description:
-      "A hardwood shaft, fire-tempered at the tip. Bites soil where fingers fail.",
+    description: "A hardwood shaft, fire-tempered.",
     cost: { wood: 5, stone: 2 },
     requires: { researched: "diggingStickCraft" },
     effect: { gatherSpeedup: 100, waterBonus: 1 },
     durability: { max: 25, wearsOn: "gather" },
-    effectSummary:
-      "–100ms gather cooldown · +1 water on water gathers. · 25 gathers before the tip splinters.",
-    onCraftedMessage:
-      "🥢 You shape the stick and harden the tip in the embers. The earth will give up more, now.",
-    onBrokenMessage:
-      "🥢 The tip splinters and snaps off. Time to harden another.",
-    tier: 1,
-    col: 2,
+    effectSummary: "-100ms gather · +1 water on water gathers · 25 gathers.",
+    onCraftedMessage: "🥢 You shape the stick and harden the tip.",
+    onBrokenMessage: "🥢 The tip splinters and snaps off.",
+    tier: 1, col: 2,
   },
 
-  // Water Skin — passive carry/storage. Wears down only on water gathers
-  // (the seal weeps). Lasts longer than other tools because water gathers
-  // are themselves rare.
   waterSkin: {
     id: "waterSkin",
     name: "Water Skin",
     icon: "🧴",
     category: "primitive",
-    description:
-      "A bladder of stretched hide, sealed with sap. Holds more than your hands ever could.",
+    description: "A bladder of stretched hide, sealed with sap.",
     cost: { water: 3, feathers: 1, stone: 1 },
     requires: { researched: "waterCarrying" },
     effect: { waterBonus: 1 },
     durability: { max: 30, wearsOn: "waterGather" },
-    effectSummary:
-      "+1 water on water gathers. (Stacks with Digging Stick.) · 30 water-fills before the seal fails.",
-    onCraftedMessage:
-      "🧴 You stitch and seal. The skin holds. Water no longer slips through your fingers.",
-    onBrokenMessage:
-      "🧴 The seal gives way. Water seeps from a tear you cannot find. Make another.",
-    tier: 1,
-    col: 3,
+    effectSummary: "+1 water on water gathers · 30 water-fills.",
+    onCraftedMessage: "🧴 You stitch and seal. The skin holds.",
+    onBrokenMessage: "🧴 The seal gives way.",
+    tier: 1, col: 3,
+  },
+
+  // ===== Bronze / Era 2 (require Forge built) =====
+
+  stoneAxe: {
+    id: "stoneAxe",
+    name: "Stone Axe",
+    icon: "🪓",
+    category: "bronze",
+    description: "A shaped stone bound to a hardwood haft. The trees give up wood twice as easily now.",
+    cost: { wood: 15, stone: 20 },
+    requires: { researched: "smithing", builtBuilding: "forge" },
+    effect: { gatherSpeedup: 150, woodBonus: 2 },
+    durability: { max: 50, wearsOn: "gather" },
+    effectSummary: "-150ms gather · +2 wood on wood gathers · 50 gathers.",
+    onCraftedMessage: "🪓 The axe head is bound. Weight in the hand. Edges that bite.",
+    onBrokenMessage: "🪓 The axe head splits from the haft. Time to make another.",
+    tier: 2, col: 0,
+  },
+
+  stonePickaxe: {
+    id: "stonePickaxe",
+    name: "Stone Pickaxe",
+    icon: "⛏️",
+    category: "bronze",
+    description: "Heavy. Pointed. Made for breaking rock into more rock.",
+    cost: { wood: 12, stone: 25 },
+    requires: { researched: "smithing", builtBuilding: "forge" },
+    effect: { gatherSpeedup: 100, stoneBonus: 2 },
+    durability: { max: 50, wearsOn: "gather" },
+    effectSummary: "-100ms gather · +2 stone on stone gathers · 50 gathers.",
+    onCraftedMessage: "⛏️ The pickaxe is whole. The earth's bones look softer now.",
+    onBrokenMessage: "⛏️ The pick chips and breaks at the head.",
+    tier: 2, col: 1,
+  },
+
+  boneKnife: {
+    id: "boneKnife",
+    name: "Bone Knife",
+    icon: "🔪",
+    category: "bronze",
+    description: "Sharpened femur, lashed to a stone grip. Better for skinning than swinging.",
+    cost: { stone: 10, feathers: 3, food: 5 },
+    requires: { researched: "smithing", builtBuilding: "forge" },
+    effect: { huntYieldBonus: 1, foodBonus: 1 },
+    durability: { max: 60, wearsOn: "hunt" },
+    effectSummary: "+1 hunt yield · +1 food on food gathers · 60 hunts.",
+    onCraftedMessage: "🔪 The knife is keen. The bird gives up more meat under your hand now.",
+    onBrokenMessage: "🔪 The blade chips and falls from the grip.",
+    tier: 2, col: 2,
+  },
+
+  bow: {
+    id: "bow",
+    name: "Bow",
+    icon: "🏹",
+    category: "bronze",
+    description: "Curved wood, sinew strung. Reach is not strength — it's better.",
+    cost: { wood: 20, feathers: 8, stone: 5 },
+    requires: { researched: "fletching", builtBuilding: "forge" },
+    effect: { huntCooldownReduction: 2500, huntYieldBonus: 2, huntBetterBirds: 8 },
+    durability: { max: 60, wearsOn: "hunt" },
+    effectSummary: "+2 hunt yield · -2500ms hunt cooldown · way more birds · 60 hunts.",
+    onCraftedMessage: "🏹 The bow is finished. You draw, release. The arrow flies. Something far falls.",
+    onBrokenMessage: "🏹 The string snaps and the limb cracks. A bow's work is done.",
+    tier: 2, col: 3,
   },
 };
 
 export const getTool = (id) => TOOLS[id] || null;
 export const getAllTools = () => Object.values(TOOLS);
 
-// Tools currently owned (qty > 0 in inventory under category "tool").
 export function getOwnedTools(run) {
   const owned = [];
   for (const t of getAllTools()) {
@@ -156,15 +152,15 @@ export function getOwnedTools(run) {
   return owned;
 }
 
-// Aggregate effect across all owned tools. Multiple copies don't multiply
-// (we treat tools as binary — owning two doesn't double a bonus). Caller
-// can read whichever stat they care about.
 export function getToolEffects(run) {
   const eff = {
-    unlocksAction: {},     // { actionName: true }
+    unlocksAction: {},
     gatherSpeedup: 0,
     gatherBonus: 0,
     waterBonus: 0,
+    woodBonus: 0,
+    stoneBonus: 0,
+    foodBonus: 0,
     huntYieldBonus: 0,
     huntCooldownReduction: 0,
     huntBetterBirds: 0,
@@ -175,10 +171,12 @@ export function getToolEffects(run) {
     if (e.gatherSpeedup) eff.gatherSpeedup += e.gatherSpeedup;
     if (e.gatherBonus) eff.gatherBonus += e.gatherBonus;
     if (e.waterBonus) eff.waterBonus += e.waterBonus;
+    if (e.woodBonus) eff.woodBonus += e.woodBonus;
+    if (e.stoneBonus) eff.stoneBonus += e.stoneBonus;
+    if (e.foodBonus) eff.foodBonus += e.foodBonus;
     if (e.huntYieldBonus) eff.huntYieldBonus += e.huntYieldBonus;
     if (e.huntCooldownReduction) eff.huntCooldownReduction += e.huntCooldownReduction;
     if (e.huntBetterBirds) eff.huntBetterBirds += e.huntBetterBirds;
   }
   return eff;
 }
-

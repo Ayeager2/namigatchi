@@ -138,8 +138,14 @@ export function performGather(state, rng = Math.random) {
     case "resource": {
       const [lo, hi] = result.qty;
       const baseQty = randInt(rng, lo, hi);
-      const waterBonus = result.id === "water" ? (toolEff.waterBonus || 0) : 0;
-      const rawQty = baseQty + gatherBonus + waterBonus;
+      // Resource-specific tool bonuses: Stone Axe → wood, Pickaxe → stone,
+      // Bone Knife → food, Digging Stick / Water Skin → water.
+      let perResourceBonus = 0;
+      if (result.id === "water") perResourceBonus = toolEff.waterBonus || 0;
+      else if (result.id === "wood") perResourceBonus = toolEff.woodBonus || 0;
+      else if (result.id === "stone") perResourceBonus = toolEff.stoneBonus || 0;
+      else if (result.id === "food") perResourceBonus = toolEff.foodBonus || 0;
+      const rawQty = baseQty + gatherBonus + perResourceBonus;
       const qty = Math.max(1, Math.round(rawQty * yieldMult));
       run.inventory[result.id] = (run.inventory[result.id] || 0) + qty;
       run.gathered[result.id] = (run.gathered[result.id] || 0) + qty;

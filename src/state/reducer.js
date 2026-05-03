@@ -19,6 +19,8 @@ import {
 } from "../systems/events.js";
 import { getPrestigeReward } from "../systems/prestige.js";
 import { computeEra } from "../systems/era.js";
+import { getEraStory } from "../content/eraStories.js";
+import { applyEffect } from "../systems/survival.js";
 import { getAllMusic } from "../content/audio.js";
 import {
   snapshotRun,
@@ -107,7 +109,9 @@ export function reducer(state, action) {
     }
 
     case ACTIONS.EAT: {
-      const { run, persistent, events } = performSurvivalAction(state, "eat");
+      const { run, persistent, events } = performSurvivalAction(state, "eat", {
+        preferredFoodId: action.preferredFoodId,
+      });
       return { persistent, run: appendLog(run, events) };
     }
 
@@ -159,6 +163,59 @@ export function reducer(state, action) {
       };
     }
 
+    case ACTIONS.SYNC_ERA: {
+      // Fire the era-story event the FIRST time the player reaches each
+      // era this run. Also bumps lifetimeStats.bestEraReached.
+      const era = computeEra(state);
+      const seen = state.run.eraMilestonesSeen || {};
+      if (era === 0 || seen[era]) {
+        // Already seen, no-op. (But still update bestEraReached if higher.)
+        const best = state.persistent.lifetimeStats.bestEraReached || 0;
+        if (era > best) {
+          return {
+            ...state,
+            persistent: {
+              ...state.persistent,
+              lifetimeStats: {
+                ...state.persistent.lifetimeStats,
+                bestEraReached: era,
+              },
+            },
+          };
+        }
+        return state;
+      }
+
+      const newSeen = { ...seen, [era]: true };
+      let run = { ...state.run, eraMilestonesSeen: newSeen };
+
+      // Apply story effects + log entry.
+      const story = getEraStory(era);
+      const events = [];
+      if (story) {
+        if (story.log) events.push(story.log);
+        if (story.sanityBoost || story.happinessBoost) {
+          run.stats = applyEffect(run.stats || {}, {
+            sanity: story.sanityBoost || 0,
+            happiness: story.happinessBoost || 0,
+          });
+        }
+      }
+
+      const persistent = {
+        ...state.persistent,
+        lifetimeStats: {
+          ...state.persistent.lifetimeStats,
+          bestEraReached: Math.max(
+            state.persistent.lifetimeStats.bestEraReached || 0,
+            era
+          ),
+        },
+      };
+
+      return { persistent, run: appendLog(run, events) };
+    }
+
     case ACTIONS.TICK: {
       let run = state.run;
       let persistent = state.persistent;
@@ -202,15 +259,10 @@ export function reducer(state, action) {
       return { ...state, run: { ...state.run, log: [] } };
 
     case ACTIONS.DEV_PATCH: {
-      // Apply a dev/debug patch from a helper in systems/dev.js. The patch
-      // shape is { run?, persistent?, msg? } — we merge top-level slices and
-      // log msg as a "dev" log line.
       const patch = action.patch || {};
       const run = patch.run || state.run;
       const persistent = patch.persistent || state.persistent;
-      const events = patch.msg
-        ? [{ kind: "dev", message: patch.msg }]
-        : [];
+      const events = patch.msg ? [{ kind: "dev", message: patch.msg }] : [];
       return { persistent, run: appendLog(run, events) };
     }
 

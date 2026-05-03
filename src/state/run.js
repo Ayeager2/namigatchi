@@ -32,10 +32,13 @@ export const RUN_DEFAULTS = {
   // Pests
   activePests: {},
 
-  // Spoilage tracking. lastSpoilTickAt = wall-clock ms of last process.
-  // spoilAccum carries fractional spoilage between ticks.
+  // Spoilage
   lastSpoilTickAt: 0,
   spoilAccum: {},
+
+  // Era milestones already seen this run. Shape: { 1: true, 2: true, ... }
+  // Drives the "first time reaching era N" story event.
+  eraMilestonesSeen: {},
 
   log: [],
 };

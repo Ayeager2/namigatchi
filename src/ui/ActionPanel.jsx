@@ -19,8 +19,9 @@ import {
 } from "../systems/hunting.js";
 import SurvivalBars from "./SurvivalBars.jsx";
 import PestIndicator from "./PestIndicator.jsx";
+import EatButton from "./EatButton.jsx";
 
-export default function ActionPanel({ state, actions, settings }) {
+export default function ActionPanel({ state, actions, settings, settingsHook }) {
   const survival = survivalActive(state);
 
   // Re-render while either cooldown is active so the fill bars animate.
@@ -120,19 +121,19 @@ export default function ActionPanel({ state, actions, settings }) {
             title={
               huntCheck.ok
                 ? keybinds.hunt
-                  ? `Hunt birds (${formatKey(keybinds.hunt)}) · Lv ${
+                  ? `Hunt (${formatKey(keybinds.hunt)}) · Lv ${
                       huntStatus.level
                     }`
-                  : `Hunt birds · Lv ${huntStatus.level}`
+                  : `Hunt · Lv ${huntStatus.level}`
                 : huntCheck.reason
             }
           >
             <span className="btn-label">
               {huntCooling
-                ? "Hunting birds…"
+                ? "Hunting…"
                 : !huntCheck.ok
                 ? huntCheck.reason || "Cannot hunt"
-                : `Hunt birds · Lv ${huntStatus.level}`}
+                : `Hunt · Lv ${huntStatus.level}`}
               {keybinds.hunt && (
                 <span className="btn-hotkey">{formatKey(keybinds.hunt)}</span>
               )}
@@ -150,23 +151,14 @@ export default function ActionPanel({ state, actions, settings }) {
 
       {survival && (
         <div className="action-row action-row--secondary">
-          <button
-            className="btn btn-secondary"
-            onClick={actions.eat}
-            disabled={!eatCheck.ok}
-            title={
-              eatCheck.ok
-                ? keybinds.eat
-                  ? `Eat (${formatKey(keybinds.eat)})`
-                  : "Eat"
-                : eatCheck.reason
-            }
-          >
-            🌿 Eat
-            {keybinds.eat && (
-              <span className="btn-hotkey">{formatKey(keybinds.eat)}</span>
-            )}
-          </button>
+          <EatButton
+            state={state}
+            actions={actions}
+            settings={settings}
+            settingsHook={settingsHook}
+            eatCheck={eatCheck}
+          />
+
           <button
             className="btn btn-secondary"
             onClick={actions.drink}

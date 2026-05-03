@@ -75,6 +75,7 @@ export default function Shell({ state, actions, settingsHook }) {
             state={state}
             actions={actions}
             settings={settingsHook.settings}
+            settingsHook={settingsHook}
           />
         </main>
 

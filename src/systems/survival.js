@@ -118,9 +118,18 @@ function getCookingBonus(state) {
 }
 
 // For category-consuming actions (eat), pick which specific resource to consume.
-// Default strategy: lowest tier / lowest nutrition first, preserving better food.
-function pickFoodToConsume(state, category) {
+// Strategy:
+//   1. If a `preferredId` is provided AND in inventory, eat that.
+//   2. Otherwise default: lowest tier / lowest nutrition first.
+function pickFoodToConsume(state, category, preferredId) {
   const inventory = state.run.inventory || {};
+  if (preferredId) {
+    const candidates = getResourcesByCategory(category).filter(
+      (r) => r.id === preferredId && (inventory[r.id] || 0) > 0
+    );
+    if (candidates.length > 0) return candidates[0];
+    // Preferred not available — fall through to default.
+  }
   const candidates = getResourcesByCategory(category)
     .filter((r) => (inventory[r.id] || 0) > 0)
     .sort((a, b) => (a.nutrition || 0) - (b.nutrition || 0));
@@ -153,7 +162,8 @@ export function canPerformSurvivalAction(state, actionId) {
 }
 
 // Perform a survival action. Returns { run, persistent, events }.
-export function performSurvivalAction(state, actionId) {
+// Optional opts: { preferredFoodId } — for eat, picks that food first.
+export function performSurvivalAction(state, actionId, opts = {}) {
   const def = SURVIVAL.actions[actionId];
   if (!def) {
     return {
@@ -182,7 +192,7 @@ export function performSurvivalAction(state, actionId) {
   let effect = def.effect ? { ...def.effect } : { ...(def.baseEffect || {}) };
   let message = def.message;
   if (def.consumesCategory) {
-    const food = pickFoodToConsume(state, def.consumesCategory);
+    const food = pickFoodToConsume(state, def.consumesCategory, opts.preferredFoodId);
     if (food) {
       inventory[food.id] = (inventory[food.id] || 0) - 1;
       const cookingBonus = getCookingBonus(state);

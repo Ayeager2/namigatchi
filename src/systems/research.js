@@ -1,13 +1,9 @@
 // Research system — "the rock whispers a recipe; you spend resources to listen."
-// Reducer dispatches RESEARCH; this file owns the actual logic.
-//
-// Research is run-local: it resets on prestige. Each new awakening teaches
-// the rock anew. (Permanent speed-up of research will come from Echo upgrades.)
 
 import { getResearch, getAllResearch } from "../content/research.js";
 import { decayForAction, survivalActive, boostStats } from "./survival.js";
+import { computeEra } from "./era.js";
 
-// Returns { ok: bool, reason: string } — eligibility check.
 export function canListen(state, researchId) {
   const r = getResearch(researchId);
   if (!r) return { ok: false, reason: "Unknown teaching." };
@@ -20,6 +16,9 @@ export function canListen(state, researchId) {
     if (r.requires.hutBuilt && !state.run.built?.hut) {
       return { ok: false, reason: "The stone is silent without a roof above." };
     }
+    if (r.requires.era && computeEra(state) < r.requires.era) {
+      return { ok: false, reason: "The stone has not opened this teaching yet." };
+    }
   }
 
   for (const [res, qty] of Object.entries(r.cost || {})) {
@@ -31,7 +30,6 @@ export function canListen(state, researchId) {
   return { ok: true };
 }
 
-// Returns { run, persistent, events } — same shape as gather/build.
 export function performListen(state, researchId) {
   const r = getResearch(researchId);
   if (!r) {
@@ -51,13 +49,11 @@ export function performListen(state, researchId) {
     };
   }
 
-  // Spend resources
   const inventory = { ...state.run.inventory };
   for (const [res, qty] of Object.entries(r.cost)) {
     inventory[res] = (inventory[res] || 0) - qty;
   }
 
-  // Mark learned
   const researched = {
     ...(state.run.researched || {}),
     [researchId]: { at: Date.now() },
@@ -68,30 +64,23 @@ export function performListen(state, researchId) {
 
   const events = [{ kind: "research", message: r.onLearnedMessage }];
 
-  // Survival decay for the research action.
   if (survivalActive({ ...state, run })) {
     run = { ...run, stats: decayForAction(run.stats || {}, "Research") };
-    // Learning is grounding — small boost to resolve and sanity.
-    run = {
-      ...run,
-      stats: boostStats(run.stats, { happiness: +3, sanity: +3 }),
-    };
+    run = { ...run, stats: boostStats(run.stats, { happiness: +3, sanity: +3 }) };
   }
 
   return { run, persistent, events };
 }
 
-// Visible research = nodes whose `requires` are met (so the player can see
-// what's available). Already-learned ones still show, marked complete.
 export function getVisibleResearch(state) {
   return getAllResearch().filter((r) => {
     if (state.run.researched?.[r.id]) return true;
     if (r.requires?.hutBuilt && !state.run.built?.hut) return false;
+    if (r.requires?.era && computeEra(state) < r.requires.era) return false;
     return true;
   });
 }
 
-// Aggregated bonuses from completed research — applied in gathering, etc.
 export function getResearchBonuses(run) {
   let gatherBonus = 0;
   for (const id of Object.keys(run.researched || {})) {
@@ -101,8 +90,6 @@ export function getResearchBonuses(run) {
   return { gatherBonus };
 }
 
-// Whether a specific resource has been "unlocked" in the gather table by
-// a completed research node.
 export function isResourceUnlocked(run, resourceId) {
   for (const id of Object.keys(run.researched || {})) {
     const r = getResearch(id);

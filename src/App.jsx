@@ -21,11 +21,11 @@ export default function App() {
     !state.run.splashSeen
   );
 
-  // When era changes (or on initial mount), sync the music unlock list:
-  // every track whose era tag has been reached gets added to persistent
-  // unlockedMusic. New unlocks emit log entries in the Unlocks tab.
+  // When era changes (or on initial mount), sync music unlocks AND fire any
+  // era-transition story events (only the FIRST time per run).
   useEffect(() => {
     actions.syncMusicUnlocks();
+    actions.syncEra();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [era]);
 

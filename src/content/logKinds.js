@@ -32,8 +32,9 @@ export const LOG_KINDS = {
   hunt:     { category: "recent" },
   huntFail: { category: "recent" },
 
-  // Dev panel actions — only fire in dev mode.
   dev:      { category: "recent" },
+
+  era_transition: { category: "unlocks" },
 };
 
 export function getLogCategory(kind) {

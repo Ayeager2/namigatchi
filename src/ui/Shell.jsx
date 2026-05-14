@@ -13,6 +13,7 @@ import ToolsModal from "./ToolsModal.jsx";
 import EventModal from "./EventModal.jsx";
 import SettingsModal from "./SettingsModal.jsx";
 import SettingsTrigger from "./SettingsTrigger.jsx";
+import PrestigeModal from "./PrestigeModal.jsx";
 import { getPrestigeReward } from "../systems/prestige.js";
 import { computeEra, getEra } from "../systems/era.js";
 
@@ -21,6 +22,7 @@ export default function Shell({ state, actions, settingsHook }) {
   const [buildingsOpen, setBuildingsOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [prestigeOpen, setPrestigeOpen] = useState(false);
   const [devOpen, setDevOpen] = useDevPanelToggle(settingsHook.settings);
   const devAvailable = isDevAvailable(settingsHook.settings);
 
@@ -29,30 +31,12 @@ export default function Shell({ state, actions, settingsHook }) {
   const prestigeUnlocked = era >= 2;
   const reward = getPrestigeReward(state);
   const showEchoes = prestigeUnlocked || state.persistent.echoes > 0;
+  const eligibleForPrestige = prestigeUnlocked && reward.eligible;
 
-  const handleReset = () => {
-    if (prestigeUnlocked && reward.eligible) {
-      const lines = [
-        `Channel the Rock to wipe this world?`,
-        ``,
-        `You will gain ${reward.echoes} Echo${reward.echoes !== 1 ? "es" : ""}.`,
-        ``,
-        `Reasons:`,
-        ...reward.reasons.map((r) => `  +${r.value}  ${r.label}`),
-      ];
-      if (window.confirm(lines.join("\n"))) {
-        actions.prestige();
-      }
-    } else {
-      const lines = [
-        `Reset the current run?`,
-        ``,
-        `Your progress this run will be lost. No rewards yet.`,
-      ];
-      if (window.confirm(lines.join("\n"))) {
-        actions.resetRun();
-      }
-    }
+  const handleResetClick = () => setPrestigeOpen(true);
+  const handleConfirmReset = () => {
+    if (eligibleForPrestige) actions.prestige();
+    else actions.resetRun();
   };
 
   return (
@@ -93,15 +77,15 @@ export default function Shell({ state, actions, settingsHook }) {
       <StonePanel state={state} onListen={() => setTeachingsOpen(true)} />
 
       <footer className="shell-footer">
-        {prestigeUnlocked && reward.eligible ? (
-          <button className="btn btn-prestige" onClick={handleReset}>
+        {eligibleForPrestige ? (
+          <button className="btn btn-prestige" onClick={handleResetClick}>
             Channel the Rock{" "}
             <span className="btn-suffix">
               +{reward.echoes} Echo{reward.echoes !== 1 ? "es" : ""}
             </span>
           </button>
         ) : (
-          <button className="btn btn-ghost" onClick={handleReset}>
+          <button className="btn btn-ghost" onClick={handleResetClick}>
             Reset run
           </button>
         )}
@@ -151,6 +135,15 @@ export default function Shell({ state, actions, settingsHook }) {
           state={state}
           actions={actions}
           onClose={() => setDevOpen(false)}
+        />
+      )}
+
+      {prestigeOpen && (
+        <PrestigeModal
+          mode={eligibleForPrestige ? "prestige" : "reset"}
+          reward={reward}
+          onConfirm={handleConfirmReset}
+          onClose={() => setPrestigeOpen(false)}
         />
       )}
 

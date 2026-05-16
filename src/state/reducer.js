@@ -8,6 +8,7 @@ import { performListen } from "../systems/research.js";
 import { performCraft } from "../systems/crafting.js";
 import { performHunt } from "../systems/hunting.js";
 import { performSurvivalAction } from "../systems/survival.js";
+import { performCastSpell } from "../systems/spells.js";
 import {
   applyPassiveProduction,
   clearStalePests,
@@ -125,6 +126,11 @@ export function reducer(state, action) {
       return { persistent, run: appendLog(run, events) };
     }
 
+    case ACTIONS.CAST_SPELL: {
+      const { run, persistent, events } = performCastSpell(state, action.spellId);
+      return { persistent, run: appendLog(run, events) };
+    }
+
     case ACTIONS.MARK_SPLASH_SEEN:
       if (state.run.splashSeen) return state;
       return { ...state, run: { ...state.run, splashSeen: true } };
@@ -164,12 +170,9 @@ export function reducer(state, action) {
     }
 
     case ACTIONS.SYNC_ERA: {
-      // Fire the era-story event the FIRST time the player reaches each
-      // era this run. Also bumps lifetimeStats.bestEraReached.
       const era = computeEra(state);
       const seen = state.run.eraMilestonesSeen || {};
       if (era === 0 || seen[era]) {
-        // Already seen, no-op. (But still update bestEraReached if higher.)
         const best = state.persistent.lifetimeStats.bestEraReached || 0;
         if (era > best) {
           return {
@@ -189,7 +192,6 @@ export function reducer(state, action) {
       const newSeen = { ...seen, [era]: true };
       let run = { ...state.run, eraMilestonesSeen: newSeen };
 
-      // Apply story effects + log entry.
       const story = getEraStory(era);
       const events = [];
       if (story) {

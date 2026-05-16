@@ -29,6 +29,12 @@ export function canBuild(state, buildingId) {
     ) {
       return { ok: false, reason: "You haven't listened for this yet." };
     }
+    if (
+      building.requires.hasBuilding &&
+      !state.run.built?.[building.requires.hasBuilding]
+    ) {
+      return { ok: false, reason: "Something must come before this." };
+    }
   }
 
   for (const [res, qty] of Object.entries(building.cost || {})) {
@@ -129,6 +135,12 @@ export function getVisibleBuildings(state) {
     if (
       b.requires?.researched &&
       !state.run.researched?.[b.requires.researched]
+    ) {
+      return false;
+    }
+    if (
+      b.requires?.hasBuilding &&
+      !state.run.built?.[b.requires.hasBuilding]
     ) {
       return false;
     }

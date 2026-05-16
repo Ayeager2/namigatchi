@@ -1,19 +1,13 @@
 // Threat system — rolls random encounters per gather.
-// Each gather, after the gather itself resolves, this system gets a chance
-// to fire. If it does, a threat is picked, defense is computed, the threat's
-// effects are applied (with defense mitigation), and log events are produced.
-//
-// Threats are disabled until their `requires` gates are met (e.g., hut built).
-// A grace period (minGathersAfterGate) gives the player breathing room
-// immediately after activation.
 
 import { getAllThreats } from "../content/threats.js";
 import { getResearch } from "../content/research.js";
+import { getBuilding } from "../content/buildings.js";
 import { SURVIVAL } from "../content/survival.js";
 import { applyEffect } from "./survival.js";
+import { computeEra } from "./era.js";
 import { randInt } from "../util/rng.js";
 
-// Aggregate defense from all sources (research, future buildings).
 export function getDefense(state) {
   let def = 0;
   for (const id of Object.keys(state.run.researched || {})) {
@@ -21,7 +15,8 @@ export function getDefense(state) {
     if (r?.effect?.defense) def += r.effect.defense;
   }
   for (const id of Object.keys(state.run.built || {})) {
-    // Future: buildings can grant defense via building.effect.defense
+    const b = getBuilding(id);
+    if (b?.effect?.defense) def += b.effect.defense;
   }
   return def;
 }
@@ -32,14 +27,16 @@ export function getFoodStealReduction(state) {
     const r = getResearch(id);
     if (r?.effect?.foodStealReduction) red += r.effect.foodStealReduction;
   }
+  for (const id of Object.keys(state.run.built || {})) {
+    const b = getBuilding(id);
+    if (b?.effect?.foodStealReduction) red += b.effect.foodStealReduction;
+  }
   return red;
 }
 
-// Whether this threat is active for this state (gate met + grace period).
 function isThreatActive(state, threat) {
   if (threat.requires?.hutBuilt && !state.run.built?.hut) return false;
-  // Grace period: count gathers since hut was built. We don't track that
-  // exactly — approximate with total gather count threshold.
+  if (threat.requires?.era && computeEra(state) < threat.requires.era) return false;
   const minGathers = threat.minGathersAfterGate ?? 0;
   if ((state.run.gatherCount || 0) < minGathers) return false;
   return true;
@@ -54,19 +51,14 @@ function pickFlavor(messages, rng, substitutions = {}) {
   );
 }
 
-// Returns { run, persistent, events } — modifies inventory + stats and emits
-// log events. If no threat fires, returns null (caller should noop).
 export function rollThreatEncounter(state, rng = Math.random) {
   const candidates = getAllThreats().filter((t) => isThreatActive(state, t));
   if (candidates.length === 0) return null;
 
   for (const threat of candidates) {
     if (rng() >= threat.encounterChance) continue;
-
-    // A threat fires.
     return resolveThreat(state, threat, rng);
   }
-
   return null;
 }
 
@@ -80,8 +72,8 @@ function resolveThreat(state, threat, rng) {
 
   let stolen = 0;
   let dmg = 0;
+  let drained = 0;
 
-  // Steal food
   if (threat.effects?.stealFood) {
     const { min, max } = threat.effects.stealFood;
     const base = randInt(rng, min, max);
@@ -92,7 +84,6 @@ function resolveThreat(state, threat, rng) {
     }
   }
 
-  // Damage
   if (threat.effects?.damage) {
     const { min, max } = threat.effects.damage;
     const base = randInt(rng, min, max);
@@ -102,21 +93,38 @@ function resolveThreat(state, threat, rng) {
     }
   }
 
-  // Sanity drain — every threat is unsettling, damage compounds.
-  // Sanity is the ONLY stat affected by horror events (per design).
-  let sanityChange = SURVIVAL.sanityFromThreat?.perEncounter || 0;
+  // Direct sanity drain — defense doesn't apply.
+  if (threat.effects?.sanityDrain) {
+    const { min, max } = threat.effects.sanityDrain;
+    drained = randInt(rng, min, max);
+  }
+
+  // For pure sanity-drain threats (no damage, no food theft), skip the
+  // per-encounter atmospheric drain — flavorMessages already substitutes {sanity}.
+  const isPureSanityThreat =
+    !!threat.effects?.sanityDrain &&
+    !threat.effects?.stealFood &&
+    !threat.effects?.damage;
+  let sanityChange = isPureSanityThreat
+    ? 0
+    : SURVIVAL.sanityFromThreat?.perEncounter || 0;
   if (dmg > 0) {
     sanityChange += (SURVIVAL.sanityFromThreat?.perDamagePoint || 0) * dmg;
   }
+  sanityChange -= drained;
   if (sanityChange !== 0) {
     stats = applyEffect(stats, { sanity: sanityChange });
   }
 
-  // Log messages
   if (stolen > 0) {
     events.push({
       kind: "threat",
       message: pickFlavor(threat.flavorMessages, rng, { food: stolen }),
+    });
+  } else if (isPureSanityThreat && drained > 0) {
+    events.push({
+      kind: "threat",
+      message: pickFlavor(threat.flavorMessages, rng, { sanity: drained }),
     });
   } else {
     events.push({

@@ -14,6 +14,7 @@ export const ACTIONS = {
   EAT: "EAT",
   DRINK: "DRINK",
   REST: "REST",
+  CAST_SPELL: "CAST_SPELL",
 
   TICK: "TICK",
   RESPOND_TO_EVENT: "RESPOND_TO_EVENT",

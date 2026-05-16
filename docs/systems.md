@@ -391,24 +391,50 @@ Live in `tools/`. See `tools/README.md` for the full list.
 
 ---
 
-### 🟢 Era 2 — Settler (first pass shipped)
+### 🟡 Era 3 — Awakened World (first slice shipped)
+**State.** Era 3 entry condition: Forge built + Home built + Smithing + Fletching learned + Bow crafted (toolsCrafted, lifetime-of-run). `computeEra` returns 3 when all hold. First time crossing into Era 3, a 🌌 transition story fires (sanity -5, no resolve change — the air goes wrong). Tracked via `run.eraMilestonesSeen`.
+
+**Spirit stat.** Seventh stat field on `run.stats.spirit`, present in run-defaults (default 50) for save compatibility but UI hides it until era ≥ 3 — SurvivalBars adds a third Mind row at that point. Drains from spell casting (per-spell cost). Refills slowly from Rest (+8 per rest). Future: faster Ritual action with fragment cost.
+
+**arcaneAwakening reveal.** First Era 3 research node (tier 6, parent: home). Cost: fragments: 10 — first time fragments are spent intentionally. Effect: `revealsFragments: true`. Resource `RESOURCES.fragments` has always had `hiddenUntil: { researched: "arcaneAwakening" }` — before learning, fragments display as "???" / ❓; after learning, they reveal as "Arcane Shards" / ✨. The reveal is instant and dramatic, exactly matching the original `hiddenUntil` plumbing.
+
+**Spells (research-as-spell pattern).** A research node with `effect.unlocksSpell: "id"` learns a spell. Spells live in `src/content/spells.js` as plain data, read by `src/systems/spells.js`. Each spell declares cost (fragments + spirit), effect (stat deltas), cooldownMs, and castMessage. The reducer's `CAST_SPELL` action dispatches to `performCastSpell`. Per-spell cooldowns live in `run.spellCooldowns`. First three shipped: **Mending Word** (1 frag + 15 spirit → +20 HP, 60s cd), **Soothe** (1 frag + 10 spirit → +15 sanity, 60s cd), **Inner Hearth** (1 frag + 5 spirit → +20 resolve, 45s cd). UI: `SpellsPanel` trigger card in left column (only renders when ≥ 1 spell learned), opens `SpellsModal` with inline cast buttons + countdowns.
+
+**Whisperer threat.** New entry in `src/content/threats.js` — sanity-only threat, gated to era ≥ 3 via `requires.era`. Encounter chance 0.04. Damage shape: `effects.sanityDrain: { min: 3, max: 5 }`. The threats system was extended to handle the new shape: defense is bypassed for sanity drain (the eldritch ignores armor), and for "pure sanity-drain" threats (no damage, no food theft) the per-encounter atmospheric drain is skipped so flavorMessages directly surfaces the {sanity} substitution. Verified: never fires before era 3 (500 trials), fires reliably after.
+
+**Where.** `src/systems/era.js` (entry condition + getNextEraRequirements), `src/content/eraStories.js` (era 3 transition), `src/state/run.js` (spirit + spellCooldowns), `src/content/survival.js` (Rest refills spirit, applyEffect handles spirit), `src/content/research.js` (arcaneAwakening + 3 spell-research nodes), `src/content/spells.js` (NEW), `src/systems/spells.js` (NEW), `src/state/actions.js` + `reducer.js` + `store.js` (CAST_SPELL plumbing), `src/content/threats.js` (whisperer), `src/systems/threats.js` (era gate + sanityDrain handling), `src/ui/SurvivalBars.jsx` (Spirit bar), `src/ui/SpellsPanel.jsx` + `SpellsModal.jsx` (NEW), `src/index.css` (spirit bar styling + spell row styling).
+
+**Vision (next, deferred slice).** Alchemy/potions (consumable items + Alembic building), alignment surfaces in choice events (`requires.alignment` gate), more demon threats (Hollow Hound — HP + sanity, Iconoclast — destroys buildings), Banish + Bend spells (alignment-gated), Spirit Censer + Warding Talisman (arcane tier tools).
+
+---
+
+### 🟢 Era 2 — Settler (expanded — settlement chain shipped)
 **State.** Era 2 entry condition is met when: hut + fire pit built AND foraging + fire + knapping researched. `computeEra(state)` returns 2 from this state. The first time the player crosses into Era 2, a story-event modal fires (🌅 narrative log + sanity/resolve boost), tracked via `run.eraMilestonesSeen` so it only fires once per run.
 
 **Shipped Era-2 content.** Smithing research (parent: knapping + fire, requires era≥2). Forge building (requires Smithing). Fletching research (parent: netWeaving + tracking, requires era≥2). Era-2 tools (Forge-required): Stone Axe (-150ms gather + 2 wood/wood-gather, 50 durability), Stone Pickaxe (-100ms gather + 2 stone/stone-gather, 50 durability), Bone Knife (+1 hunt yield + 1 food/food-gather, 60 durability), Bow (+2 hunt yield, -2500ms hunt cooldown, way more birds, 60 durability).
 
+**Settlement chain (NEW).** Home research (parent: Smithing, requires era≥2) gates the Home building — a proper dwelling that grants +1 gather yield, a restBonus that flows into the Rest action, and a resolve/sanity boost on build. Once Home is up, three additional buildings unlock and become visible:
+- **Stone Walls** (parent: home) — +3 defense, -2 food stolen per raid. Cost stone:100, wood:30.
+- **Rudimentary Silo** (parent: home + garden) — +30 grubs and +20 bird meat caps; food spoils ~30% slower via `effect.spoilageMultiplier`. Cost stone:50, wood:40.
+- **Rudimentary Farmhouse** (parent: home + garden) — +50% Garden food output via the passive-production modulator + +0.5 wood/minute scrub-clearing trickle. Cost stone:30, wood:60, food:5.
+
 **Tool effect plumbing extended.** `getToolEffects` now aggregates resource-specific bonuses: `woodBonus`, `stoneBonus`, `foodBonus`, `waterBonus`. Gathering applies the right bonus based on what dropped. Crafting now supports `requires.builtBuilding: "forge"` for tier-2 tools.
 
-**Prestige UI auto-reveals at era ≥ 2** — the existing prestige system was already gated; reaching Era 2 makes the "Channel the Rock" button appear.
+**Building effect aggregators extended.** Threats now read `effect.defense` and `effect.foodStealReduction` from buildings (Walls). Storage now reads `effect.spoilageMultiplier` from buildings (Silo). Passive production reads a Farmhouse + Garden combination to multiply garden food by 1.5. The Rest survival action picks up `effect.restBonus` from any building (Home).
 
-**Vision (next, not built yet).** Permanent settlement structures, first organized threats (bandits), more research nodes (Trapping refinements, ranged combat upgrades), eventual companions/villagers system.
+**NPC-hint events (NEW).** Four narrative events introduce each settlement-chain building through a wandering NPC. Each is gated by `notHasBuilding` so it disappears once the suggestion lands:
+- **wandererHintHome** — fires when hut is built but home is not.
+- **soldierHintWalls** — fires when home is built but walls are not.
+- **childHintSilo** — fires when home is built but silo is not.
+- **farmerHintFarmhouse** — fires when garden is built but farmhouse is not (drops +3 grubs as a quiet gift).
 
-**Era 2 entry condition (proposed).** Hut + Fire Pit built AND all tier 1 teachings learned (Foraging, Fire, Knapping). The transition itself is a story event — "you have made a place; now make a settlement."
+Same NPCs are intended to return in later eras as proto-companion encounters once the building they hinted at is up.
 
-**Buildings to add.** Forge (smithing center), Garden (passive food), Well (passive water), Granary (storage capacity), Tool Shed (tool storage + crafting bench).
+**Prestige UI auto-reveals at era ≥ 2** — reaching Era 2 makes the "Channel the Rock" button appear.
 
-**Research to add.** Smithing (parent: Knapping), Agriculture (parent: Foraging), Trapping (parent: Vigilance), Joinery (parent: Knapping). Each unlocks new buildings or recipes.
+**Building count after this iteration.** 11 buildings total: hut, firepit, well, garden, cairn, forge, home, walls, silo, farmhouse (plus future arcane structures).
 
-**Trigger to build.** Once Era 1 feels complete and balanced — current iteration is filling in Era 1 content.
+**Vision (next, not built yet).** First organized threats (bandits) that the Walls actually defend against. More research nodes (Trapping refinements, ranged combat upgrades). Companions/villagers system — likely returning NPCs from the hint events.
 
 ---
 

@@ -5,7 +5,7 @@ import {
   getInventoryItem,
   RESOURCE_CATEGORIES,
 } from "../content/resources.js";
-import { getCapStatus, spoilStatusFromDef } from "../systems/storage.js";
+import { getCapStatus, spoilStatusFromDef, getSpoilageMultiplier } from "../systems/storage.js";
 
 function groupItems(items) {
   const groups = {};
@@ -22,8 +22,8 @@ function groupItems(items) {
 
 // Slim spoilage countdown bar — bug #002. Renders only for foods with a
 // spoilage def. Color shifts to deeper rot when at cap (multiplier active).
-function SpoilBar({ resource, capStatus, accum }) {
-  const status = spoilStatusFromDef(resource, capStatus, accum);
+function SpoilBar({ resource, capStatus, accum, buildingMult }) {
+  const status = spoilStatusFromDef(resource, capStatus, accum, buildingMult);
   if (!status.spoils) return null;
   const sec = Math.max(0, Math.round(status.secondsUntilNextLoss));
   const min = Math.floor(sec / 60);
@@ -70,6 +70,7 @@ export default function InventoryPanel({ state, settingsHook }) {
     .filter(Boolean);
 
   const groups = groupItems(items);
+  const buildingMult = getSpoilageMultiplier(state);
 
   return (
     <div className="card">
@@ -117,6 +118,7 @@ export default function InventoryPanel({ state, settingsHook }) {
                               resource={item.real}
                               capStatus={item.cap}
                               accum={accum}
+                              buildingMult={buildingMult}
                             />
                           )}
                         </li>

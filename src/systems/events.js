@@ -43,6 +43,17 @@ function isEventEligible(state, event, triggerType) {
   ) {
     return false;
   }
+  // notHasBuilding — gate "hint" events that should only fire BEFORE a
+  // building is up. Accepts a single id or an array of ids; any one match
+  // disqualifies the event. NPC hints disappear once the suggestion lands.
+  if (event.requires?.notHasBuilding) {
+    const ids = Array.isArray(event.requires.notHasBuilding)
+      ? event.requires.notHasBuilding
+      : [event.requires.notHasBuilding];
+    for (const id of ids) {
+      if (state.run.built?.[id]) return false;
+    }
+  }
   // Cooldown
   const cd = state.run.events?.cooldowns?.[event.id] || 0;
   if (Date.now() < cd) return false;

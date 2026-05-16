@@ -1,16 +1,4 @@
 // Threat definitions — DATA, not code.
-// Adding a threat = new entry here. The threats system reads these and
-// rolls encounters per gather.
-//
-// Each threat has:
-//   id, name, icon, description
-//   encounterChance      — base probability per gather
-//   requires             — gating predicates (hutBuilt, etc.)
-//   minGathersAfterGate  — grace period after gating becomes true
-//   effects.stealFood    — { min, max } range of food stolen (defense reduces)
-//   effects.damage       — { min, max } range of HP damage (defense reduces)
-//   flavorMessages       — array of message variants (random pick per encounter)
-//                          {food} and {damage} are substituted
 
 export const THREATS = {
   scavenger: {
@@ -41,6 +29,31 @@ export const THREATS = {
       "A scrabble of claws across your arm. {damage} ❤️.",
       "Pain blooms where the creature caught you. {damage} ❤️.",
     ],
+  },
+
+  whisperer: {
+    id: "whisperer",
+    name: "Whisperer",
+    icon: "👁️",
+    description: "Not a thing. A space the dust avoids. It watches you the way you watch the stone.",
+    encounterChance: 0.04,
+    requires: { hutBuilt: true, era: 3 },
+    minGathersAfterGate: 0,
+    effects: {
+      // Sanity-only damage. Defense does nothing — armor isn't the answer
+      // to being looked at by something old.
+      sanityDrain: { min: 3, max: 5 },
+    },
+    flavorMessages: [
+      "Something is in the gathering ground that is not in the gathering ground. You feel it find you. {sanity} ◐.",
+      "The wind stops. You hear your own breathing too loud. When the sound returns, something is gone — and it took {sanity} ◐ of you with it.",
+      "A long shape in the corner of your eye. You turn. Nothing. The dust unsettles. {sanity} ◐.",
+    ],
+    emptyMessages: [
+      "A pressure passes. The fragments hum. Then it is gone.",
+      "Something looked at you from where there is no one. The looking ended. You went back to the work.",
+    ],
+    damageMessages: [],
   },
 };
 

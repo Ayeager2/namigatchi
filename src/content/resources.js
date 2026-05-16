@@ -1,5 +1,4 @@
 // Resource definitions — DATA, not code.
-// Adding a resource = new entry here. No code changes needed elsewhere.
 
 import { TOOLS } from "./tools.js";
 
@@ -11,13 +10,6 @@ export const RESOURCE_CATEGORIES = {
   mystic:    { id: "mystic",    name: "Mystic",    order: 5 },
   unknown:   { id: "unknown",   name: "Unknown",   order: 99 },
 };
-
-// Storage caps:
-//   baseCap: number — default storage limit before any building bonuses.
-//                     Omit to mark as uncapped (fragments, tools).
-//   spoilage:        — food-only. Resource decays over real time.
-//     perMinute: number  — natural spoilage rate (units lost per minute).
-//     atCapMultiplier: number — multiplier when held at or above cap.
 
 export const RESOURCES = {
   wood: {
@@ -46,11 +38,10 @@ export const RESOURCES = {
   },
   fragments: {
     id: "fragments",
-    name: "Fragments",
+    name: "Arcane Shards",
     icon: "✨",
     category: "fragment",
-    description: "Shimmering shards of something not-quite-of-this-world.",
-    // Mystical — does not follow physical storage rules. Omit baseCap.
+    description: "Pieces of a thing that broke, and remembers being whole. They hum against the skin and dim against your pulse. They are the fuel of every spell.",
     hiddenUntil: { researched: "arcaneAwakening" },
     hiddenName: "???",
     hiddenIcon: "❓",
@@ -67,7 +58,6 @@ export const RESOURCES = {
     tier: 1,
     description: "Pale, wriggling. They squirm in the palm. Better than nothing. Barely.",
     baseCap: 15,
-    // Grubs spoil slowly normally, fast when stockpiled past cap.
     spoilage: { perMinute: 0.2, atCapMultiplier: 4 },
   },
 
@@ -80,7 +70,6 @@ export const RESOURCES = {
     tier: 2,
     description: "Stringy, dark, faintly metallic. The first warm meal in a long time.",
     baseCap: 10,
-    // Meat spoils faster than grubs — no preservation yet.
     spoilage: { perMinute: 0.4, atCapMultiplier: 5 },
   },
 

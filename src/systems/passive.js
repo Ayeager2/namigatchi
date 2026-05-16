@@ -11,6 +11,12 @@ function getProductionModulators(run) {
   if (run.activePests?.birdFlock?.until > Date.now()) {
     mods.food = (mods.food ?? 1) * 0.5;
   }
+  // Farmhouse boosts Garden output by +50% (multiplier 1.5).
+  // Only applies if the Garden is actually built — Farmhouse alone produces
+  // its own passive wood trickle elsewhere, no garden-multiplier orphan.
+  if (run.built?.farmhouse && run.built?.garden) {
+    mods.food = (mods.food ?? 1) * 1.5;
+  }
   return mods;
 }
 
@@ -90,6 +96,7 @@ function passiveLogLine(res, qty) {
   const lines = {
     water: `💧 The well yields water. +${qty}.`,
     food: `🪱 The garden gives. +${qty} grub${qty !== 1 ? "s" : ""}.`,
+    wood: `🪵 The scrub yields wood. +${qty}.`,
   };
   return lines[res] || `+${qty} ${res}`;
 }

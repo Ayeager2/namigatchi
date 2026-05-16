@@ -270,6 +270,88 @@ export const EVENTS = {
       },
     ],
   },
+
+  // ============== Era 2 NPC-hint events ==============
+  // These fire when the player has the prerequisite but hasn't built the
+  // target yet. Each is a flavor nudge toward the next building in the
+  // settler chain. notHasBuilding gates them out once the suggestion lands.
+
+  wandererHintHome: {
+    id: "wandererHintHome",
+    name: "A Wanderer at the Fire",
+    trigger: "interval",
+    weight: 4,
+    requires: { era: 2, hasBuilding: "hut", notHasBuilding: "home" },
+    cooldownMs: 8 * 60 * 1000,
+    flavor: "A wanderer settles by your fire. She does not stay long.",
+    onFire: {
+      effects: {
+        stats: { happiness: 2 },
+        log: {
+          kind: "event_good",
+          message: "👤 A wanderer settles by your fire. She warms her hands, glances at the hut, and asks if you have a home of your own. She is gone before you answer.",
+        },
+      },
+    },
+  },
+
+  soldierHintWalls: {
+    id: "soldierHintWalls",
+    name: "An Old Soldier",
+    trigger: "interval",
+    weight: 4,
+    requires: { era: 2, hasBuilding: "home", notHasBuilding: "walls" },
+    cooldownMs: 8 * 60 * 1000,
+    flavor: "An old soldier squints at the open ground.",
+    onFire: {
+      effects: {
+        stats: { sanity: -1 },
+        log: {
+          kind: "event_strange",
+          message: "🪖 An old soldier passes through. He glances at the open ground and says — quiet, not making a thing of it — 'A wall would help. Even a low one.' Then he is gone, and the wasteland feels wider than before.",
+        },
+      },
+    },
+  },
+
+  childHintSilo: {
+    id: "childHintSilo",
+    name: "A Child Asks About Stores",
+    trigger: "interval",
+    weight: 3,
+    requires: { era: 2, hasBuilding: "home", notHasBuilding: "silo" },
+    cooldownMs: 8 * 60 * 1000,
+    flavor: "A child asks where you keep your stores.",
+    onFire: {
+      effects: {
+        stats: { happiness: -1 },
+        log: {
+          kind: "event_strange",
+          message: "🧒 A child asks where you keep your stores. You point at the dust. She doesn't laugh. Her face says enough.",
+        },
+      },
+    },
+  },
+
+  farmerHintFarmhouse: {
+    id: "farmerHintFarmhouse",
+    name: "A Farmer Passes",
+    trigger: "interval",
+    weight: 3,
+    requires: { era: 2, hasBuilding: "garden", notHasBuilding: "farmhouse" },
+    cooldownMs: 10 * 60 * 1000,
+    flavor: "A farmer wanders by and looks at your garden.",
+    onFire: {
+      effects: {
+        inventory: { food: 3 },
+        stats: { happiness: 2, sanity: 1 },
+        log: {
+          kind: "event_good",
+          message: "🧑‍🌾 A farmer wanders by, says nothing, but plants something with a calloused hand before going. The earth shifts. +3 grubs.",
+        },
+      },
+    },
+  },
 };
 
 export const getEvent = (id) => EVENTS[id] || null;

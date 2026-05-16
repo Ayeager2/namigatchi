@@ -2,15 +2,12 @@
 //
 // Body section:  Hunger, Thirst, Energy, HP — physical state.
 // Mind section:  Resolve (happiness), Sanity — mental state.
+// Era 3+:        Spirit (the magical-energy meter) joins Mind.
 // Defense:       flat shield value at the bottom.
-//
-// "Resolve" is the user-facing label for the `happiness` field — daily
-// wellbeing, the will to keep going. (Spirit is being reserved for a future
-// magic-system stat in Era 3+, where it will mean something genuinely mystical.)
-// The data field stays `happiness` so labels can be renamed freely.
 
 import { SURVIVAL } from "../content/survival.js";
 import { getDefense } from "../systems/threats.js";
+import { computeEra } from "../systems/era.js";
 
 function Bar({ label, value, dangerHigh, dangerLow, icon, kind = "default" }) {
   const v = Math.round(value);
@@ -39,6 +36,8 @@ export default function SurvivalBars({ state }) {
   const stats = state?.run?.stats;
   if (!stats) return null;
   const defense = getDefense(state);
+  const era = computeEra(state);
+  const showSpirit = era >= 3;
 
   return (
     <div className="survival-bars">
@@ -87,6 +86,15 @@ export default function SurvivalBars({ state }) {
           icon="◐"
           kind="sanity"
         />
+        {showSpirit && (
+          <Bar
+            label="Spirit"
+            value={stats.spirit ?? 50}
+            dangerLow={15}
+            icon="✨"
+            kind="spirit"
+          />
+        )}
       </div>
 
       <div className="sb-defense">

@@ -14,6 +14,7 @@ export const RUN_DEFAULTS = {
   researched: {},
   stats: {
     hunger: 0, thirst: 0, energy: 100, hp: 100, happiness: 50, sanity: 50,
+    spirit: 50,
   },
   splashSeen: false,
   events: { cooldowns: {}, lastIntervalMs: 0 },
@@ -37,8 +38,10 @@ export const RUN_DEFAULTS = {
   spoilAccum: {},
 
   // Era milestones already seen this run. Shape: { 1: true, 2: true, ... }
-  // Drives the "first time reaching era N" story event.
   eraMilestonesSeen: {},
+
+  // Per-spell cooldowns. Shape: { spellId: timestampMs }
+  spellCooldowns: {},
 
   log: [],
 };

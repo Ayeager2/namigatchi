@@ -1,18 +1,4 @@
 // Storage system. Inventory caps + food spoilage.
-//
-// Caps: each resource declares an optional `baseCap` in content/resources.js.
-// Buildings can declare `storageCaps: { resourceId: capIncrease }`. The
-// effective cap is the sum. Resources without a baseCap are uncapped
-// (fragments, tools — fragments are mystical, tools are qty 1 by design).
-//
-// Spoilage: food resources declare `spoilage: { perMinute, atCapMultiplier }`.
-// On every TICK, processSpoilage walks held food and reduces it according
-// to elapsed real time (with a cap on offline catch-up). Past-cap stockpiles
-// spoil at the multiplier rate — food rots faster when you can't store it.
-//
-// Caps are CLAMPED on add, not enforced retroactively. If a save loaded
-// from before caps existed has 200 wood, the player keeps it; subsequent
-// gathers just don't add more until they're below cap.
 
 import { getAllResources, getResource } from "../content/resources.js";
 import { getAllBuildings } from "../content/buildings.js";
@@ -35,10 +21,20 @@ export function getResourceCap(state, resourceId) {
   return cap;
 }
 
-// Clamp inventory to caps. Returns { inventory, overflow } — overflow is
-// the per-resource amount that was lost. Caller decides whether to log it.
-// Existing values above cap are PRESERVED (no retroactive trim) — clamping
-// only blocks NEW additions past the cap.
+// Aggregate spoilage multiplier from buildings (e.g., Silo at 0.7 = 30% slower
+// spoilage). Multiple buildings stack multiplicatively, but realistically only
+// one applies in early eras. Floor at 0.1 so spoilage never goes to zero.
+export function getSpoilageMultiplier(state) {
+  let mult = 1.0;
+  for (const b of getAllBuildings()) {
+    if (!state.run.built?.[b.id]) continue;
+    const m = b.effect?.spoilageMultiplier;
+    if (typeof m === "number" && m > 0) mult *= m;
+  }
+  return Math.max(0.1, mult);
+}
+
+// Clamp inventory to caps. Returns { inventory, overflow }.
 export function clampToCap(inventory, state, prevInventory = {}) {
   const out = { ...inventory };
   const overflow = {};
@@ -46,9 +42,7 @@ export function clampToCap(inventory, state, prevInventory = {}) {
     const cap = getResourceCap(state, id);
     if (cap === Infinity) continue;
     const prev = prevInventory[id] || 0;
-    // Only clamp the NEW portion. Preserve existing oversupply.
     if (prev >= cap) {
-      // Already at/above cap — don't accept any new additions of this type.
       if (qty > prev) {
         overflow[id] = qty - prev;
         out[id] = prev;
@@ -61,8 +55,7 @@ export function clampToCap(inventory, state, prevInventory = {}) {
   return { inventory: out, overflow };
 }
 
-// Process spoilage of food resources during TICK. Reads elapsed time from
-// `run.lastSpoilTickAt`. Returns { run, events }.
+// Process spoilage of food resources during TICK. Returns { run, events }.
 export function processSpoilage(state) {
   const run = state.run;
   const now = Date.now();
@@ -80,6 +73,7 @@ export function processSpoilage(state) {
   const spoilAccum = { ...(run.spoilAccum || {}) };
   const events = [];
   let changed = false;
+  const buildingMult = getSpoilageMultiplier(state);
 
   for (const res of getAllResources()) {
     if (!res.spoilage) continue;
@@ -89,7 +83,8 @@ export function processSpoilage(state) {
     const atCap = cap !== Infinity && have >= cap;
     const ratePerMin =
       res.spoilage.perMinute *
-      (atCap ? res.spoilage.atCapMultiplier || 1 : 1);
+      (atCap ? res.spoilage.atCapMultiplier || 1 : 1) *
+      buildingMult;
     spoilAccum[res.id] = (spoilAccum[res.id] || 0) + ratePerMin * elapsedMin;
     const whole = Math.floor(spoilAccum[res.id]);
     if (whole > 0) {
@@ -113,8 +108,7 @@ export function processSpoilage(state) {
 }
 
 // Helper: cap status for a resource — used by the inventory UI to color
-// the count cell. Returns "ok" | "warn" (>=80% of cap) | "full" (at cap)
-// | "uncapped".
+// the count cell.
 export function getCapStatus(state, resourceId) {
   const cap = getResourceCap(state, resourceId);
   if (cap === Infinity) return { status: "uncapped", cap: Infinity };
@@ -124,41 +118,15 @@ export function getCapStatus(state, resourceId) {
   return { status: "ok", cap, have };
 }
 
-// Compute the spoilage status for an inventory row. Used by the inventory UI
-// to render a countdown bar next to spoiling foods.
-//
-// Returns { spoils, perMinute, atCap, secondsUntilNextLoss, percent } where:
-//   spoils — boolean, false for non-food / non-spoiling resources
-//   perMinute — current effective spoil rate
-//   atCap — true if the at-cap multiplier is active
-//   secondsUntilNextLoss — how long until the accumulator crosses 1.0
-//   percent — 0..1 progress toward the next loss (for the bar)
-export function getSpoilStatus(state, resourceId) {
-  const res = (state.run.inventory && state.run.inventory[resourceId] !== undefined)
-    ? null : null; // resolve below
-  // We need the full RESOURCE def, not the inventory slot — read directly.
-  // (Lazy import path-style to dodge any circular concerns.)
-  // eslint-disable-next-line no-undef
-  const RESOURCES_MODULE = (typeof window !== "undefined" && window.__namigatchi_resources)
-    ? window.__namigatchi_resources
-    : null;
-  // Fallback: caller will use getResource directly — see InventoryPanel.
-
-  return null; // placeholder — InventoryPanel uses local helper instead
-}
-
-// Better: a pure helper that takes the resource definition + cap status +
-// current accumulator. Caller pulls the def from RESOURCES.
-//   resource: the resource def from RESOURCES (must have spoilage)
-//   capStatus: result of getCapStatus(state, id)
-//   accum: current run.spoilAccum[id] || 0
-// Returns { spoils, perMinute, atCap, secondsUntilNextLoss, percent }.
-export function spoilStatusFromDef(resource, capStatus, accum) {
+// Pure helper for the spoilage countdown bar. Caller passes the resource def
+// + cap status + current accumulator (+ optional building multiplier).
+export function spoilStatusFromDef(resource, capStatus, accum, buildingMult = 1.0) {
   if (!resource?.spoilage) return { spoils: false };
   const atCap = capStatus.status === "full";
   const perMinute =
     resource.spoilage.perMinute *
-    (atCap ? resource.spoilage.atCapMultiplier || 1 : 1);
+    (atCap ? resource.spoilage.atCapMultiplier || 1 : 1) *
+    buildingMult;
   if (perMinute <= 0) return { spoils: false };
   const remaining = Math.max(0, 1 - (accum || 0));
   const secondsUntilNextLoss = (remaining / perMinute) * 60;

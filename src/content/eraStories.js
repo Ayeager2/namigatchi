@@ -4,11 +4,7 @@
 // Each entry: { sanityBoost, happinessBoost, log: { kind, message } }
 
 export const ERA_STORIES = {
-  1: {
-    // Era 1 is reached when the hut goes up, which already has its own
-    // dramatic moment (the hut-built whisper). We don't need a separate
-    // story event — leaving this entry empty so the system no-ops.
-  },
+  1: {},
 
   2: {
     sanityBoost: 5,
@@ -20,7 +16,17 @@ export const ERA_STORIES = {
     },
   },
 
-  // 3-7: filled in as those eras land.
+  3: {
+    // Era 3 is the darker turn. Sanity dips — the world goes thin, the
+    // fragments hum louder, the stone is suddenly listening differently.
+    sanityBoost: -5,
+    happinessBoost: 0,
+    log: {
+      kind: "era_transition",
+      message:
+        "🌌 You wake in your home, and the air is wrong. The walls are the same. The hearth is the same. But the fragments in your pack are humming, and the stone — the stone — is not whispering. It is waiting. Something has crossed over. The Awakened World begins.",
+    },
+  },
 };
 
 export function getEraStory(era) {

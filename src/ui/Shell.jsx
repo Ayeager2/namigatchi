@@ -5,11 +5,13 @@ import ActionPanel from "./ActionPanel.jsx";
 import InventoryPanel from "./InventoryPanel.jsx";
 import BuildingsPanel from "./BuildingsPanel.jsx";
 import CraftsPanel from "./CraftsPanel.jsx";
+import SpellsPanel from "./SpellsPanel.jsx";
 import StonePanel from "./StonePanel.jsx";
 import RightColumn from "./RightColumn.jsx";
 import TeachingsTreeModal from "./TeachingsTreeModal.jsx";
 import BuildingsTreeModal from "./BuildingsTreeModal.jsx";
 import ToolsModal from "./ToolsModal.jsx";
+import SpellsModal from "./SpellsModal.jsx";
 import EventModal from "./EventModal.jsx";
 import SettingsModal from "./SettingsModal.jsx";
 import SettingsTrigger from "./SettingsTrigger.jsx";
@@ -21,6 +23,7 @@ export default function Shell({ state, actions, settingsHook }) {
   const [teachingsOpen, setTeachingsOpen] = useState(false);
   const [buildingsOpen, setBuildingsOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [spellsOpen, setSpellsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [prestigeOpen, setPrestigeOpen] = useState(false);
   const [devOpen, setDevOpen] = useDevPanelToggle(settingsHook.settings);
@@ -67,6 +70,7 @@ export default function Shell({ state, actions, settingsHook }) {
           <InventoryPanel state={state} settingsHook={settingsHook} />
           <BuildingsPanel state={state} onOpen={() => setBuildingsOpen(true)} />
           <CraftsPanel state={state} onOpen={() => setToolsOpen(true)} />
+          <SpellsPanel state={state} onOpen={() => setSpellsOpen(true)} />
         </aside>
 
         <aside className="shell-area shell-area--right">
@@ -112,6 +116,14 @@ export default function Shell({ state, actions, settingsHook }) {
           state={state}
           actions={actions}
           onClose={() => setToolsOpen(false)}
+        />
+      )}
+
+      {spellsOpen && (
+        <SpellsModal
+          state={state}
+          actions={actions}
+          onClose={() => setSpellsOpen(false)}
         />
       )}
 

@@ -66,6 +66,14 @@ export function rollThreatEncounter(state, rng = Math.random) {
   return null;
 }
 
+// Force-resolve a specific threat by id. Used by the dev panel for direct
+// testing of demon encounters without waiting on the gather RNG.
+export function resolveThreatById(state, threatId, rng = Math.random) {
+  const threat = getAllThreats().find((t) => t.id === threatId);
+  if (!threat) return null;
+  return resolveThreat(state, threat, rng);
+}
+
 function resolveThreat(state, threat, rng) {
   const inventory = { ...state.run.inventory };
   let stats = { ...(state.run.stats || {}) };
@@ -74,7 +82,6 @@ function resolveThreat(state, threat, rng) {
   const defense = getDefense(state);
   const foodReduction = getFoodStealReduction(state);
 
-  // Warding Talisman + future arcane wards apply only to demonic threats.
   const toolEff = getToolEffects(state.run);
   const isDemon = threat.kind === "demon";
   const dmgMult = isDemon ? (toolEff.demonDamageMult ?? 1) : 1;
@@ -90,100 +97,63 @@ function resolveThreat(state, threat, rng) {
     const base = randInt(rng, min, max);
     const wanted = Math.max(0, base - defense - foodReduction);
     stolen = Math.min(wanted, inventory.food || 0);
-    if (stolen > 0) {
-      inventory.food = (inventory.food || 0) - stolen;
-    }
+    if (stolen > 0) inventory.food = (inventory.food || 0) - stolen;
   }
 
   if (threat.effects?.damage) {
     const { min, max } = threat.effects.damage;
     const base = randInt(rng, min, max);
-    const effectiveDefense = threat.effects.defenseHalf
-      ? Math.floor(defense / 2)
-      : defense;
+    const effectiveDefense = threat.effects.defenseHalf ? Math.floor(defense / 2) : defense;
     dmg = Math.max(0, base - effectiveDefense);
-    if (dmg > 0 && dmgMult !== 1) {
-      dmg = Math.max(0, Math.round(dmg * dmgMult));
-    }
-    if (dmg > 0) {
-      stats.hp = Math.max(0, (stats.hp ?? 100) - dmg);
-    }
+    if (dmg > 0 && dmgMult !== 1) dmg = Math.max(0, Math.round(dmg * dmgMult));
+    if (dmg > 0) stats.hp = Math.max(0, (stats.hp ?? 100) - dmg);
   }
 
   if (threat.effects?.sanityDrain) {
     const { min, max } = threat.effects.sanityDrain;
     let raw = randInt(rng, min, max);
-    if (sanMult !== 1) {
-      raw = Math.max(0, Math.round(raw * sanMult));
-    }
+    if (sanMult !== 1) raw = Math.max(0, Math.round(raw * sanMult));
     drained = raw;
   }
 
   if (threat.effects?.happinessDrain) {
     const { min, max } = threat.effects.happinessDrain;
     let raw = randInt(rng, min, max);
-    if (sanMult !== 1) {
-      raw = Math.max(0, Math.round(raw * sanMult));
-    }
+    if (sanMult !== 1) raw = Math.max(0, Math.round(raw * sanMult));
     resolveDrained = raw;
-    if (resolveDrained > 0) {
-      stats = applyEffect(stats, { happiness: -resolveDrained });
-    }
+    if (resolveDrained > 0) stats = applyEffect(stats, { happiness: -resolveDrained });
   }
 
-  // Sanity book-keeping.
   const hasSanityDrain = !!threat.effects?.sanityDrain;
-  let sanityChange = hasSanityDrain
-    ? 0
-    : SURVIVAL.sanityFromThreat?.perEncounter || 0;
+  let sanityChange = hasSanityDrain ? 0 : SURVIVAL.sanityFromThreat?.perEncounter || 0;
   if (dmg > 0 && !hasSanityDrain) {
     sanityChange += (SURVIVAL.sanityFromThreat?.perDamagePoint || 0) * dmg;
   }
   sanityChange -= drained;
-  if (sanityChange !== 0) {
-    stats = applyEffect(stats, { sanity: sanityChange });
-  }
+  if (sanityChange !== 0) stats = applyEffect(stats, { sanity: sanityChange });
 
   const isPureSanityThreat =
     hasSanityDrain && !threat.effects?.stealFood && !threat.effects?.damage;
 
   if (stolen > 0) {
-    events.push({
-      kind: "threat",
-      message: pickFlavor(threat.flavorMessages, rng, { food: stolen }),
-    });
+    events.push({ kind: "threat", message: pickFlavor(threat.flavorMessages, rng, { food: stolen }) });
   } else if (drained > 0 && resolveDrained > 0 && !dmg) {
     events.push({
       kind: "threat",
-      message: pickFlavor(threat.flavorMessages, rng, {
-        sanity: drained,
-        happiness: resolveDrained,
-      }),
+      message: pickFlavor(threat.flavorMessages, rng, { sanity: drained, happiness: resolveDrained }),
     });
   } else if (isPureSanityThreat && drained > 0) {
-    events.push({
-      kind: "threat",
-      message: pickFlavor(threat.flavorMessages, rng, { sanity: drained }),
-    });
+    events.push({ kind: "threat", message: pickFlavor(threat.flavorMessages, rng, { sanity: drained }) });
   } else if (dmg > 0 && drained > 0) {
     events.push({
       kind: "threat",
-      message: pickFlavor(threat.flavorMessages, rng, {
-        damage: dmg,
-        sanity: drained,
-      }),
+      message: pickFlavor(threat.flavorMessages, rng, { damage: dmg, sanity: drained }),
     });
   } else {
-    events.push({
-      kind: "threat",
-      message: pickFlavor(threat.emptyMessages, rng),
-    });
+    events.push({ kind: "threat", message: pickFlavor(threat.emptyMessages, rng) });
   }
   if (dmg > 0 && !hasSanityDrain) {
-    events.push({
-      kind: "damage",
-      message: pickFlavor(threat.damageMessages, rng, { damage: dmg }),
-    });
+    events.push({ kind: "damage", message: pickFlavor(threat.damageMessages, rng, { damage: dmg }) });
   }
 
   return { inventory, stats, events, threatId: threat.id };

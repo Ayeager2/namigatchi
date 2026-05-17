@@ -103,23 +103,22 @@ Era 2 content (Settler tier — would unlock the prestige UI + Forge-required to
 
 A debug overlay is available in dev mode (`npm run dev`). Press **Ctrl+Shift+D** or click the floating 🛠️ button at bottom-left to open it.
 
-Sections:
-- **One-shots**: 🚀 Unlock everything (Era 1), Jump to Era 1, Find rock, Force awakening, Give 10 fragments
-- **Resources**: +999 / +99 of all, clear inventory
-- **Buildings**: build all, or one at a time
-- **Research**: learn all, or one at a time
-- **Tools**: craft all (full durability), or one at a time
-- **Skills**: set all to lvl 5 / 10 / 20, reset
-- **Survival**: max stats, hurt to red zones (test danger UI)
-- **Time**: skip 1 / 10 / 60 / 480 minutes (rewinds passive + spoilage timestamps so the next TICK processes them)
-- **Pests + Events**: trigger bird flock, clear pests
-- **Reset**: wipe run, nuke save (clears localStorage + reload)
+Header shows era · counts · alignment · echoes, plus a "Next era needs:" line listing exactly what's missing for the next era. Five tabs organize the controls so finding what you want is fast:
+
+- **🚀 Quick** — Era jumps (1/2/3), full unlocks per era, rock + fragments, bulk resource grants. The "I just want to test X right now" tab.
+- **🌍 Content** — Granular toggles for every building, research node, and tool. ✓ marks owned; stackable potions show ×N.
+- **🧠 State** — Per-stat sliders (HP / Energy / Hunger / Thirst / Resolve / Sanity / Spirit each with 0 / 50 / max buttons), skill levels, alignment setters (good/evil 5/10/neutral), spell-cooldown clear, status toggles (Apply / Clear Warded).
+- **⚔️ Encounters** — Force-fire each threat by name (bypasses encounter chance and warded status), pest controls, event cooldown wipe, clear active event modal.
+- **⏱️ System** — Time skip, inventory dump, wipe run, nuke save.
 
 Gated by `import.meta.env.DEV`, so it does NOT ship in production builds. If you want it in a built game for testing, set `settings.devUnlocked = true` (no UI for that yet — flip it via the save export/import flow).
 
-All dev actions emit a "🛠️ Foo done." log line so you can see what changed. They use the same DEV_PATCH reducer action, which keeps state changes predictable.
+All dev actions emit a "🛠️ Foo done." log line so you can see what changed. They use the same DEV_PATCH reducer action, which keeps state changes predictable. Force-fired threats additionally pump their own flavor messages into the log via `patch.events`.
 
-**Typical workflow:** open the panel → "🚀 Unlock everything (Era 1)" → close → test the thing you wanted to see.
+**Typical workflows:**
+- Test Era 3 spell: Quick → 🚀 Unlock all Era 3 → State → set alignment to good 5 → Content → toggle banishSpell research → cast from in-game UI.
+- Test Warding Talisman: Content → arcane tools → Warding Talisman → Encounters → Force Whisperer / Hollow Hound.
+- Test alignment events: State → Good 5 (or Evil 5) → wait for interval roll, OR force via gather.
 
 ---
 

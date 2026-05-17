@@ -35,6 +35,14 @@ export const SURVIVAL = {
       messageWithHome:
         "🏡 You rest inside your home. The walls hold the world out. Sleep finds you the way it found you when you were small.",
     },
+    ritual: {
+      cost: { fragments: 1, water: 2 },
+      effect: { spirit: 30, sanity: 3 },
+      requires: { researched: "arcaneAwakening" },
+      logKind: "spell_good",
+      message: "🕯️ You sit with the shards in your palm. The Spirit pours back into you, the way water finds a riverbed.",
+      missingMessage: "Not enough offerings.",
+    },
   },
 
   penalties: {

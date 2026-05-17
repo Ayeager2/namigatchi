@@ -1,4 +1,4 @@
-// Primitive + Era 2 tool definitions — DATA, not code.
+// Primitive + Era 2 + Era 3 tool definitions — DATA, not code.
 
 export const TOOL_CATEGORIES = {
   primitive:  { id: "primitive",  name: "Primitive",  order: 1 },
@@ -113,6 +113,43 @@ export const TOOLS = {
     tier: 2, col: 3,
   },
 
+  // ===== Arcane tier (Era 3) =====
+
+  fragmentKnife: {
+    id: "fragmentKnife", name: "Fragment Knife", icon: "🗡️", category: "arcane",
+    description: "A bone knife rebound. The blade is veined with shard, and the shard hums against the back of your skull when you draw it. The cut is cleaner. The cost is paid elsewhere.",
+    cost: { fragments: 5, stone: 10, food: 5 },
+    requires: { researched: "arcaneAwakening", builtBuilding: "forge" },
+    effect: { huntYieldBonus: 2, foodBonus: 2, sanityPerFoodGather: -1 },
+    durability: { max: 80, wearsOn: "hunt" },
+    effectSummary: "+2 hunt yield · +2 food on food gathers · -1 sanity per food gather (the blade hums) · 80 hunts.",
+    onCraftedMessage: "🗡️ The Fragment Knife is whole. Light bends along the edge.",
+    onBrokenMessage: "🗡️ The shard inlay shatters. The blade goes quiet, then breaks.",
+    tier: 3, col: 0,
+  },
+
+  spiritCenser: {
+    id: "spiritCenser", name: "Spirit Censer", icon: "🪔", category: "arcane",
+    description: "A small censer of cold metal. It does not burn anything. It hums faintly, and the air around it remembers what air used to feel like.",
+    cost: { fragments: 8, stone: 15, water: 5 },
+    requires: { researched: "arcaneAwakening", builtBuilding: "alembic" },
+    effect: { spiritPerMinute: 1 },
+    effectSummary: "+1 Spirit / minute, passive while carried. No durability.",
+    onCraftedMessage: "🪔 The Censer is finished. It hums when you carry it.",
+    tier: 3, col: 1,
+  },
+
+  wardingTalisman: {
+    id: "wardingTalisman", name: "Warding Talisman", icon: "🧿", category: "arcane",
+    description: "A small carved disc on a cord. The eye watches the dark for you. The dark watches it back, and steps lighter.",
+    cost: { fragments: 6, feathers: 5, stone: 10 },
+    requires: { researched: "banishSpell", builtBuilding: "alembic" },
+    effect: { demonDamageMult: 0.5, demonSanityMult: 0.5 },
+    effectSummary: "Demons deal HALF damage AND half sanity drain. No durability.",
+    onCraftedMessage: "🧿 The Talisman is bound. You can feel the air thin around it.",
+    tier: 3, col: 2,
+  },
+
   // ===== Consumables / Potions (Era 3, require Alembic built) =====
 
   potionMending: {
@@ -127,7 +164,7 @@ export const TOOLS = {
     effectSummary: "Instant +40 HP. Single use.",
     onCraftedMessage: "🧪 A vial of Mending. The cork seats. The fluid steadies.",
     onUseMessage: "🧪 You drink the Mending. The body answers.",
-    tier: 3, col: 0,
+    tier: 3, col: 3,
   },
 
   potionStillness: {
@@ -142,7 +179,7 @@ export const TOOLS = {
     effectSummary: "Instant +30 Sanity. Single use.",
     onCraftedMessage: "🫧 A vial of Stillness. It does not move when you tilt it.",
     onUseMessage: "🫧 You drink the Stillness. The world stops doing whatever it was doing.",
-    tier: 3, col: 1,
+    tier: 3, col: 4,
   },
 
   potionSpirit: {
@@ -157,7 +194,7 @@ export const TOOLS = {
     effectSummary: "Instant full Spirit. Single use. Expensive.",
     onCraftedMessage: "💜 A Spirit Draught. The vial hums faintly.",
     onUseMessage: "💜 You drink the Spirit Draught. The Spirit returns in a rush.",
-    tier: 3, col: 2,
+    tier: 3, col: 5,
   },
 };
 
@@ -184,9 +221,13 @@ export function getToolEffects(run) {
     huntYieldBonus: 0,
     huntCooldownReduction: 0,
     huntBetterBirds: 0,
+    // Era 3 arcane.
+    spiritPerMinute: 0,
+    sanityPerFoodGather: 0,
+    demonDamageMult: 1.0,
+    demonSanityMult: 1.0,
   };
   for (const t of getOwnedTools(run)) {
-    // Consumables don't grant passive effects — they apply on use.
     if (t.consumable) continue;
     const e = t.effect || {};
     if (e.unlocksAction) eff.unlocksAction[e.unlocksAction] = true;
@@ -199,6 +240,10 @@ export function getToolEffects(run) {
     if (e.huntYieldBonus) eff.huntYieldBonus += e.huntYieldBonus;
     if (e.huntCooldownReduction) eff.huntCooldownReduction += e.huntCooldownReduction;
     if (e.huntBetterBirds) eff.huntBetterBirds += e.huntBetterBirds;
+    if (e.spiritPerMinute) eff.spiritPerMinute += e.spiritPerMinute;
+    if (e.sanityPerFoodGather) eff.sanityPerFoodGather += e.sanityPerFoodGather;
+    if (typeof e.demonDamageMult === "number") eff.demonDamageMult *= e.demonDamageMult;
+    if (typeof e.demonSanityMult === "number") eff.demonSanityMult *= e.demonSanityMult;
   }
   return eff;
 }

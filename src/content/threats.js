@@ -40,9 +40,7 @@ export const THREATS = {
     encounterChance: 0.04,
     requires: { hutBuilt: true, era: 3 },
     minGathersAfterGate: 0,
-    effects: {
-      sanityDrain: { min: 3, max: 5 },
-    },
+    effects: { sanityDrain: { min: 3, max: 5 } },
     flavorMessages: [
       "Something is in the gathering ground that is not in the gathering ground. You feel it find you. {sanity} ◐.",
       "The wind stops. You hear your own breathing too loud. When the sound returns, something is gone — and it took {sanity} ◐ of you with it.",
@@ -77,6 +75,31 @@ export const THREATS = {
     emptyMessages: [
       "You hear paws that don't quite touch the ground, far off. They don't come closer.",
       "Something moves at the treeline that has not been a tree since before the world ended.",
+    ],
+    damageMessages: [],
+  },
+
+  iconoclast: {
+    id: "iconoclast",
+    name: "Iconoclast",
+    icon: "🩸",
+    description: "A figure that walks slow and looks at the things you have built. The looking is not approval.",
+    kind: "demon",
+    encounterChance: 0.01,
+    requires: { hutBuilt: true, era: 3 },
+    minGathersAfterGate: 0,
+    effects: {
+      sanityDrain: { min: 4, max: 7 },
+      happinessDrain: { min: 5, max: 8 },
+    },
+    flavorMessages: [
+      "An Iconoclast walks past the camp. It looks at your home, your tools, your fire. It does not stop. But the looking takes {sanity} ◐ and {happiness} ✦ from you all the same.",
+      "A long figure passes. It says nothing. It sees everything you have made and finds it small. {sanity} ◐, {happiness} ✦.",
+      "The Iconoclast comes and stands at the edge of camp until you cannot meet its eye. When you look back it is gone — and so is {sanity} ◐, {happiness} ✦ of you.",
+    ],
+    emptyMessages: [
+      "Something at the edge of vision regards you, decides the regard isn't worth completing, and is gone.",
+      "A long shadow falls across the camp, longer than the figure casting it. Then nothing.",
     ],
     damageMessages: [],
   },

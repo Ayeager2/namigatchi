@@ -1,4 +1,4 @@
-// Gathering system. Pure function: takes state + rng, returns new state + events.
+// Gathering system.
 
 import {
   GATHER_TABLE,
@@ -138,8 +138,6 @@ export function performGather(state, rng = Math.random) {
     case "resource": {
       const [lo, hi] = result.qty;
       const baseQty = randInt(rng, lo, hi);
-      // Resource-specific tool bonuses: Stone Axe → wood, Pickaxe → stone,
-      // Bone Knife → food, Digging Stick / Water Skin → water.
       let perResourceBonus = 0;
       if (result.id === "water") perResourceBonus = toolEff.waterBonus || 0;
       else if (result.id === "wood") perResourceBonus = toolEff.woodBonus || 0;
@@ -154,6 +152,22 @@ export function performGather(state, rng = Math.random) {
         (persistent.lifetimeStats.resourcesByType[result.id] || 0) + qty;
       const res = RESOURCES[result.id];
       events.push({ kind: "resource", message: `${res.icon} +${qty} ${res.name}` });
+      // Fragment Knife (and future arcane edges) hum against the mind when
+      // food is reaped with them.
+      if (result.id === "food" && toolEff.sanityPerFoodGather) {
+        const drain = toolEff.sanityPerFoodGather;
+        if (drain < 0 && survivalActive(state)) {
+          const stats = run.stats || {};
+          const next = Math.max(0, Math.min(100, (stats.sanity ?? 50) + drain));
+          if (next !== stats.sanity) {
+            run.stats = { ...stats, sanity: next };
+            events.push({
+              kind: "event_strange",
+              message: `🗡️ The blade hums. ${drain} ◐.`,
+            });
+          }
+        }
+      }
       break;
     }
     case "rockFind":
@@ -221,7 +235,6 @@ export function performGather(state, rng = Math.random) {
     }
   }
 
-  // Skill XP
   let xpGain = 1;
   if (result.kind === "resource" && result.id === "food") xpGain += 1;
   if (result.kind === "rockFind") xpGain += 2;
@@ -229,7 +242,6 @@ export function performGather(state, rng = Math.random) {
   run = { ...run, skills: xpResult.skills };
   events.push(...xpResult.events);
 
-  // Tool wear
   const wearGather = applyToolWear(run, "gather");
   run = wearGather.run;
   events.push(...wearGather.events);
@@ -239,7 +251,6 @@ export function performGather(state, rng = Math.random) {
     events.push(...wearWater.events);
   }
 
-  // Clamp to cap. Existing oversupply preserved; new additions past cap dropped.
   const clamped = clampToCap(run.inventory, { ...state, run }, state.run.inventory);
   run = { ...run, inventory: clamped.inventory };
   for (const [id, lost] of Object.entries(clamped.overflow)) {

@@ -420,7 +420,20 @@ Live in `tools/`. See `tools/README.md` for the full list.
 - **Banish spell** (researched: banishSpell, good ≥ 3). Cost 2 frag + 25 spirit. Applies `appliesStatus: { warded, 5min }` — `isThreatActive` checks `state.run.statuses.warded` and rejects demonic threats during the window. Verified: demons cannot fire while warded.
 - **Bend spell** (researched: bendSpell, evil ≥ 3). Cost 1 frag + 0 spirit. Effect drains 15 Resolve, gives 30 Spirit. `alignmentDelta: { evil: 1 }` cements the drift. `statuses` field added to `RUN_DEFAULTS`.
 
-**Vision (still deferred).** Iconoclast demon (rarer, building-damage infrastructure), arcane tool tier (Fragment Knife, Spirit Censer, Warding Talisman), ritual action for explicit Spirit refill via fragments.
+**Third slice shipped — arcane tools + Ritual + Iconoclast.**
+
+- **Arcane tool tier** (3 new tools in the Arcane category):
+  - **Fragment Knife** (req: arcaneAwakening + Forge). +2 hunt yield + 2 food on food gathers + `sanityPerFoodGather: -1` (the blade hums against the mind). 80 durability.
+  - **Spirit Censer** (req: arcaneAwakening + Alembic). `spiritPerMinute: 1` — passive Spirit trickle, accumulated in `passiveAccum._stat_spirit` and applied to `stats.spirit` when whole units cross. No durability.
+  - **Warding Talisman** (req: banishSpell + Alembic). `demonDamageMult: 0.5` AND `demonSanityMult: 0.5` — halves BOTH HP damage and sanity drain from `kind: "demon"` threats. No durability. Stacks multiplicatively with future wards.
+- **Tool effects extended.** `getToolEffects` now aggregates `spiritPerMinute`, `sanityPerFoodGather`, `demonDamageMult`, `demonSanityMult`. Consumables still skip.
+- **Passive system extended.** `applyPassiveProduction` reads tool spirit and accumulates it under a `_stat_spirit` key. Cleanly runs on TICK alongside resource production. Verified: 5 minutes of catch-up yields +5 Spirit.
+- **Gathering extended.** Food gathers check `toolEff.sanityPerFoodGather` and drain sanity + log a "🗡️ The blade hums" event.
+- **Threats extended.** `dmgMult`/`sanMult` from owned tools multiply demonic damage AFTER defense. Verified: Hollow Hound with Talisman drops from 3-6 HP to 1-3 HP, sanity 2-4 to 1-2.
+- **Ritual action** (`SURVIVAL.actions.ritual`, gated by `requires.researched: "arcaneAwakening"`). Cost 1 fragment + 2 water → +30 Spirit + 3 sanity. Wired through RITUAL action and `actions.ritual` dispatcher. UI: 🕯️ Ritual button renders in survival action row once arcaneAwakening is learned. `canPerformSurvivalAction` now honors `requires.researched`.
+- **Iconoclast demon** (era ≥ 3, `kind: "demon"`, 1% encounter). New `effects.happinessDrain: { min, max }` — Resolve drain alongside sanity drain, no HP damage. Threats system aggregates resolveDrained, routes a flavor message that substitutes both `{sanity}` and `{happiness}`. Wards reduce it the same way they reduce sanity drain. Verified 4-7 sanity / 5-8 resolve per encounter.
+
+**Still deferred.** Iconoclast's chance to actually destroy a building (needs save migration + UI notification — separate iteration). Ritual cooldown (currently spammable if you can afford the cost — possibly intentional, possibly tune later).
 
 ---
 

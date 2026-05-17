@@ -82,9 +82,13 @@ transition story, alchemy + Alembic + 3 potions (#48), alignment
 surfacing in research/spells/events (#49), Banish + Bend
 alignment-gated spells, Hollow Hound demon, `warded` status.
 
-**Still deferred:** Iconoclast demon (building-damage infrastructure
-needs to land first), arcane tool tier (Fragment Knife, Spirit Censer,
-Warding Talisman), Ritual action for explicit Spirit refill.
+**Third slice shipped:** arcane tool tier (Fragment Knife, Spirit
+Censer, Warding Talisman), Ritual action, Iconoclast demon (stat-only;
+building-damage variant deferred to its own iteration).
+
+**Still deferred:** Iconoclast's chance to destroy a building (needs
+save migration + UI for "your X was destroyed"). Possibly: Ritual
+cooldown, more Era 3 buildings (sanctum?), Era 4 onward.
 
 ### Era 3 entry condition (Task #51 — SHIPPED)
 

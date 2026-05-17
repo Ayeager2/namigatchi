@@ -127,6 +127,11 @@ export function reducer(state, action) {
       return { persistent, run: appendLog(run, events) };
     }
 
+    case ACTIONS.RITUAL: {
+      const { run, persistent, events } = performSurvivalAction(state, "ritual");
+      return { persistent, run: appendLog(run, events) };
+    }
+
     case ACTIONS.CAST_SPELL: {
       const { run, persistent, events } = performCastSpell(state, action.spellId);
       return { persistent, run: appendLog(run, events) };

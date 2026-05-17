@@ -35,6 +35,7 @@ export function useGameStore() {
     eat: (preferredFoodId) => dispatch({ type: ACTIONS.EAT, preferredFoodId }),
     drink: () => dispatch({ type: ACTIONS.DRINK }),
     rest: () => dispatch({ type: ACTIONS.REST }),
+    ritual: () => dispatch({ type: ACTIONS.RITUAL }),
     castSpell: (spellId) => dispatch({ type: ACTIONS.CAST_SPELL, spellId }),
     useTool: (toolId) => dispatch({ type: ACTIONS.USE_TOOL, toolId }),
     respondToEvent: (choiceId) => dispatch({ type: ACTIONS.RESPOND_TO_EVENT, choiceId }),

@@ -3,6 +3,7 @@
 import { getAllThreats } from "../content/threats.js";
 import { getResearch } from "../content/research.js";
 import { getBuilding } from "../content/buildings.js";
+import { getToolEffects } from "../content/tools.js";
 import { SURVIVAL } from "../content/survival.js";
 import { applyEffect } from "./survival.js";
 import { computeEra } from "./era.js";
@@ -39,7 +40,6 @@ function isThreatActive(state, threat) {
   if (threat.requires?.era && computeEra(state) < threat.requires.era) return false;
   const minGathers = threat.minGathersAfterGate ?? 0;
   if ((state.run.gatherCount || 0) < minGathers) return false;
-  // Banish wards demonic threats for the status duration.
   if (threat.kind === "demon") {
     const warded = state.run.statuses?.warded;
     if (warded && warded.until && warded.until > Date.now()) return false;
@@ -74,9 +74,16 @@ function resolveThreat(state, threat, rng) {
   const defense = getDefense(state);
   const foodReduction = getFoodStealReduction(state);
 
+  // Warding Talisman + future arcane wards apply only to demonic threats.
+  const toolEff = getToolEffects(state.run);
+  const isDemon = threat.kind === "demon";
+  const dmgMult = isDemon ? (toolEff.demonDamageMult ?? 1) : 1;
+  const sanMult = isDemon ? (toolEff.demonSanityMult ?? 1) : 1;
+
   let stolen = 0;
   let dmg = 0;
   let drained = 0;
+  let resolveDrained = 0;
 
   if (threat.effects?.stealFood) {
     const { min, max } = threat.effects.stealFood;
@@ -91,29 +98,40 @@ function resolveThreat(state, threat, rng) {
   if (threat.effects?.damage) {
     const { min, max } = threat.effects.damage;
     const base = randInt(rng, min, max);
-    // Demonic threats may use only HALF defense (e.g. Hollow Hound) —
-    // armor helps but not as much. Sanity damage is always defense-free.
     const effectiveDefense = threat.effects.defenseHalf
       ? Math.floor(defense / 2)
       : defense;
     dmg = Math.max(0, base - effectiveDefense);
+    if (dmg > 0 && dmgMult !== 1) {
+      dmg = Math.max(0, Math.round(dmg * dmgMult));
+    }
     if (dmg > 0) {
       stats.hp = Math.max(0, (stats.hp ?? 100) - dmg);
     }
   }
 
-  // Direct sanity drain — defense doesn't apply.
   if (threat.effects?.sanityDrain) {
     const { min, max } = threat.effects.sanityDrain;
-    drained = randInt(rng, min, max);
+    let raw = randInt(rng, min, max);
+    if (sanMult !== 1) {
+      raw = Math.max(0, Math.round(raw * sanMult));
+    }
+    drained = raw;
+  }
+
+  if (threat.effects?.happinessDrain) {
+    const { min, max } = threat.effects.happinessDrain;
+    let raw = randInt(rng, min, max);
+    if (sanMult !== 1) {
+      raw = Math.max(0, Math.round(raw * sanMult));
+    }
+    resolveDrained = raw;
+    if (resolveDrained > 0) {
+      stats = applyEffect(stats, { happiness: -resolveDrained });
+    }
   }
 
   // Sanity book-keeping.
-  // - Threats with `sanityDrain` express their full sanity hit in `drained` and
-  //   substitute it into flavor as {sanity}. Skip per-encounter + per-damage
-  //   compounding so the number in the log matches the truth.
-  // - Classic threats (no sanityDrain) keep the per-encounter atmospheric
-  //   drain + per-damage-point compounding.
   const hasSanityDrain = !!threat.effects?.sanityDrain;
   let sanityChange = hasSanityDrain
     ? 0
@@ -133,6 +151,14 @@ function resolveThreat(state, threat, rng) {
     events.push({
       kind: "threat",
       message: pickFlavor(threat.flavorMessages, rng, { food: stolen }),
+    });
+  } else if (drained > 0 && resolveDrained > 0 && !dmg) {
+    events.push({
+      kind: "threat",
+      message: pickFlavor(threat.flavorMessages, rng, {
+        sanity: drained,
+        happiness: resolveDrained,
+      }),
     });
   } else if (isPureSanityThreat && drained > 0) {
     events.push({

@@ -1,11 +1,4 @@
 // The center column on desktop, top of stack on mobile.
-// The location header + the primary action (Gather, with live cooldown bar),
-// the Hunt action (once a hunting tool is owned), survival bars, and
-// secondary actions (Eat, Drink, Rest) once survival is active.
-//
-// Hunt has its own cooldown — much longer than gather, shrinks with the
-// Hunting skill. The button only renders once the player owns a Net or
-// Snare; the cooldown bar fills the same way Gather's does.
 
 import { useEffect, useState } from "react";
 import {
@@ -24,8 +17,6 @@ import EatButton from "./EatButton.jsx";
 export default function ActionPanel({ state, actions, settings, settingsHook }) {
   const survival = survivalActive(state);
 
-  // Re-render while either cooldown is active so the fill bars animate.
-  // The interval only runs when at least one cooldown is in flight.
   const [now, setNow] = useState(Date.now());
   const lastGatheredAt = state.run.lastGatheredAt || 0;
   const gatherCooldownMs = getGatherCooldownMs(state);
@@ -60,6 +51,10 @@ export default function ActionPanel({ state, actions, settings, settingsHook }) 
   const eatCheck = canPerformSurvivalAction(state, "eat");
   const drinkCheck = canPerformSurvivalAction(state, "drink");
   const restCheck = canPerformSurvivalAction(state, "rest");
+  const ritualKnown = !!state.run.researched?.arcaneAwakening;
+  const ritualCheck = ritualKnown
+    ? canPerformSurvivalAction(state, "ritual")
+    : { ok: false };
 
   const keybinds = settings?.keybindings || {};
   const formatKey = (k) => (k ? k.toUpperCase() : "");
@@ -121,9 +116,7 @@ export default function ActionPanel({ state, actions, settings, settingsHook }) 
             title={
               huntCheck.ok
                 ? keybinds.hunt
-                  ? `Hunt (${formatKey(keybinds.hunt)}) · Lv ${
-                      huntStatus.level
-                    }`
+                  ? `Hunt (${formatKey(keybinds.hunt)}) · Lv ${huntStatus.level}`
                   : `Hunt · Lv ${huntStatus.level}`
                 : huntCheck.reason
             }
@@ -193,6 +186,20 @@ export default function ActionPanel({ state, actions, settings, settingsHook }) 
               <span className="btn-hotkey">{formatKey(keybinds.rest)}</span>
             )}
           </button>
+          {ritualKnown && (
+            <button
+              className="btn btn-secondary"
+              onClick={actions.ritual}
+              disabled={!ritualCheck.ok}
+              title={
+                ritualCheck.ok
+                  ? "Ritual — fragments → Spirit"
+                  : ritualCheck.reason
+              }
+            >
+              🕯️ Ritual
+            </button>
+          )}
         </div>
       )}
     </section>

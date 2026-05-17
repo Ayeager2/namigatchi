@@ -11,7 +11,6 @@ export function survivalActive(state) {
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 
-// Apply decay from a named action ("Gather", "Build", "Research").
 export function decayForAction(stats, kind) {
   const key = `per${kind}`;
   const decay = SURVIVAL[key];
@@ -39,12 +38,10 @@ export function decayForAction(stats, kind) {
       100
     ),
     sanity: clamp((stats.sanity ?? 50) + (decay.sanity || 0), 0, 100),
-    // Spirit isn't drained by physical actions — only by spells. Preserve it.
     spirit: clamp((stats.spirit ?? 50) + (decay.spirit || 0), 0, 100),
   };
 }
 
-// Compute the gather yield multiplier given current stats.
 export function getYieldMultiplier(stats) {
   if (!stats) return 1.0;
   let mult = 1.0;
@@ -60,7 +57,6 @@ export function getYieldMultiplier(stats) {
   return mult;
 }
 
-// Whether the player can perform a gather right now.
 export function canGather(state) {
   if (!survivalActive(state)) return { ok: true };
   const stats = state.run.stats || {};
@@ -70,7 +66,6 @@ export function canGather(state) {
   return { ok: true };
 }
 
-// Apply an effect object to stats. Handles all seven stat fields.
 export function applyEffect(stats, effect) {
   return {
     hunger: clamp((stats.hunger ?? 0) + (effect.hunger || 0), 0, 100),
@@ -121,6 +116,10 @@ export function canPerformSurvivalAction(state, actionId) {
   }
   const def = SURVIVAL.actions[actionId];
   if (!def) return { ok: false, reason: "Unknown action." };
+
+  if (def.requires?.researched && !state.run.researched?.[def.requires.researched]) {
+    return { ok: false, reason: "Not yet known." };
+  }
 
   if (def.consumesCategory) {
     const food = pickFoodToConsume(state, def.consumesCategory);
@@ -187,8 +186,6 @@ export function performSurvivalAction(state, actionId, opts = {}) {
       }
     }
   }
-  // Generic building rest-bonus aggregator: any built building with
-  // effect.restBonus contributes to the Rest action.
   if (actionId === "rest") {
     for (const bid of Object.keys(state.run.built || {})) {
       const b = getBuildingDef(bid);

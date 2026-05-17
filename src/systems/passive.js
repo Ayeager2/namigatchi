@@ -2,6 +2,7 @@
 
 import { getAllBuildings } from "../content/buildings.js";
 import { getResourceCap } from "./storage.js";
+import { getToolEffects } from "../content/tools.js";
 
 export const MAX_CATCHUP_MIN = 30;
 const LOG_DROP_THRESHOLD = 1;
@@ -11,9 +12,6 @@ function getProductionModulators(run) {
   if (run.activePests?.birdFlock?.until > Date.now()) {
     mods.food = (mods.food ?? 1) * 0.5;
   }
-  // Farmhouse boosts Garden output by +50% (multiplier 1.5).
-  // Only applies if the Garden is actually built — Farmhouse alone produces
-  // its own passive wood trickle elsewhere, no garden-multiplier orphan.
   if (run.built?.farmhouse && run.built?.garden) {
     mods.food = (mods.food ?? 1) * 1.5;
   }
@@ -40,7 +38,13 @@ export function getProductionRates(run) {
 export function applyPassiveProduction(state) {
   const run = state.run;
   const rates = getProductionRates(run);
-  if (Object.keys(rates).length === 0) return { run, events: [] };
+  // Read tool-based passive stat gains (e.g. Spirit Censer +1 Spirit / min).
+  const toolEff = getToolEffects(run);
+  const spiritPerMin = toolEff.spiritPerMinute || 0;
+
+  if (Object.keys(rates).length === 0 && spiritPerMin === 0) {
+    return { run, events: [] };
+  }
 
   const now = Date.now();
   const lastAt = run.lastPassiveTickAt || now;
@@ -69,8 +73,26 @@ export function applyPassiveProduction(state) {
         gains[res] = (gains[res] || 0) + added;
       }
       accum[res] -= added;
-      // Don't let the accumulator stockpile forever when cap is full.
       if (accum[res] > perMin) accum[res] = perMin;
+    }
+  }
+
+  // Spirit Censer (and future arcane passive stat gear). Spirit is a stat,
+  // not a resource — accumulate it in passiveAccum under a special key.
+  let stats = run.stats;
+  if (spiritPerMin > 0) {
+    const key = "_stat_spirit";
+    accum[key] = (accum[key] || 0) + spiritPerMin * elapsedMin;
+    const whole = Math.floor(accum[key]);
+    if (whole > 0) {
+      const current = stats?.spirit ?? 50;
+      const next = Math.max(0, Math.min(100, current + whole));
+      const applied = next - current;
+      if (applied > 0) {
+        stats = { ...stats, spirit: next };
+      }
+      accum[key] -= whole;
+      if (accum[key] > spiritPerMin) accum[key] = spiritPerMin;
     }
   }
 
@@ -85,6 +107,7 @@ export function applyPassiveProduction(state) {
     run: {
       ...run,
       inventory,
+      stats,
       passiveAccum: accum,
       lastPassiveTickAt: now,
     },

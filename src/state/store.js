@@ -36,6 +36,7 @@ export function useGameStore() {
     drink: () => dispatch({ type: ACTIONS.DRINK }),
     rest: () => dispatch({ type: ACTIONS.REST }),
     castSpell: (spellId) => dispatch({ type: ACTIONS.CAST_SPELL, spellId }),
+    useTool: (toolId) => dispatch({ type: ACTIONS.USE_TOOL, toolId }),
     respondToEvent: (choiceId) => dispatch({ type: ACTIONS.RESPOND_TO_EVENT, choiceId }),
     syncMusicUnlocks: () => dispatch({ type: ACTIONS.SYNC_MUSIC_UNLOCKS }),
     syncEra: () => dispatch({ type: ACTIONS.SYNC_ERA }),

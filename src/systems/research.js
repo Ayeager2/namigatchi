@@ -19,6 +19,15 @@ export function canListen(state, researchId) {
     if (r.requires.era && computeEra(state) < r.requires.era) {
       return { ok: false, reason: "The stone has not opened this teaching yet." };
     }
+    if (r.requires.alignment) {
+      const align = state.run.alignment || { good: 0, evil: 0 };
+      if (r.requires.alignment.good && (align.good || 0) < r.requires.alignment.good) {
+        return { ok: false, reason: "The stone has not opened this teaching yet." };
+      }
+      if (r.requires.alignment.evil && (align.evil || 0) < r.requires.alignment.evil) {
+        return { ok: false, reason: "The stone has not opened this teaching yet." };
+      }
+    }
   }
 
   for (const [res, qty] of Object.entries(r.cost || {})) {
@@ -77,6 +86,18 @@ export function getVisibleResearch(state) {
     if (state.run.researched?.[r.id]) return true;
     if (r.requires?.hutBuilt && !state.run.built?.hut) return false;
     if (r.requires?.era && computeEra(state) < r.requires.era) return false;
+    // Alignment-gated nodes stay hidden until the silent counter is high
+    // enough. The player never sees a number — the node simply appears
+    // when something inside them has tipped.
+    if (r.requires?.alignment) {
+      const align = state.run.alignment || { good: 0, evil: 0 };
+      if (r.requires.alignment.good && (align.good || 0) < r.requires.alignment.good) {
+        return false;
+      }
+      if (r.requires.alignment.evil && (align.evil || 0) < r.requires.alignment.evil) {
+        return false;
+      }
+    }
     return true;
   });
 }

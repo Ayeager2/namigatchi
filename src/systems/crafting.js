@@ -46,7 +46,9 @@ export function canCraft(state, toolId) {
   const tool = getTool(toolId);
   if (!tool) return { ok: false, reason: "Unknown tool." };
 
-  if ((state.run.inventory?.[toolId] || 0) > 0) {
+  // Stackable consumables (potions) can be crafted again to add to the
+  // stack. Non-stackable tools (axe, bow, etc.) are unique items.
+  if (!tool.isStackable && (state.run.inventory?.[toolId] || 0) > 0) {
     return { ok: false, reason: "You already have one." };
   }
 

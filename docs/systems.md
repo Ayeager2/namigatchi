@@ -404,7 +404,23 @@ Live in `tools/`. See `tools/README.md` for the full list.
 
 **Where.** `src/systems/era.js` (entry condition + getNextEraRequirements), `src/content/eraStories.js` (era 3 transition), `src/state/run.js` (spirit + spellCooldowns), `src/content/survival.js` (Rest refills spirit, applyEffect handles spirit), `src/content/research.js` (arcaneAwakening + 3 spell-research nodes), `src/content/spells.js` (NEW), `src/systems/spells.js` (NEW), `src/state/actions.js` + `reducer.js` + `store.js` (CAST_SPELL plumbing), `src/content/threats.js` (whisperer), `src/systems/threats.js` (era gate + sanityDrain handling), `src/ui/SurvivalBars.jsx` (Spirit bar), `src/ui/SpellsPanel.jsx` + `SpellsModal.jsx` (NEW), `src/index.css` (spirit bar styling + spell row styling).
 
-**Vision (next, deferred slice).** Alchemy/potions (consumable items + Alembic building), alignment surfaces in choice events (`requires.alignment` gate), more demon threats (Hollow Hound — HP + sanity, Iconoclast — destroys buildings), Banish + Bend spells (alignment-gated), Spirit Censer + Warding Talisman (arcane tier tools).
+**Second slice shipped — alchemy + alignment surfacing + Banish/Bend + Hollow Hound.**
+
+- **Alembic building** (parent: Forge, requires `alchemy` research). Brews potions. Located in the Arcane category, tier 7.
+- **Alchemy research** (Era 3, parent: arcaneAwakening). Cost fragments:8 + water + stone. Unlocks the Alembic.
+- **Three stackable consumables** in `tools.js` with `consumable: true, isStackable: true, useEffect: {...}`:
+  - Potion of Mending (2 frag + 5 food + 3 water → +40 HP)
+  - Potion of Stillness (2 frag + 5 feathers + 3 water → +30 sanity)
+  - Spirit Draught (3 frag + 10 water → +100 spirit)
+- **Crafting system extended.** `canCraft` skips the "already have one" gate for `isStackable: true` items. `getToolEffects` skips consumables (they apply on use, not passively). New `USE_TOOL` action → `src/systems/consumables.js` → consumes 1 from inventory and applies `useEffect`. Tools modal shows `×N` quantity tag for stackables and surfaces a "Use" button when owned.
+- **Hollow Hound** demon (era ≥ 3, `kind: "demon"`). HP + sanity mixed damage. New `effects.defenseHalf: true` — Hollow Hound only respects half of physical defense. Sanity damage is never blocked.
+- **Threats system extended.** Aware of `requires.era`, `defenseHalf`, and the `warded` status. Pure sanity-drain threats AND mixed-damage demons use flavor messages that substitute both `{damage}` and `{sanity}`; per-encounter compounding is skipped so the number in the log matches the truth.
+- **Alignment surfacing.** `requires.alignment: { good: N }` / `{ evil: N }` is now an aggregator gate in events.js, research.js (canListen + getVisibleResearch), and spells.js (canCastSpell). Hidden alignment never shows as a number — the gated content simply appears when the silent counter tips. Banish research (good ≥ 3) and Bend research (evil ≥ 3) surface this way.
+- **Two alignment-gated choice events.** Benevolent Pilgrim (good ≥ 3) — share food or send them on. Bitter Scholar (evil ≥ 3) — read his book (gain fragments + spirit, lose sanity, drift further dark) or refuse (small good nudge).
+- **Banish spell** (researched: banishSpell, good ≥ 3). Cost 2 frag + 25 spirit. Applies `appliesStatus: { warded, 5min }` — `isThreatActive` checks `state.run.statuses.warded` and rejects demonic threats during the window. Verified: demons cannot fire while warded.
+- **Bend spell** (researched: bendSpell, evil ≥ 3). Cost 1 frag + 0 spirit. Effect drains 15 Resolve, gives 30 Spirit. `alignmentDelta: { evil: 1 }` cements the drift. `statuses` field added to `RUN_DEFAULTS`.
+
+**Vision (still deferred).** Iconoclast demon (rarer, building-damage infrastructure), arcane tool tier (Fragment Knife, Spirit Censer, Warding Talisman), ritual action for explicit Spirit refill via fragments.
 
 ---
 

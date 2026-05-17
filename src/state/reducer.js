@@ -9,6 +9,7 @@ import { performCraft } from "../systems/crafting.js";
 import { performHunt } from "../systems/hunting.js";
 import { performSurvivalAction } from "../systems/survival.js";
 import { performCastSpell } from "../systems/spells.js";
+import { performUseTool } from "../systems/consumables.js";
 import {
   applyPassiveProduction,
   clearStalePests,
@@ -128,6 +129,11 @@ export function reducer(state, action) {
 
     case ACTIONS.CAST_SPELL: {
       const { run, persistent, events } = performCastSpell(state, action.spellId);
+      return { persistent, run: appendLog(run, events) };
+    }
+
+    case ACTIONS.USE_TOOL: {
+      const { run, persistent, events } = performUseTool(state, action.toolId);
       return { persistent, run: appendLog(run, events) };
     }
 

@@ -36,12 +36,11 @@ export const THREATS = {
     name: "Whisperer",
     icon: "👁️",
     description: "Not a thing. A space the dust avoids. It watches you the way you watch the stone.",
+    kind: "demon",
     encounterChance: 0.04,
     requires: { hutBuilt: true, era: 3 },
     minGathersAfterGate: 0,
     effects: {
-      // Sanity-only damage. Defense does nothing — armor isn't the answer
-      // to being looked at by something old.
       sanityDrain: { min: 3, max: 5 },
     },
     flavorMessages: [
@@ -52,6 +51,32 @@ export const THREATS = {
     emptyMessages: [
       "A pressure passes. The fragments hum. Then it is gone.",
       "Something looked at you from where there is no one. The looking ended. You went back to the work.",
+    ],
+    damageMessages: [],
+  },
+
+  hollowHound: {
+    id: "hollowHound",
+    name: "Hollow Hound",
+    icon: "🐕‍🦺",
+    description: "Four-legged, but not in the way dogs are. The shape is right. The shape is the only thing right.",
+    kind: "demon",
+    encounterChance: 0.03,
+    requires: { hutBuilt: true, era: 3 },
+    minGathersAfterGate: 0,
+    effects: {
+      damage: { min: 3, max: 6 },
+      sanityDrain: { min: 2, max: 4 },
+      defenseHalf: true,
+    },
+    flavorMessages: [
+      "Something with four legs comes loping from the edge of vision. Wrong proportions. Wrong sound. {damage} ❤️, {sanity} ◐.",
+      "A Hollow Hound finds you in the open. The teeth are the teeth of a dog. The eyes are not. {damage} ❤️, {sanity} ◐.",
+      "It runs at you on legs that bend the wrong way and stops a meter short. You feel it taste you. {damage} ❤️, {sanity} ◐.",
+    ],
+    emptyMessages: [
+      "You hear paws that don't quite touch the ground, far off. They don't come closer.",
+      "Something moves at the treeline that has not been a tree since before the world ended.",
     ],
     damageMessages: [],
   },

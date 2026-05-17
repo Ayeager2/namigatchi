@@ -37,11 +37,14 @@ export const RUN_DEFAULTS = {
   lastSpoilTickAt: 0,
   spoilAccum: {},
 
-  // Era milestones already seen this run. Shape: { 1: true, 2: true, ... }
+  // Era milestones already seen this run.
   eraMilestonesSeen: {},
 
-  // Per-spell cooldowns. Shape: { spellId: timestampMs }
+  // Per-spell cooldowns.
   spellCooldowns: {},
+
+  // Active status effects from spells.
+  statuses: {},
 
   log: [],
 };

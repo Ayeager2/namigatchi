@@ -3414,3 +3414,17 @@ body.motion-reduced .tool-durability-fill {
   margin: 0;
   font-size: 12px;
 }
+
+/* ---- Era 3: Alchemy / consumables in Tools modal ---- */
+
+.tool-action-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.tool-action-row .btn {
+  flex: 1 1 auto;
+  min-width: 100px;
+}

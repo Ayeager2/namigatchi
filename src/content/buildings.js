@@ -12,10 +12,7 @@ export const BUILDING_CATEGORIES = {
 
 export const BUILDINGS = {
   hut: {
-    id: "hut",
-    name: "Hut",
-    icon: "🛖",
-    category: "shelter",
+    id: "hut", name: "Hut", icon: "🛖", category: "shelter",
     description: "A simple shelter of stone and wood.",
     cost: { wood: 60, stone: 25, water: 2 },
     requires: { rockAwakened: true },
@@ -28,10 +25,7 @@ export const BUILDINGS = {
   },
 
   firepit: {
-    id: "firepit",
-    name: "Fire Pit",
-    icon: "🔥",
-    category: "comfort",
+    id: "firepit", name: "Fire Pit", icon: "🔥", category: "comfort",
     description: "A ring of stones and a hollow of ember. The cold no longer rules you here.",
     cost: { wood: 8, stone: 10 },
     requires: { researched: "fire" },
@@ -43,10 +37,7 @@ export const BUILDINGS = {
   },
 
   well: {
-    id: "well",
-    name: "Well",
-    icon: "🪣",
-    category: "comfort",
+    id: "well", name: "Well", icon: "🪣", category: "comfort",
     description: "A pit dug deep, lined with stone. The earth holds water in its bones.",
     cost: { wood: 30, stone: 40, water: 5 },
     requires: { researched: "waterCarrying" },
@@ -59,10 +50,7 @@ export const BUILDINGS = {
   },
 
   garden: {
-    id: "garden",
-    name: "Garden",
-    icon: "🌱",
-    category: "comfort",
+    id: "garden", name: "Garden", icon: "🌱", category: "comfort",
     description: "A patch of soil, turned and tended. Grubs nest where the dirt is loosened.",
     cost: { wood: 25, stone: 15, water: 8, food: 3 },
     requires: { researched: "foraging" },
@@ -75,10 +63,7 @@ export const BUILDINGS = {
   },
 
   forge: {
-    id: "forge",
-    name: "Forge",
-    icon: "⚒️",
-    category: "industry",
+    id: "forge", name: "Forge", icon: "⚒️", category: "industry",
     description: "Stones stacked into a hollow. Coal and bellows. Heat enough to soften the world's hardest pieces.",
     cost: { stone: 80, wood: 50, water: 10 },
     requires: { researched: "smithing" },
@@ -90,10 +75,7 @@ export const BUILDINGS = {
   },
 
   cairn: {
-    id: "cairn",
-    name: "Cairn",
-    icon: "🗿",
-    category: "shelter",
+    id: "cairn", name: "Cairn", icon: "🗿", category: "shelter",
     description: "A stacked-stone cellar dug half into the dust. Holds what you would otherwise lose.",
     cost: { wood: 30, stone: 50 },
     requires: { researched: "hiddenStores" },
@@ -108,65 +90,65 @@ export const BUILDINGS = {
   },
 
   home: {
-    id: "home",
-    name: "Home",
-    icon: "🏡",
-    category: "shelter",
+    id: "home", name: "Home", icon: "🏡", category: "shelter",
     description: "Daub and timber. Rough thatching. A door that closes. Not a place you sleep — a place you live.",
     cost: { wood: 60, stone: 50, water: 5 },
     requires: { researched: "home" },
     effect: { gatherBonus: 1, restBonus: { energy: 10, happiness: 3, sanity: 2 } },
     effectSummary: "+1 gather yield · Rest restores more here · Resolve & Sanity boost on build.",
-    onBuiltMessage: "🏡 You raise a true house. The roof sets. The door swings true. Something in you settles that has been pacing for a long time.",
+    onBuiltMessage: "🏡 You raise a true house. The roof sets. The door swings true.",
     whisperOnBuilt: "The stone whispers: now you have a place to return to. Even the wasteland respects that.",
     tier: 5, col: 1, parents: ["hut"],
   },
 
   walls: {
-    id: "walls",
-    name: "Stone Walls",
-    icon: "🧱",
-    category: "shelter",
+    id: "walls", name: "Stone Walls", icon: "🧱", category: "shelter",
     description: "Stacked stone, packed earth. Low at first, then waist-high. The wasteland gets in slower now.",
     cost: { stone: 100, wood: 30 },
     requires: { researched: "home", hasBuilding: "home" },
     effect: { defense: 3, foodStealReduction: 2 },
     effectSummary: "+3 defense vs. threats · -2 food stolen per raid.",
-    onBuiltMessage: "🧱 You stack the wall slow, lifting each stone until your shoulders burn. When you stand back, the camp looks like a place worth defending.",
+    onBuiltMessage: "🧱 You stack the wall slow, lifting each stone until your shoulders burn.",
     whisperOnBuilt: "The stone whispers: a line drawn against the dust. They will still come — but slower, now.",
     tier: 6, col: 0, parents: ["home"],
   },
 
   silo: {
-    id: "silo",
-    name: "Rudimentary Silo",
-    icon: "🏚️",
-    category: "shelter",
+    id: "silo", name: "Rudimentary Silo", icon: "🏚️", category: "shelter",
     description: "Stones laid in a ring, a wooden lid above. Cool air settles inside. What you store keeps longer.",
     cost: { stone: 50, wood: 40 },
     requires: { researched: "home", hasBuilding: "home" },
     effect: { spoilageMultiplier: 0.7 },
     storageCaps: { food: 30, bird_meat: 20 },
     effectSummary: "+30 grubs · +20 bird meat caps · food spoils ~30% slower.",
-    onBuiltMessage: "🏚️ You ring the silo with stone and seal the lid. The food keeps longer here. The wasteland will not pry it open quickly.",
+    onBuiltMessage: "🏚️ You ring the silo with stone and seal the lid. The food keeps longer here.",
     whisperOnBuilt: "The stone whispers: keeping is more than holding. Keeping is patience.",
     tier: 6, col: 1, parents: ["home", "garden"],
   },
 
   farmhouse: {
-    id: "farmhouse",
-    name: "Rudimentary Farmhouse",
-    icon: "🏘️",
-    category: "shelter",
+    id: "farmhouse", name: "Rudimentary Farmhouse", icon: "🏘️", category: "shelter",
     description: "Rough timber framing. A hearth at the heart of it. The earth here knows you now.",
     cost: { stone: 30, wood: 60, food: 5 },
     requires: { researched: "home", hasBuilding: "home" },
     effect: { gardenBoost: 0.5 },
     passiveProduce: { wood: { perMinute: 0.5 } },
     effectSummary: "+50% Garden output · +0.5 wood / minute (scrub clearing).",
-    onBuiltMessage: "🏘️ You frame the farmhouse, raise the hearth, and stand in the doorway. The garden out front looks like it belongs there. So do you.",
+    onBuiltMessage: "🏘️ You frame the farmhouse, raise the hearth, and stand in the doorway.",
     whisperOnBuilt: "The stone whispers: now the dust remembers you. The soil pays attention.",
     tier: 6, col: 2, parents: ["home", "garden"],
+  },
+
+  alembic: {
+    id: "alembic", name: "Alembic", icon: "⚗️", category: "arcane",
+    description: "Copper kettle, glass coil. Heat and patience and a hand steadier than your own. What enters as water leaves as something else.",
+    cost: { stone: 30, wood: 30, fragments: 5 },
+    requires: { researched: "alchemy", hasBuilding: "forge" },
+    effect: {},
+    effectSummary: "Required for brewing potions (Mending, Stillness, Spirit Draught).",
+    onBuiltMessage: "⚗️ The Alembic stands. The coil catches the firelight and bends it strange.",
+    whisperOnBuilt: "The stone whispers: now you can make what the world will not give.",
+    tier: 7, col: 0, parents: ["forge"],
   },
 };
 

@@ -76,13 +76,15 @@ stay, bridging into the companion system.
 Roadmap vision: "Magic emerges. Spirit stat. Alchemy. Enchantment. Ritual.
 Magical fragments refine into spells. Alignment crystallizes. First demons."
 
-**Shipped this iteration:** entry condition (#51), Spirit stat (#45),
-arcaneAwakening reveal (#46), 3 starter spells (#47), Whisperer demon (#50),
-era transition story.
+**Shipped:** entry condition (#51), Spirit stat (#45), arcaneAwakening
+reveal (#46), 3 starter spells (#47), Whisperer demon (#50), era
+transition story, alchemy + Alembic + 3 potions (#48), alignment
+surfacing in research/spells/events (#49), Banish + Bend
+alignment-gated spells, Hollow Hound demon, `warded` status.
 
-**Deferred to next slice:** alchemy/potions (#48), alignment surfacing in
-choice events (#49), more demons (Hollow Hound, Iconoclast), Banish + Bend
-alignment-gated spells, arcane tool tier.
+**Still deferred:** Iconoclast demon (building-damage infrastructure
+needs to land first), arcane tool tier (Fragment Knife, Spirit Censer,
+Warding Talisman), Ritual action for explicit Spirit refill.
 
 ### Era 3 entry condition (Task #51 — SHIPPED)
 

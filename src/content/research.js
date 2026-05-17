@@ -123,31 +123,31 @@ export const RESEARCH = {
 
   smithing: {
     id: "smithing", name: "Smithing", icon: "⚒️",
-    whisper: "The stone speaks of heat that softens what was hard, and a hammer that makes it harder still. Of stones bound to handles, of edges that hold their grudge against the world.",
+    whisper: "The stone speaks of heat that softens what was hard, and a hammer that makes it harder still.",
     cost: { stone: 40, wood: 20, food: 5 },
     requires: { hutBuilt: true, era: 2 },
     effect: { unlocksBuilding: "forge" },
-    onLearnedMessage: "You listen, and the stone teaches you smithing. The Forge is no longer a memory — it is a place you can raise.",
+    onLearnedMessage: "You listen, and the stone teaches you smithing. The Forge is no longer a memory.",
     tier: 4, col: 2, parents: ["knapping", "fire"],
   },
 
   fletching: {
     id: "fletching", name: "Fletching", icon: "🏹",
-    whisper: "The stone speaks of feathers and shafts. Of the long reach. Of the bird that does not see you because you are very far away.",
+    whisper: "The stone speaks of feathers and shafts. Of the long reach.",
     cost: { feathers: 5, wood: 10, stone: 5 },
     requires: { hutBuilt: true, era: 2 },
     effect: { unlocksTool: "bow" },
-    onLearnedMessage: "You listen, and the stone teaches you fletching. Reach has been added to your hand. The wasteland will know it.",
+    onLearnedMessage: "You listen, and the stone teaches you fletching. Reach has been added to your hand.",
     tier: 4, col: 3, parents: ["netWeaving", "tracking"],
   },
 
   home: {
     id: "home", name: "Home", icon: "🏠",
-    whisper: "The stone speaks of staying. Of a roof above the same ground, day after day. Of a door that knows your hand, and walls that learn your voice.",
+    whisper: "The stone speaks of staying. Of a roof above the same ground.",
     cost: { wood: 40, stone: 30, food: 5, water: 3 },
     requires: { hutBuilt: true, era: 2 },
     effect: { unlocksBuilding: "home" },
-    onLearnedMessage: "You listen, and the stone teaches you what it means to stay. The hut was a shelter. What you build now will be yours.",
+    onLearnedMessage: "You listen, and the stone teaches you what it means to stay.",
     tier: 5, col: 1, parents: ["smithing"],
   },
 
@@ -155,17 +155,17 @@ export const RESEARCH = {
 
   arcaneAwakening: {
     id: "arcaneAwakening", name: "Arcane Awakening", icon: "✨",
-    whisper: "The stone speaks differently now. Lower. Older. It speaks of the shards in your pack, and what they truly are. It speaks of what they were when the world was whole.",
+    whisper: "The stone speaks differently now. Lower. Older. It speaks of the shards in your pack, and what they truly are.",
     cost: { fragments: 10 },
     requires: { hutBuilt: true, era: 3 },
     effect: { revealsFragments: true },
-    onLearnedMessage: "You listen, and the stone teaches you the shape of what you have been carrying. The fragments in your pack are not stone. They never were. They are Arcane Shards — pieces of a thing that broke, and remembers being whole.",
+    onLearnedMessage: "You listen, and the stone teaches you the shape of what you have been carrying. The fragments in your pack are not stone. They are Arcane Shards — pieces of a thing that broke, and remembers being whole.",
     tier: 6, col: 0, parents: ["home"],
   },
 
   mendingWord: {
     id: "mendingWord", name: "Mending Word", icon: "💗",
-    whisper: "The stone speaks of a word the body remembers. Of breath drawn deliberately. Of blood that listens.",
+    whisper: "The stone speaks of a word the body remembers.",
     cost: { fragments: 5, water: 5 },
     requires: { hutBuilt: true, era: 3 },
     effect: { unlocksSpell: "mendingWord" },
@@ -175,22 +175,55 @@ export const RESEARCH = {
 
   soothe: {
     id: "soothe", name: "Soothe", icon: "🕊️",
-    whisper: "The stone speaks of stillness. Of the panicked mind that, given a long enough breath, returns to itself.",
+    whisper: "The stone speaks of stillness.",
     cost: { fragments: 5, food: 3 },
     requires: { hutBuilt: true, era: 3 },
     effect: { unlocksSpell: "soothe" },
-    onLearnedMessage: "You listen, and the stone teaches you to Soothe. The shaking quiets. The eyes settle.",
+    onLearnedMessage: "You listen, and the stone teaches you to Soothe. The shaking quiets.",
     tier: 7, col: 1, parents: ["arcaneAwakening"],
   },
 
   innerHearth: {
     id: "innerHearth", name: "Inner Hearth", icon: "🔆",
-    whisper: "The stone speaks of a fire under the breastbone. The one that does not need wood. The one that decides whether you go on.",
+    whisper: "The stone speaks of a fire under the breastbone.",
     cost: { fragments: 5, wood: 5 },
     requires: { hutBuilt: true, era: 3 },
     effect: { unlocksSpell: "innerHearth" },
-    onLearnedMessage: "You listen, and the stone teaches you the Inner Hearth. The resolve is yours to kindle now, when the wasteland tries to put you out.",
+    onLearnedMessage: "You listen, and the stone teaches you the Inner Hearth.",
     tier: 7, col: 2, parents: ["arcaneAwakening"],
+  },
+
+  alchemy: {
+    id: "alchemy", name: "Alchemy", icon: "⚗️",
+    whisper: "The stone speaks of vessels that change what passes through them. Of grub and water that become a thing the body answers to like a name.",
+    cost: { fragments: 8, water: 10, stone: 5 },
+    requires: { hutBuilt: true, era: 3 },
+    effect: { unlocksBuilding: "alembic" },
+    onLearnedMessage: "You listen, and the stone teaches you alchemy. With an Alembic raised, you can brew what the world will not give.",
+    tier: 7, col: 3, parents: ["arcaneAwakening"],
+  },
+
+  // Alignment-gated spells. The research node itself is gated by hidden
+  // alignment — players who lean good see Banish; players who lean dark
+  // see Bend. Neither shows a number.
+  banishSpell: {
+    id: "banishSpell", name: "Banish", icon: "🕯️",
+    whisper: "The stone speaks of a word that ends with a candle. Of the hand that says: not here. Not me. Not now.",
+    cost: { fragments: 10, water: 5 },
+    requires: { hutBuilt: true, era: 3, alignment: { good: 3 } },
+    effect: { unlocksSpell: "banish" },
+    onLearnedMessage: "You listen, and the stone teaches you to Banish. What you draw a line against will not cross it for a while.",
+    tier: 8, col: 0, parents: ["mendingWord"],
+  },
+
+  bendSpell: {
+    id: "bendSpell", name: "Bend", icon: "🌑",
+    whisper: "The stone speaks lower now. Of taking. Of the world's resolve as a thing that can be drawn into yours, like water from a deep place.",
+    cost: { fragments: 10, food: 5 },
+    requires: { hutBuilt: true, era: 3, alignment: { evil: 3 } },
+    effect: { unlocksSpell: "bend" },
+    onLearnedMessage: "You listen, and the stone teaches you to Bend. What you take, you take from elsewhere. There is no other rule.",
+    tier: 8, col: 1, parents: ["innerHearth"],
   },
 };
 

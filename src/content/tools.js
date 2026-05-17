@@ -1,20 +1,16 @@
 // Primitive + Era 2 tool definitions — DATA, not code.
 
 export const TOOL_CATEGORIES = {
-  primitive: { id: "primitive", name: "Primitive", order: 1 },
-  bronze:    { id: "bronze",    name: "Bronze",    order: 2 },
-  iron:      { id: "iron",      name: "Iron",      order: 3 },
-  arcane:    { id: "arcane",    name: "Arcane",    order: 4 },
+  primitive:  { id: "primitive",  name: "Primitive",  order: 1 },
+  bronze:     { id: "bronze",     name: "Bronze",     order: 2 },
+  iron:       { id: "iron",       name: "Iron",       order: 3 },
+  arcane:     { id: "arcane",     name: "Arcane",     order: 4 },
+  consumable: { id: "consumable", name: "Potions",    order: 5 },
 };
 
 export const TOOLS = {
-  // ===== Primitive (Era 1) =====
-
   net: {
-    id: "net",
-    name: "Net",
-    icon: "🕸️",
-    category: "primitive",
+    id: "net", name: "Net", icon: "🕸️", category: "primitive",
     description: "A loose weave of cordage and lashings. Throw it; pray.",
     cost: { wood: 6, stone: 2 },
     requires: { researched: "netWeaving" },
@@ -27,10 +23,7 @@ export const TOOLS = {
   },
 
   snare: {
-    id: "snare",
-    name: "Snare",
-    icon: "🪤",
-    category: "primitive",
+    id: "snare", name: "Snare", icon: "🪤", category: "primitive",
     description: "A loop of cordage hidden where birds land.",
     cost: { wood: 8, stone: 3, feathers: 2 },
     requires: { researched: "trapping", skill: { hunting: 2 } },
@@ -43,10 +36,7 @@ export const TOOLS = {
   },
 
   diggingStick: {
-    id: "diggingStick",
-    name: "Digging Stick",
-    icon: "🥢",
-    category: "primitive",
+    id: "diggingStick", name: "Digging Stick", icon: "🥢", category: "primitive",
     description: "A hardwood shaft, fire-tempered.",
     cost: { wood: 5, stone: 2 },
     requires: { researched: "diggingStickCraft" },
@@ -59,10 +49,7 @@ export const TOOLS = {
   },
 
   waterSkin: {
-    id: "waterSkin",
-    name: "Water Skin",
-    icon: "🧴",
-    category: "primitive",
+    id: "waterSkin", name: "Water Skin", icon: "🧴", category: "primitive",
     description: "A bladder of stretched hide, sealed with sap.",
     cost: { water: 3, feathers: 1, stone: 1 },
     requires: { researched: "waterCarrying" },
@@ -74,13 +61,8 @@ export const TOOLS = {
     tier: 1, col: 3,
   },
 
-  // ===== Bronze / Era 2 (require Forge built) =====
-
   stoneAxe: {
-    id: "stoneAxe",
-    name: "Stone Axe",
-    icon: "🪓",
-    category: "bronze",
+    id: "stoneAxe", name: "Stone Axe", icon: "🪓", category: "bronze",
     description: "A shaped stone bound to a hardwood haft. The trees give up wood twice as easily now.",
     cost: { wood: 15, stone: 20 },
     requires: { researched: "smithing", builtBuilding: "forge" },
@@ -93,10 +75,7 @@ export const TOOLS = {
   },
 
   stonePickaxe: {
-    id: "stonePickaxe",
-    name: "Stone Pickaxe",
-    icon: "⛏️",
-    category: "bronze",
+    id: "stonePickaxe", name: "Stone Pickaxe", icon: "⛏️", category: "bronze",
     description: "Heavy. Pointed. Made for breaking rock into more rock.",
     cost: { wood: 12, stone: 25 },
     requires: { researched: "smithing", builtBuilding: "forge" },
@@ -109,10 +88,7 @@ export const TOOLS = {
   },
 
   boneKnife: {
-    id: "boneKnife",
-    name: "Bone Knife",
-    icon: "🔪",
-    category: "bronze",
+    id: "boneKnife", name: "Bone Knife", icon: "🔪", category: "bronze",
     description: "Sharpened femur, lashed to a stone grip. Better for skinning than swinging.",
     cost: { stone: 10, feathers: 3, food: 5 },
     requires: { researched: "smithing", builtBuilding: "forge" },
@@ -125,10 +101,7 @@ export const TOOLS = {
   },
 
   bow: {
-    id: "bow",
-    name: "Bow",
-    icon: "🏹",
-    category: "bronze",
+    id: "bow", name: "Bow", icon: "🏹", category: "bronze",
     description: "Curved wood, sinew strung. Reach is not strength — it's better.",
     cost: { wood: 20, feathers: 8, stone: 5 },
     requires: { researched: "fletching", builtBuilding: "forge" },
@@ -138,6 +111,53 @@ export const TOOLS = {
     onCraftedMessage: "🏹 The bow is finished. You draw, release. The arrow flies. Something far falls.",
     onBrokenMessage: "🏹 The string snaps and the limb cracks. A bow's work is done.",
     tier: 2, col: 3,
+  },
+
+  // ===== Consumables / Potions (Era 3, require Alembic built) =====
+
+  potionMending: {
+    id: "potionMending", name: "Potion of Mending", icon: "🧪",
+    category: "consumable",
+    consumable: true,
+    isStackable: true,
+    description: "Cloudy and warm. Tastes of stone. Closes wounds the body had given up on.",
+    cost: { fragments: 2, food: 5, water: 3 },
+    requires: { researched: "alchemy", builtBuilding: "alembic" },
+    useEffect: { hp: 40 },
+    effectSummary: "Instant +40 HP. Single use.",
+    onCraftedMessage: "🧪 A vial of Mending. The cork seats. The fluid steadies.",
+    onUseMessage: "🧪 You drink the Mending. The body answers.",
+    tier: 3, col: 0,
+  },
+
+  potionStillness: {
+    id: "potionStillness", name: "Potion of Stillness", icon: "🫧",
+    category: "consumable",
+    consumable: true,
+    isStackable: true,
+    description: "Pale. Almost still. Drink, and the panicked mind stops circling.",
+    cost: { fragments: 2, feathers: 5, water: 3 },
+    requires: { researched: "alchemy", builtBuilding: "alembic" },
+    useEffect: { sanity: 30 },
+    effectSummary: "Instant +30 Sanity. Single use.",
+    onCraftedMessage: "🫧 A vial of Stillness. It does not move when you tilt it.",
+    onUseMessage: "🫧 You drink the Stillness. The world stops doing whatever it was doing.",
+    tier: 3, col: 1,
+  },
+
+  potionSpirit: {
+    id: "potionSpirit", name: "Spirit Draught", icon: "💜",
+    category: "consumable",
+    consumable: true,
+    isStackable: true,
+    description: "Violet, almost humming. Expensive. Drink it when the spells must keep coming and Rest is not an option.",
+    cost: { fragments: 3, water: 10 },
+    requires: { researched: "alchemy", builtBuilding: "alembic" },
+    useEffect: { spirit: 100 },
+    effectSummary: "Instant full Spirit. Single use. Expensive.",
+    onCraftedMessage: "💜 A Spirit Draught. The vial hums faintly.",
+    onUseMessage: "💜 You drink the Spirit Draught. The Spirit returns in a rush.",
+    tier: 3, col: 2,
   },
 };
 
@@ -166,6 +186,8 @@ export function getToolEffects(run) {
     huntBetterBirds: 0,
   };
   for (const t of getOwnedTools(run)) {
+    // Consumables don't grant passive effects — they apply on use.
+    if (t.consumable) continue;
     const e = t.effect || {};
     if (e.unlocksAction) eff.unlocksAction[e.unlocksAction] = true;
     if (e.gatherSpeedup) eff.gatherSpeedup += e.gatherSpeedup;

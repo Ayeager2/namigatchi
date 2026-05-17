@@ -4,156 +4,98 @@ export const EVENTS = {
   // ============== Fire-and-react events ==============
 
   windFromEast: {
-    id: "windFromEast",
-    name: "Wind from the East",
-    trigger: "any",
-    weight: 8,
-    requires: { era: 1 },
-    cooldownMs: 5 * 60 * 1000,
+    id: "windFromEast", name: "Wind from the East", trigger: "any", weight: 8,
+    requires: { era: 1 }, cooldownMs: 5 * 60 * 1000,
     flavor: "A wind from the east. The dust thins for a breath.",
     onFire: {
       effects: {
         inventory: { wood: 5, stone: 5 },
-        log: {
-          kind: "event_good",
-          message: "🌬️ A wind from the east. The dust thins. You find wood and stone in the clearing.",
-        },
+        log: { kind: "event_good", message: "🌬️ A wind from the east. The dust thins. You find wood and stone in the clearing." },
       },
     },
   },
 
   crackedEarth: {
-    id: "crackedEarth",
-    name: "Cracked Earth",
-    trigger: "gather",
-    weight: 5,
-    requires: { era: 1 },
-    cooldownMs: 8 * 60 * 1000,
+    id: "crackedEarth", name: "Cracked Earth", trigger: "gather", weight: 5,
+    requires: { era: 1 }, cooldownMs: 8 * 60 * 1000,
     flavor: "The ground splits.",
     onFire: {
       effects: {
         inventory: { stone: 20 },
-        log: {
-          kind: "event_good",
-          message: "💥 The ground splits beneath you. A vein of stone, exposed.",
-        },
+        log: { kind: "event_good", message: "💥 The ground splits beneath you. A vein of stone, exposed." },
       },
     },
   },
 
   hiddenSpring: {
-    id: "hiddenSpring",
-    name: "Hidden Spring",
-    trigger: "gather",
-    weight: 4,
-    requires: { era: 1 },
-    cooldownMs: 10 * 60 * 1000,
+    id: "hiddenSpring", name: "Hidden Spring", trigger: "gather", weight: 4,
+    requires: { era: 1 }, cooldownMs: 10 * 60 * 1000,
     flavor: "Water you didn't know was there.",
     onFire: {
       effects: {
         inventory: { water: 4 },
-        log: {
-          kind: "event_good",
-          message: "💧 You scrape moss from a stone and water beads. A small spring you hadn't seen.",
-        },
+        log: { kind: "event_good", message: "💧 You scrape moss from a stone and water beads. A small spring you hadn't seen." },
       },
     },
   },
 
   strangeLights: {
-    id: "strangeLights",
-    name: "Strange Lights",
-    trigger: "interval",
-    weight: 3,
-    requires: { era: 1 },
-    cooldownMs: 12 * 60 * 1000,
+    id: "strangeLights", name: "Strange Lights", trigger: "interval", weight: 3,
+    requires: { era: 1 }, cooldownMs: 12 * 60 * 1000,
     flavor: "Lights in the sky that should not be there.",
     onFire: {
       effects: {
         stats: { sanity: -1 },
         inventory: { fragments: 2 },
-        log: {
-          kind: "event_strange",
-          message: "✨ Lights in the sky that should not be there. Your hand twitches around the stone. Two more fragments fall from the dark.",
-        },
+        log: { kind: "event_strange", message: "✨ Lights in the sky that should not be there. Your hand twitches around the stone. Two more fragments fall from the dark." },
       },
     },
   },
 
   bloodMoon: {
-    id: "bloodMoon",
-    name: "Blood Moon",
-    trigger: "interval",
-    weight: 1,
-    requires: { era: 1 },
-    cooldownMs: 30 * 60 * 1000,
+    id: "bloodMoon", name: "Blood Moon", trigger: "interval", weight: 1,
+    requires: { era: 1 }, cooldownMs: 30 * 60 * 1000,
     flavor: "The moon has gone red. The world feels thin.",
     onFire: {
       effects: {
         stats: { sanity: -2, happiness: -3 },
-        log: {
-          kind: "event_strange",
-          message: "🩸 A blood moon. The world feels thin. You see shapes in the dust that move when you do not look at them directly.",
-        },
+        log: { kind: "event_strange", message: "🩸 A blood moon. The world feels thin. You see shapes in the dust that move when you do not look at them directly." },
       },
     },
   },
 
-  // ============== Pest events ==============
-
   carrionFlock: {
-    id: "carrionFlock",
-    name: "Carrion Flock",
-    trigger: "any",
-    weight: 5,
-    requires: { era: 1, hasBuilding: "garden" },
-    cooldownMs: 12 * 60 * 1000,
+    id: "carrionFlock", name: "Carrion Flock", trigger: "any", weight: 5,
+    requires: { era: 1, hasBuilding: "garden" }, cooldownMs: 12 * 60 * 1000,
     flavor: "A flock of carrion birds settles on the garden.",
     onFire: {
       effects: {
         setsPest: { pestId: "birdFlock", durationMs: 5 * 60 * 1000 },
-        log: {
-          kind: "event_strange",
-          message: "🦅 A flock of carrion birds settles over the garden. They strut, they pluck, they eat. Hunt them off — or wait them out.",
-        },
+        log: { kind: "event_strange", message: "🦅 A flock of carrion birds settles over the garden. They strut, they pluck, they eat. Hunt them off — or wait them out." },
       },
     },
   },
 
-  // ============== Atmospheric Era 1 events ==============
-
   blackRain: {
-    id: "blackRain",
-    name: "Black Rain",
-    trigger: "interval",
-    weight: 3,
-    requires: { era: 1 },
-    cooldownMs: 15 * 60 * 1000,
+    id: "blackRain", name: "Black Rain", trigger: "interval", weight: 3,
+    requires: { era: 1 }, cooldownMs: 15 * 60 * 1000,
     flavor: "Black rain. Old soot in the clouds. But it is water, still.",
     onFire: {
       effects: {
         stats: { sanity: -1, happiness: -1 },
         inventory: { water: 6 },
-        log: {
-          kind: "event_strange",
-          message: "🌧️ The rain comes black with old soot. You catch what you can in cupped hands. Water is water. +6 water.",
-        },
+        log: { kind: "event_strange", message: "🌧️ The rain comes black with old soot. You catch what you can in cupped hands. Water is water. +6 water." },
       },
     },
   },
 
   burrowingThing: {
-    id: "burrowingThing",
-    name: "A Burrowing Thing",
-    trigger: "interval",
-    weight: 3,
-    requires: { era: 1 },
-    cooldownMs: 18 * 60 * 1000,
+    id: "burrowingThing", name: "A Burrowing Thing", trigger: "interval", weight: 3,
+    requires: { era: 1 }, cooldownMs: 18 * 60 * 1000,
     flavor: "Something pale and many-legged is in your stores. It chitters when you approach.",
     choices: [
       {
-        id: "kill",
-        label: "Kill it",
+        id: "kill", label: "Kill it",
         effect: {
           stats: { hp: -3, happiness: -1 },
           inventory: { food: 4 },
@@ -162,8 +104,7 @@ export const EVENTS = {
         },
       },
       {
-        id: "let",
-        label: "Let it pass",
+        id: "let", label: "Let it pass",
         effect: {
           stats: { sanity: 2, happiness: 1 },
           inventory: { food: -2 },
@@ -175,17 +116,12 @@ export const EVENTS = {
   },
 
   howlInTheDark: {
-    id: "howlInTheDark",
-    name: "Howl in the Dark",
-    trigger: "interval",
-    weight: 2,
-    requires: { era: 1 },
-    cooldownMs: 22 * 60 * 1000,
+    id: "howlInTheDark", name: "Howl in the Dark", trigger: "interval", weight: 2,
+    requires: { era: 1 }, cooldownMs: 22 * 60 * 1000,
     flavor: "A long howl, far off. Something with too many lungs. It calls again, closer.",
     choices: [
       {
-        id: "investigate",
-        label: "Walk toward it",
+        id: "investigate", label: "Walk toward it",
         effect: {
           stats: { sanity: -3, hp: -2 },
           inventory: { fragments: 2, stone: 6 },
@@ -194,8 +130,7 @@ export const EVENTS = {
         },
       },
       {
-        id: "hide",
-        label: "Hide and wait",
+        id: "hide", label: "Hide and wait",
         effect: {
           stats: { sanity: 3, happiness: 2 },
           alignment: { good: 1 },
@@ -205,22 +140,13 @@ export const EVENTS = {
     ],
   },
 
-  // ============== Choice events ==============
-
   wanderingChild: {
-    id: "wanderingChild",
-    name: "A Wandering Child",
-    trigger: "interval",
-    weight: 4,
-    requires: { era: 1 },
-    cooldownMs: 20 * 60 * 1000,
+    id: "wanderingChild", name: "A Wandering Child", trigger: "interval", weight: 4,
+    requires: { era: 1 }, cooldownMs: 20 * 60 * 1000,
     flavor: "A child has wandered close to your hut. Hungry. Watching. They have no one with them.",
     choices: [
       {
-        id: "share",
-        label: "Share food",
-        cost: { food: 2 },
-        missingMessage: "You have no food to share.",
+        id: "share", label: "Share food", cost: { food: 2 }, missingMessage: "You have no food to share.",
         effect: {
           stats: { happiness: 5, sanity: 3 },
           alignment: { good: 2 },
@@ -228,8 +154,7 @@ export const EVENTS = {
         },
       },
       {
-        id: "ignore",
-        label: "Look away",
+        id: "ignore", label: "Look away",
         effect: {
           stats: { happiness: -2 },
           alignment: { evil: 1 },
@@ -240,19 +165,12 @@ export const EVENTS = {
   },
 
   hurtElder: {
-    id: "hurtElder",
-    name: "An Elder, Hurt",
-    trigger: "interval",
-    weight: 2,
-    requires: { era: 1 },
-    cooldownMs: 25 * 60 * 1000,
+    id: "hurtElder", name: "An Elder, Hurt", trigger: "interval", weight: 2,
+    requires: { era: 1 }, cooldownMs: 25 * 60 * 1000,
     flavor: "An elder lies by the path, bleeding from a wound. They look at you, their eyes clouded but knowing.",
     choices: [
       {
-        id: "help",
-        label: "Tend their wounds",
-        cost: { water: 1, food: 1 },
-        missingMessage: "You haven't enough to spare.",
+        id: "help", label: "Tend their wounds", cost: { water: 1, food: 1 }, missingMessage: "You haven't enough to spare.",
         effect: {
           stats: { happiness: 5, sanity: 5 },
           alignment: { good: 3 },
@@ -260,8 +178,7 @@ export const EVENTS = {
         },
       },
       {
-        id: "leave",
-        label: "Walk past",
+        id: "leave", label: "Walk past",
         effect: {
           stats: { happiness: -5, sanity: -2 },
           alignment: { evil: 2 },
@@ -272,72 +189,48 @@ export const EVENTS = {
   },
 
   // ============== Era 2 NPC-hint events ==============
-  // These fire when the player has the prerequisite but hasn't built the
-  // target yet. Each is a flavor nudge toward the next building in the
-  // settler chain. notHasBuilding gates them out once the suggestion lands.
 
   wandererHintHome: {
-    id: "wandererHintHome",
-    name: "A Wanderer at the Fire",
-    trigger: "interval",
-    weight: 4,
+    id: "wandererHintHome", name: "A Wanderer at the Fire", trigger: "interval", weight: 4,
     requires: { era: 2, hasBuilding: "hut", notHasBuilding: "home" },
     cooldownMs: 8 * 60 * 1000,
     flavor: "A wanderer settles by your fire. She does not stay long.",
     onFire: {
       effects: {
         stats: { happiness: 2 },
-        log: {
-          kind: "event_good",
-          message: "👤 A wanderer settles by your fire. She warms her hands, glances at the hut, and asks if you have a home of your own. She is gone before you answer.",
-        },
+        log: { kind: "event_good", message: "👤 A wanderer settles by your fire. She warms her hands, glances at the hut, and asks if you have a home of your own. She is gone before you answer." },
       },
     },
   },
 
   soldierHintWalls: {
-    id: "soldierHintWalls",
-    name: "An Old Soldier",
-    trigger: "interval",
-    weight: 4,
+    id: "soldierHintWalls", name: "An Old Soldier", trigger: "interval", weight: 4,
     requires: { era: 2, hasBuilding: "home", notHasBuilding: "walls" },
     cooldownMs: 8 * 60 * 1000,
     flavor: "An old soldier squints at the open ground.",
     onFire: {
       effects: {
         stats: { sanity: -1 },
-        log: {
-          kind: "event_strange",
-          message: "🪖 An old soldier passes through. He glances at the open ground and says — quiet, not making a thing of it — 'A wall would help. Even a low one.' Then he is gone, and the wasteland feels wider than before.",
-        },
+        log: { kind: "event_strange", message: "🪖 An old soldier passes through. He glances at the open ground and says — quiet, not making a thing of it — 'A wall would help. Even a low one.' Then he is gone, and the wasteland feels wider than before." },
       },
     },
   },
 
   childHintSilo: {
-    id: "childHintSilo",
-    name: "A Child Asks About Stores",
-    trigger: "interval",
-    weight: 3,
+    id: "childHintSilo", name: "A Child Asks About Stores", trigger: "interval", weight: 3,
     requires: { era: 2, hasBuilding: "home", notHasBuilding: "silo" },
     cooldownMs: 8 * 60 * 1000,
     flavor: "A child asks where you keep your stores.",
     onFire: {
       effects: {
         stats: { happiness: -1 },
-        log: {
-          kind: "event_strange",
-          message: "🧒 A child asks where you keep your stores. You point at the dust. She doesn't laugh. Her face says enough.",
-        },
+        log: { kind: "event_strange", message: "🧒 A child asks where you keep your stores. You point at the dust. She doesn't laugh. Her face says enough." },
       },
     },
   },
 
   farmerHintFarmhouse: {
-    id: "farmerHintFarmhouse",
-    name: "A Farmer Passes",
-    trigger: "interval",
-    weight: 3,
+    id: "farmerHintFarmhouse", name: "A Farmer Passes", trigger: "interval", weight: 3,
     requires: { era: 2, hasBuilding: "garden", notHasBuilding: "farmhouse" },
     cooldownMs: 10 * 60 * 1000,
     flavor: "A farmer wanders by and looks at your garden.",
@@ -345,12 +238,62 @@ export const EVENTS = {
       effects: {
         inventory: { food: 3 },
         stats: { happiness: 2, sanity: 1 },
-        log: {
-          kind: "event_good",
-          message: "🧑‍🌾 A farmer wanders by, says nothing, but plants something with a calloused hand before going. The earth shifts. +3 grubs.",
-        },
+        log: { kind: "event_good", message: "🧑‍🌾 A farmer wanders by, says nothing, but plants something with a calloused hand before going. The earth shifts. +3 grubs." },
       },
     },
+  },
+
+  // ============== Era 3 alignment-gated events ==============
+  // Surface only once the silent counter has tipped. Players never see a
+  // number; events with these gates simply DO appear at the right alignment.
+
+  benevolentPilgrim: {
+    id: "benevolentPilgrim", name: "A Benevolent Pilgrim", trigger: "interval", weight: 4,
+    requires: { era: 3, alignment: { good: 3 } }, cooldownMs: 20 * 60 * 1000,
+    flavor: "A pilgrim arrives. They know your face the way a stranger should not.",
+    choices: [
+      {
+        id: "welcome", label: "Welcome them", cost: { food: 3, water: 2 }, missingMessage: "You haven't enough to share.",
+        effect: {
+          stats: { happiness: 6, sanity: 4, spirit: 5 },
+          alignment: { good: 2 },
+          log: { kind: "event_good", message: "🙏 You share what you have. The pilgrim eats slow, blesses the fire, and is gone before morning. Something in the room is warmer." },
+        },
+      },
+      {
+        id: "turn_away", label: "Send them on",
+        effect: {
+          stats: { happiness: -3, sanity: -1 },
+          alignment: { evil: 1 },
+          log: { kind: "event_strange", message: "You shake your head. They look at you for a moment, then go. The fire goes a little colder." },
+        },
+      },
+    ],
+  },
+
+  bitterScholar: {
+    id: "bitterScholar", name: "A Bitter Scholar", trigger: "interval", weight: 4,
+    requires: { era: 3, alignment: { evil: 3 } }, cooldownMs: 20 * 60 * 1000,
+    flavor: "A man with stained hands and clever eyes asks if he might sit by your fire. He has a book bound in something thin.",
+    choices: [
+      {
+        id: "listen", label: "Hear him out",
+        effect: {
+          inventory: { fragments: 3 },
+          stats: { sanity: -4, spirit: 8 },
+          alignment: { evil: 2 },
+          log: { kind: "event_strange", message: "📖 He shows you a page. The diagrams move when you don't look at them. +3 fragments. Something in you sharpens. Something else dulls." },
+        },
+      },
+      {
+        id: "refuse", label: "Refuse him",
+        effect: {
+          stats: { happiness: 2, sanity: 2 },
+          alignment: { good: 1 },
+          log: { kind: "event_good", message: "You shake your head. He smiles, closes the book, leaves. You breathe out for a long time." },
+        },
+      },
+    ],
   },
 };
 

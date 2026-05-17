@@ -39,6 +39,11 @@ function isThreatActive(state, threat) {
   if (threat.requires?.era && computeEra(state) < threat.requires.era) return false;
   const minGathers = threat.minGathersAfterGate ?? 0;
   if ((state.run.gatherCount || 0) < minGathers) return false;
+  // Banish wards demonic threats for the status duration.
+  if (threat.kind === "demon") {
+    const warded = state.run.statuses?.warded;
+    if (warded && warded.until && warded.until > Date.now()) return false;
+  }
   return true;
 }
 
@@ -54,7 +59,6 @@ function pickFlavor(messages, rng, substitutions = {}) {
 export function rollThreatEncounter(state, rng = Math.random) {
   const candidates = getAllThreats().filter((t) => isThreatActive(state, t));
   if (candidates.length === 0) return null;
-
   for (const threat of candidates) {
     if (rng() >= threat.encounterChance) continue;
     return resolveThreat(state, threat, rng);
@@ -87,7 +91,12 @@ function resolveThreat(state, threat, rng) {
   if (threat.effects?.damage) {
     const { min, max } = threat.effects.damage;
     const base = randInt(rng, min, max);
-    dmg = Math.max(0, base - defense);
+    // Demonic threats may use only HALF defense (e.g. Hollow Hound) —
+    // armor helps but not as much. Sanity damage is always defense-free.
+    const effectiveDefense = threat.effects.defenseHalf
+      ? Math.floor(defense / 2)
+      : defense;
+    dmg = Math.max(0, base - effectiveDefense);
     if (dmg > 0) {
       stats.hp = Math.max(0, (stats.hp ?? 100) - dmg);
     }
@@ -99,22 +108,26 @@ function resolveThreat(state, threat, rng) {
     drained = randInt(rng, min, max);
   }
 
-  // For pure sanity-drain threats (no damage, no food theft), skip the
-  // per-encounter atmospheric drain — flavorMessages already substitutes {sanity}.
-  const isPureSanityThreat =
-    !!threat.effects?.sanityDrain &&
-    !threat.effects?.stealFood &&
-    !threat.effects?.damage;
-  let sanityChange = isPureSanityThreat
+  // Sanity book-keeping.
+  // - Threats with `sanityDrain` express their full sanity hit in `drained` and
+  //   substitute it into flavor as {sanity}. Skip per-encounter + per-damage
+  //   compounding so the number in the log matches the truth.
+  // - Classic threats (no sanityDrain) keep the per-encounter atmospheric
+  //   drain + per-damage-point compounding.
+  const hasSanityDrain = !!threat.effects?.sanityDrain;
+  let sanityChange = hasSanityDrain
     ? 0
     : SURVIVAL.sanityFromThreat?.perEncounter || 0;
-  if (dmg > 0) {
+  if (dmg > 0 && !hasSanityDrain) {
     sanityChange += (SURVIVAL.sanityFromThreat?.perDamagePoint || 0) * dmg;
   }
   sanityChange -= drained;
   if (sanityChange !== 0) {
     stats = applyEffect(stats, { sanity: sanityChange });
   }
+
+  const isPureSanityThreat =
+    hasSanityDrain && !threat.effects?.stealFood && !threat.effects?.damage;
 
   if (stolen > 0) {
     events.push({
@@ -126,13 +139,21 @@ function resolveThreat(state, threat, rng) {
       kind: "threat",
       message: pickFlavor(threat.flavorMessages, rng, { sanity: drained }),
     });
+  } else if (dmg > 0 && drained > 0) {
+    events.push({
+      kind: "threat",
+      message: pickFlavor(threat.flavorMessages, rng, {
+        damage: dmg,
+        sanity: drained,
+      }),
+    });
   } else {
     events.push({
       kind: "threat",
       message: pickFlavor(threat.emptyMessages, rng),
     });
   }
-  if (dmg > 0) {
+  if (dmg > 0 && !hasSanityDrain) {
     events.push({
       kind: "damage",
       message: pickFlavor(threat.damageMessages, rng, { damage: dmg }),

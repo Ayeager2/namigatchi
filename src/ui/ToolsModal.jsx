@@ -1,9 +1,4 @@
-// Tools / crafting modal. Lists known recipes (those whose research is
-// complete) plus already-owned tools. Click a row to see cost + craft button.
-//
-// Pattern matches BuildingsTreeModal but flatter — early tools don't have
-// a complex tree, just a list. We can graduate to a tree layout when Era 2
-// arrives and tool dependencies become real.
+// Tools / crafting modal. Lists known recipes plus already-owned tools.
 
 import { useState, useMemo } from "react";
 import { TOOLS, TOOL_CATEGORIES } from "../content/tools.js";
@@ -20,8 +15,6 @@ function getToolState(state, tool) {
   return "locked";
 }
 
-// Small inline component — durability bar + remaining-uses count.
-// Lives in the tool detail pane while a tool is owned.
 function DurabilityBar({ current, max, wearsOn }) {
   const value = typeof current === "number" ? current : max;
   const percent = Math.max(0, Math.min(1, value / max));
@@ -58,8 +51,6 @@ export default function ToolsModal({ state, actions, onClose }) {
     ? (state.run.inventory?.[selected.id] || 0) > 0
     : false;
 
-  // Group by category (currently all are "primitive", but keep the structure
-  // for Era 2's bronze/iron tools).
   const grouped = {};
   for (const t of visible) {
     const cat = t.category || "primitive";
@@ -123,7 +114,9 @@ export default function ToolsModal({ state, actions, onClose }) {
                             <span className="tool-name">{t.name}</span>
                             {ts === "owned" && (
                               <span className="tool-tag tool-tag--owned">
-                                Crafted
+                                {t.isStackable
+                                  ? `×${state.run.inventory?.[t.id] || 0}`
+                                  : "Crafted"}
                               </span>
                             )}
                           </button>
@@ -161,7 +154,6 @@ export default function ToolsModal({ state, actions, onClose }) {
                   </p>
                 )}
 
-                {/* Requirements that aren't resources (research, skill, ...) */}
                 {selected.requires && (
                   <div className="tool-reqs muted">
                     {selected.requires.researched && (
@@ -191,7 +183,7 @@ export default function ToolsModal({ state, actions, onClose }) {
                   </div>
                 )}
 
-                {isOwned ? (
+                {isOwned && !selected.isStackable ? (
                   <div className="tree-detail-learned">
                     Crafted. Effects active.
                     {selected.durability && (
@@ -204,6 +196,11 @@ export default function ToolsModal({ state, actions, onClose }) {
                   </div>
                 ) : (
                   <>
+                    {selected.isStackable && isOwned && (
+                      <div className="tree-detail-learned">
+                        You have ×{state.run.inventory?.[selected.id] || 0}.
+                      </div>
+                    )}
                     <div className="research-cost">
                       {Object.entries(selected.cost || {}).map(
                         ([res, qty]) => {
@@ -223,13 +220,26 @@ export default function ToolsModal({ state, actions, onClose }) {
                         }
                       )}
                     </div>
-                    <button
-                      className="btn btn-primary"
-                      disabled={!selectedCheck?.ok}
-                      onClick={() => actions.craft(selected.id)}
-                    >
-                      Craft {selected.name}
-                    </button>
+                    <div className="tool-action-row">
+                      <button
+                        className="btn btn-primary"
+                        disabled={!selectedCheck?.ok}
+                        onClick={() => actions.craft(selected.id)}
+                      >
+                        {selected.isStackable
+                          ? `Brew ${selected.name}`
+                          : `Craft ${selected.name}`}
+                      </button>
+                      {selected.consumable && isOwned && (
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => actions.useTool(selected.id)}
+                          disabled={(state.run.inventory?.[selected.id] || 0) <= 0}
+                        >
+                          Use
+                        </button>
+                      )}
+                    </div>
                     {!selectedCheck?.ok && (
                       <p className="muted tree-detail-reason">
                         {selectedCheck?.reason}
@@ -245,4 +255,3 @@ export default function ToolsModal({ state, actions, onClose }) {
     </div>
   );
 }
-

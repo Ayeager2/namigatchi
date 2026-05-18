@@ -192,6 +192,104 @@ Tier 3 tools have fragment costs and higher durability.
 
 ---
 
+## Era 1 — bird tiering & grub birds
+
+The current "Hunt" mechanic catches generic "Bird" → "Bird Meat" with the Net. Per design feedback, this needs to be **tiered by tool** so progression scales hunting alongside everything else.
+
+### New content shape
+
+- **Grub Bird** — mutated, flightless bird that eats grubs. The ONLY bird the Net can catch. Drops "Grub Bird Meat."
+- **Grub Bird Meat** — food, **nutrition: 10** (capped low — survival food, like grubs themselves). Replaces the current generic "Bird Meat" in early game.
+- **Bow unlocks higher-tier birds** — at Era 2 when Bow is crafted, Hunt rolls against a different table with better birds. Bigger nutrition, possibly rarer drops (feathers in larger qty).
+
+### Implementation sketch
+
+- `src/content/hunting.js` (or `hunting.js` already exists per ActionPanel import) — split `huntPool` by tool:
+  - With Net only: only grub birds available
+  - With Bow: better birds in pool (proper Birds — "Carrion Hawk" etc.)
+- Hunt action selects pool by which tool the player owns. Tool tier defines reach.
+- `src/content/resources.js` — rename `bird_meat` → `grub_bird_meat`, set `nutrition: 10`. Add new food entries for Era 2 birds (`hawk_meat: { nutrition: 25 }` etc.).
+- Migration: existing saves with `bird_meat` in inventory should migrate to `grub_bird_meat` on load. Add to `src/state/save.js` `migrate()`.
+
+### Why this matters
+
+Tying gather/hunt yields to the tools owned makes every tool craft *feel* like an upgrade. Currently "I have a Net" gives a flat hunt-button on-screen but the rewards are the same regardless of tool. With tiering, "I have a Bow" means I'm hunting bigger game — the tool's existence changes the game world's offering.
+
+---
+
+## Rest method scales with home tier
+
+Per design feedback: rest should be **punishing at first** (cold ground, no shelter) and *gradually* improve as the player's home upgrades. Currently rest gives a flat energy/HP/resolve boost.
+
+### Design
+
+| Sleep location | Energy gain | Hunger penalty | Thirst penalty | Sanity gain | Resolve gain |
+|---|---|---|---|---|---|
+| Bare ground (no hut) | +10 | +5 hunger | +5 thirst | -2 | 0 |
+| Hut | +30 | +3 hunger | +3 thirst | +1 | +3 |
+| Hut + Fire Pit | +50 | +2 hunger | +2 thirst | +2 | +3 |
+| Home | +60 | +1 hunger | +1 thirst | +3 | +5 |
+| Home + future upgrades | +70+ | 0 | 0 | +4 | +6 |
+
+### Implementation sketch
+
+- `src/content/survival.js` rest action already has `bonusFromBuilding` for fire pit. Extend with negative deltas when no shelter, positive when home built. Or: compute a "shelter tier" and pick the right effect set.
+- `src/systems/survival.js` `performSurvivalAction("rest")` reads the shelter tier and applies. New messages per tier: "you shiver against the cold stone…" vs "you sleep deeply in your home."
+- Tier source: `getShelterTier(state)` — derives from `state.run.built` (none / hut / hut+firepit / home / home+future).
+
+### Wired now (partial — sanity check needed)
+
+The current rest action already has `bonusFromBuilding: { firepit: { energy: +20, hp: +5, happiness: +2, sanity: +1 } }` and Home grants `restBonus { energy:10, happiness:3, sanity:2 }` (per ERA_PLAN above). So part of this exists. **The "punishing without shelter" half doesn't.** That's the new design — rest *before* hut should drain you, not refill you. Currently rest before hut just gives flat energy. Fix.
+
+---
+
+## Era 2 Home tab — personal upgrades + visual altar
+
+Per design feedback: when the **Home** building is constructed, a new "Home" tab/panel appears on the main UI. This is the player's *personal upgrade space*, distinct from Buildings (which is the *settlement* tree). It's where the player decorates and expands their dwelling — adding interior areas that unlock new actions/buildings.
+
+### Vision
+
+- **Home tab opens** once the Home building is built. Trigger card in the left column or main UI: "Your Home →"
+- Inside is a sub-tree (or grid) of **interior upgrades**:
+  - **Forge area** — must be researched/built before the standalone Forge building can be raised (or: replaces the Forge as a Home interior)
+  - **Alchemy bench** — Era 3 interior, unlocks alchemy at home
+  - **Hunting trophies wall** — cosmetic / passive
+  - **Library/study** — research speed bonus
+  - **Bedroom upgrade** — better rest values (ties into rest-tier design above)
+  - **Stone Altar** — the centerpiece (see below)
+- The current standalone Forge / Alembic buildings may eventually fold INTO the Home (as interior upgrades) rather than being separate world structures. **Decision pending.**
+- Each interior upgrade has its own cost and "research from the stone" requirement.
+
+### The Stone Altar (Era 2 → 3 transition piece)
+
+A very expensive Home interior that the player slowly builds out as a **visual progression record**. Each milestone the player completes adds a new etched relief to the altar's base:
+
+- A small home etched (you raised the Home building)
+- Blacksmith icons etched (you crafted N tools)
+- Hunting marks etched (you reached Hunting Lv X)
+- An eye etched (you awakened the rock)
+- An eldritch glyph etched (you researched Arcane Awakening)
+- Etc.
+
+The altar **starts as a basic stone pedestal** (~maxes out Era 2's resource budget to build the base). As eras progress, etchings appear automatically as milestones land. It's the visual record of the player's run — a museum of their own progression that they pass each time they visit their Home tab.
+
+**Cost (proposed):** Base pedestal ~ 200 stone + 100 wood + 20 fragments. *Significant* expense — meant to drain Era 2 reserves and signal "you're ready for Era 3 now." The etchings are free (auto-added on milestone completion); the base is the bottleneck.
+
+**Long arc tie-in:** This is where the Era 3 arcane work *begins* — the altar is what fragments are eventually offered to. Building the altar enables certain Era 3 rituals/spells to cast at higher power. The roadmap's "rock as connective tissue" insight has its physical manifestation here.
+
+### Implementation sketch
+
+- New top-level UI element: **Home tab** — a fourth right-column tab maybe? Or a new trigger card next to Buildings? **Decision pending.**
+- New content type: `src/content/homeUpgrades.js` (or extend buildings with `category: "home-interior"`) — each upgrade has cost, research requirement, effect.
+- Stone Altar is one entry in that list, with a sub-list of etchings that are computed from state milestones (similar to scene composition — pure function of state).
+- New milestone-tracking state if needed: `persistent.altarEtchings: { etchingId: { earnedAt } }` so etchings persist across prestige. Or compute on-the-fly from existing milestone stats.
+
+### Why this matters
+
+It creates a *personal* progression space distinct from the *outward* settlement progression. The Buildings tree is "what you built in the world." The Home tab is "what's inside your own walls." The altar is "what you've become" expressed visually. Three nested layers of progression display.
+
+---
+
 ## Open design questions (no decisions made yet)
 
 - **Spirit refill curve**: rest-only vs. ritual-action vs. passive

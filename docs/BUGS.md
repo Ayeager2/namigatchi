@@ -10,6 +10,68 @@ Add new bugs at the top. When fixing, leave the entry with status `fixed` and a 
 
 ---
 
+## #008 — Era background indicator (visual cue on era change)
+
+**Status:** open
+**Severity:** paper-cut
+
+**Want:** Some kind of background indicator when a new era starts — a subtle treatment that tells the player "the world has shifted" beyond just the era name in the header. Could be:
+- A subtle color shift on the page/main panel background per era (Era 0 = ashen brown, Era 1 = slightly warmer, Era 3 = purple-tinted etc.)
+- A one-shot animation that plays on era transition (radial glow expanding from center?)
+- A small era badge in the header that's more visually distinct
+- Possibly tying into the master scene's evolving image (when art arrives)
+
+**Notes:** Per-era CSS body classes already exist conceptually (we have body class infrastructure for themes). Could add `body.era-N` and let CSS adjust accents. The transition story event already fires — could trigger a CSS keyframe to play once. Worth confirming with user whether they want the *background to change permanently per era*, or just a *one-shot transition flourish*.
+
+---
+
+## #007 — Notification badge on main page for available tree items
+
+**Status:** open
+**Severity:** medium
+
+**Want:** When the player has the materials to either build or research something they haven't yet, a small red circle notification appears on the relevant trigger card (Buildings card / Stone strip for Teachings). Shows the count.
+
+**Sketch:** `Buildings (3 available) 🔴3`. Red circle in corner of trigger card with the count. Disappears when count = 0.
+
+**Notes:** Easy to compute — iterate visible buildings/research, count where `canBuild(state, b.id).ok` or `canListen(state, r.id).ok`. Pair this with #006 below — once items get a green + in the tree, the count on the trigger card tells the player "stop in here, there's stuff to do."
+
+---
+
+## #006 — Green "+" affordance indicator on tree nodes
+
+**Status:** open
+**Severity:** medium
+
+**Want:** Tree node visual cue showing the player has the materials to build/research it RIGHT NOW. Small green "+" badge in the corner of the node SVG circle. Distinct from "unlocked / requirements met" (which the existing border-color shows) — this is specifically "you can act on this *now*."
+
+**Sketch:** In `BuildingsTreeModal.jsx` and `TeachingsTreeModal.jsx`, after computing the node state (`available` / `locked` / `built`), also compute `canAfford = canBuild(state, b.id).ok` (or `canListen` for teachings). If true and not yet built/learned, render an additional `<text>` or `<circle>` in the SVG group with the "+" mark. CSS class `.tree-node-affordable-mark` for styling.
+
+**Notes:** Pairs with #005 — once locked nodes are visible, the green + tells the player which ones they can pursue right now versus which need more progression. Pairs with #007 (notification badge) for the "click in to see what's actionable" pattern.
+
+---
+
+## #005 — Tree modals hide nodes whose prerequisites aren't met
+
+**Status:** open
+**Severity:** bad
+
+**Repro:** Open Buildings tree modal. Only Hut, Fire Pit, Forge, Home, and a few others are visible. The Stone Walls, Silo, Farmhouse, Alembic, Water Pit, Garden, and Cairn are all in `content/buildings.js` but don't show in the tree. Same for Teachings — tier-3+ nodes that require certain alignment / research / building disappear from view.
+
+**Root cause:** `getVisibleBuildings` in `src/systems/building.js` and `getVisibleResearch` in `src/systems/research.js` filter out anything whose `requires.researched` / `requires.hasBuilding` / `requires.alignment` aren't satisfied. The trigger card's "available" count uses this fine, but the **tree modal** consumes the same filter — so it never shows locked content. Result: the player can't see the tree growing ahead of them.
+
+**Fix approach:**
+1. Split into two functions per system:
+   - `getKnownBuildings(state)` — returns everything that should appear in the tree (everything except truly secret content). Includes locked nodes.
+   - `getAvailableBuildings(state)` — returns only buildings the player can actually start working on (current behavior of `getVisibleBuildings`).
+2. Tree modals use `getKnownBuildings`. Trigger card uses `getAvailableBuildings` for the count.
+3. Add a node state `locked` so the tree can render locked nodes dimmed with a tooltip explaining what's needed.
+4. Alignment-gated nodes (good/evil-requiring teachings) should stay hidden — those are designed to *appear* when alignment tips. Distinguish that case from "needs a building."
+
+**Pairs with #006 and #007** — once the locked nodes are visible, the affordance "+" badge and notification count become the meaningful UI signals.
+
+---
+
 ## #004 — Wheel-zoom in tree modals scrolls the page behind
 
 **Status:** ✅ fixed — 2026-05

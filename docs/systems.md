@@ -380,6 +380,33 @@ Live in `tools/`. See `tools/README.md` for the full list.
 
 ## Pipeline (planned, not built)
 
+### ⬜ Home tab (Era 2 → 3) — personal upgrade space + Stone Altar
+**Vision.** Once the Home building is constructed, a dedicated "Home" tab/panel appears. It's the player's *interior* progression: forge area, alchemy bench, hunting trophies, library, bedroom upgrades, and the centerpiece **Stone Altar**. The Altar is a very expensive Era-2-maxing build that progressively etches the player's milestones into its stone base — a personal record of their run. Eventually the Altar enables higher-power Era 3 rituals/spells.
+
+**Distinct from Buildings tree.** Buildings = outward (settlement). Home = inward (personal). Three nested progression layers.
+
+**Trigger to build.** Once Era 2 settlement chain feels stable. See `docs/ERA_PLAN.md` for full design.
+
+---
+
+### ⬜ Tiered bird hunting (Era 1 expansion)
+**Vision.** Net catches only **Grub Birds** (flightless mutants that eat grubs) → drops `grub_bird_meat` (nutrition 10 — low, survival food). Bow unlocks higher-tier birds (Carrion Hawks etc.) with proper nutrition. Tool tier defines hunt reach.
+
+**Migration concern.** Existing saves with generic `bird_meat` need to migrate to `grub_bird_meat` on load.
+
+**Trigger to build.** Pairs with Era 1 polish pass.
+
+---
+
+### ⬜ Shelter-tier rest (Era 1 expansion)
+**Vision.** Bare-ground sleep BEFORE the hut is built should *punish* the player (drain extra hunger/thirst, minimal energy). Each shelter upgrade improves the rest action's payoff. Currently rest gives positive returns even without a hut. The "harshness of waking in the ash" should extend to sleeping in the ash.
+
+**Trigger to build.** Pairs with Era 1 polish pass.
+
+---
+
+## Pipeline (planned, not built) — earlier entries
+
 ### ⬜ Companions / NPCs / Villagers
 **Vision.** Some choice events lead to NPCs joining. They become **villagers** that need to be kept happy, or they rebel and the player loses progression. Each villager has loyalty/happiness/skill. Can be assigned to tasks (auto-gather, auto-build, auto-craft, auto-research). Their alignment drifts based on the player's choices and how they're treated. The player rules them — well or badly — and the villagers either thrive or revolt. Revolt = setback (resources lost, structures damaged, possibly forced run reset?). The "evil ruler" path keeps villagers in line by force; "good ruler" path keeps them through care. Both work — but the cost is different.
 

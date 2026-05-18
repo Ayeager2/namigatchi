@@ -44,7 +44,7 @@ export const HUNT_CONFIG = {
   // The point is that hunting is a deliberate, energy-expensive choice.
   minCooldownMs: 2500,
   // Energy gate. Hunting is brutal; you need actual energy to attempt it.
-  minEnergyToHunt: 10,
+  minEnergyToHunt: 40,
   // Bonus thirst spike on successful bird drops (you sprinted, you wrestled).
   bonusThirstOnBird: 2,
 };

@@ -29,7 +29,7 @@ export function canHunt(state) {
   if (survivalActive(state)) {
     const stats = state.run.stats || {};
     if ((stats.energy ?? 100) <= HUNT_CONFIG.minEnergyToHunt) {
-      return { ok: false, reason: "Too tired to stalk. Rest first.", msRemaining: 0 };
+      return { ok: false, reason: "Too tired.", msRemaining: 0 };
     }
   }
   const lastAt = state.run.lastHuntAt || 0;

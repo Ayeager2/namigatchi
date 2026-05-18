@@ -117,7 +117,7 @@ export function applyPassiveProduction(state) {
 
 function passiveLogLine(res, qty) {
   const lines = {
-    water: `💧 The well yields water. +${qty}.`,
+    water: `💧 The water hole yields water. +${qty}.`,
     food: `🪱 The garden gives. +${qty} grub${qty !== 1 ? "s" : ""}.`,
     wood: `🪵 The scrub yields wood. +${qty}.`,
   };

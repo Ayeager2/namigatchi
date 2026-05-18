@@ -54,7 +54,7 @@ export const RESOURCES = {
     name: "Grubs",
     icon: "🪱",
     category: "food",
-    nutrition: 10,
+    nutrition: 3,
     tier: 1,
     description: "Pale, wriggling. They squirm in the palm. Better than nothing. Barely.",
     baseCap: 15,

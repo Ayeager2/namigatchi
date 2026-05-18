@@ -4,6 +4,8 @@ This doc lets you (or a fresh AI assistant) pick up exactly where the previous s
 
 Read this **first** when resuming work. The other docs are reference; this is the briefing.
 
+> **🤖 AI assistants:** read [`docs/AI_CONTEXT.md`](AI_CONTEXT.md) FIRST. It's the dense pointer-rich spine designed for fast onboarding (architectural rules, file map, where-to-add-what tables, state shape). Then come back here for current state and next moves. Skip the human-narrative docs (`roadmap.md`, `architecture.md`) unless you need design rationale for a specific decision.
+
 ---
 
 ## What is this project?
@@ -35,6 +37,8 @@ Open `http://localhost:5173` in browser. That's the whole setup.
 
 ## Reading order for the docs
 
+### For humans
+
 Read in this order **before doing anything**:
 
 1. **`docs/roadmap.md`** — vision, era ladder, design decisions made, open questions
@@ -42,8 +46,15 @@ Read in this order **before doing anything**:
 3. **`docs/systems.md`** — current state of every gameplay system, with status legend (🟢 shipped · 🟡 partial · ⬜ planned · 🔮 future-vision). This is the live "what's where" doc.
 4. **`docs/BUGS.md`** — known bugs / paper-cuts to fix in polish passes. Add new bugs here as you find them.
 5. **`docs/ERA_PLAN.md`** — living plan for Era 2 expansion + Era 3 content. Concrete tasks live in the in-app todo list; this doc is the design rationale.
-5. **`tools/README.md`** — dev tools (audio import wizard, etc.)
-6. **This file** — current state and how to resume
+6. **`tools/README.md`** — dev tools (audio import wizard, etc.)
+7. **This file** — current state and how to resume
+
+### For AI assistants
+
+1. **`docs/AI_CONTEXT.md`** — dense pointer-rich onboarding (rules + file map + state shape + add-this-here tables). ~5 min read.
+2. **`docs/HANDOFF.md`** (this file) — current state + immediate next moves.
+3. **`docs/systems.md`** — open only when working on a specific system; find its entry.
+4. Roadmap / architecture only when you specifically need design rationale.
 
 ---
 

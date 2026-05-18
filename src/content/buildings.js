@@ -14,7 +14,7 @@ export const BUILDINGS = {
   hut: {
     id: "hut", name: "Hut", icon: "🛖", category: "shelter",
     description: "A simple shelter of stone and wood.",
-    cost: { wood: 60, stone: 25, water: 2 },
+    cost: { wood: 50, stone: 25, water: 2 },
     requires: { rockAwakened: true },
     effect: { gatherBonus: 1, gatherSpeedup: 150 },
     effectSummary: "+1 gather yield · -150ms gather cooldown · activates survival",
@@ -37,14 +37,14 @@ export const BUILDINGS = {
   },
 
   well: {
-    id: "well", name: "Well", icon: "🪣", category: "comfort",
+    id: "water pit", name: "Water pit", icon: "🪣", category: "comfort",
     description: "A pit dug deep, lined with stone. The earth holds water in its bones.",
     cost: { wood: 30, stone: 40, water: 5 },
     requires: { researched: "waterCarrying" },
     effect: {},
-    passiveProduce: { water: { perMinute: 2 } },
-    effectSummary: "+2 water / minute — passive trickle, even while away.",
-    onBuiltMessage: "🪣 The well goes deep. Water seeps in slow.",
+    passiveProduce: { water: { perMinute: 1 } },
+    effectSummary: "+g water / minute — passive trickle, even while away.",
+    onBuiltMessage: "🪣 The water pit goes deep. Water seeps in slow.",
     whisperOnBuilt: "The stone whispers: the earth has been thirsty too.",
     tier: 3, col: 0, parents: ["hut"],
   },
@@ -52,7 +52,7 @@ export const BUILDINGS = {
   garden: {
     id: "garden", name: "Garden", icon: "🌱", category: "comfort",
     description: "A patch of soil, turned and tended. Grubs nest where the dirt is loosened.",
-    cost: { wood: 25, stone: 15, water: 8, food: 3 },
+    cost: { wood: 25, stone: 15, water: 20, food: 10 },
     requires: { researched: "foraging" },
     effect: {},
     passiveProduce: { food: { perMinute: 3 } },

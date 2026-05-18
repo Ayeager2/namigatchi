@@ -45,6 +45,7 @@ export function useGameStore() {
     prestige: () => dispatch({ type: ACTIONS.PRESTIGE }),
     markSplashSeen: () => dispatch({ type: ACTIONS.MARK_SPLASH_SEEN }),
     clearLog: () => dispatch({ type: ACTIONS.CLEAR_LOG }),
+    buyEchoUpgrade: (upgradeId) => dispatch({ type: ACTIONS.BUY_ECHO_UPGRADE, upgradeId }),
     devPatch: (patch) => dispatch({ type: ACTIONS.DEV_PATCH, patch }),
   };
 

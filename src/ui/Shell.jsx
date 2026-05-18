@@ -16,6 +16,7 @@ import EventModal from "./EventModal.jsx";
 import SettingsModal from "./SettingsModal.jsx";
 import SettingsTrigger from "./SettingsTrigger.jsx";
 import PrestigeModal from "./PrestigeModal.jsx";
+import PrestigeShop from "./PrestigeShop.jsx";
 import { getPrestigeReward } from "../systems/prestige.js";
 import { computeEra, getEra } from "../systems/era.js";
 
@@ -26,6 +27,7 @@ export default function Shell({ state, actions, settingsHook }) {
   const [spellsOpen, setSpellsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [prestigeOpen, setPrestigeOpen] = useState(false);
+  const [shopOpen, setShopOpen] = useState(false);
   const [devOpen, setDevOpen] = useDevPanelToggle(settingsHook.settings);
   const devAvailable = isDevAvailable(settingsHook.settings);
 
@@ -49,7 +51,14 @@ export default function Shell({ state, actions, settingsHook }) {
         <div className="shell-meta">
           {era > 0 && <span className="meta-item meta-era">{eraInfo.name}</span>}
           {showEchoes && (
-            <span className="meta-item">Echoes: {state.persistent.echoes}</span>
+            <button
+              className="meta-item meta-item--echoes"
+              onClick={() => setShopOpen(true)}
+              title="Open the Echo Shop"
+              type="button"
+            >
+              🌀 Echoes: {state.persistent.echoes}
+            </button>
           )}
         </div>
       </header>
@@ -154,8 +163,21 @@ export default function Shell({ state, actions, settingsHook }) {
         <PrestigeModal
           mode={eligibleForPrestige ? "prestige" : "reset"}
           reward={reward}
+          echoes={state.persistent.echoes}
           onConfirm={handleConfirmReset}
+          onOpenShop={() => {
+            setPrestigeOpen(false);
+            setShopOpen(true);
+          }}
           onClose={() => setPrestigeOpen(false)}
+        />
+      )}
+
+      {shopOpen && (
+        <PrestigeShop
+          state={state}
+          actions={actions}
+          onClose={() => setShopOpen(false)}
         />
       )}
 

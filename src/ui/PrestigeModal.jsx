@@ -1,15 +1,8 @@
 // Channel-the-Rock prestige confirm modal.
-//
-// Two variants — both replace the ugly window.confirm() flow:
-//   - mode="prestige" — eligible for Echo grant. Dramatic flavor + Echoes
-//     breakdown + "Channel the Rock" button in mystical purple/gold.
-//   - mode="reset" — early-game wipe with no rewards. Calmer warning.
-//
-// Esc closes. Click overlay closes. Click confirm fires the action.
 
 import { useEffect } from "react";
 
-export default function PrestigeModal({ mode, reward, onConfirm, onClose }) {
+export default function PrestigeModal({ mode, reward, echoes = 0, onConfirm, onOpenShop, onClose }) {
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") onClose();
@@ -33,7 +26,7 @@ export default function PrestigeModal({ mode, reward, onConfirm, onClose }) {
         aria-label={isPrestige ? "Channel the Rock" : "Reset run"}
       >
         {isPrestige ? (
-          <PrestigeBody reward={reward} />
+          <PrestigeBody reward={reward} echoes={echoes} />
         ) : (
           <ResetBody />
         )}
@@ -46,6 +39,16 @@ export default function PrestigeModal({ mode, reward, onConfirm, onClose }) {
           >
             Cancel
           </button>
+          {isPrestige && onOpenShop && echoes > 0 && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={onOpenShop}
+              title="Spend your existing Echoes before channeling"
+            >
+              🌀 Echo Shop ({echoes})
+            </button>
+          )}
           {isPrestige ? (
             <button
               type="button"
@@ -79,7 +82,7 @@ export default function PrestigeModal({ mode, reward, onConfirm, onClose }) {
   );
 }
 
-function PrestigeBody({ reward }) {
+function PrestigeBody({ reward, echoes }) {
   return (
     <>
       <header className="prestige-header">
@@ -118,6 +121,13 @@ function PrestigeBody({ reward }) {
             </ul>
           )}
         </div>
+
+        {echoes > 0 && (
+          <p className="prestige-flavor prestige-flavor--dim">
+            After channeling, you will hold{" "}
+            <strong>{echoes + (reward?.echoes || 0)} Echoes</strong> total.
+          </p>
+        )}
 
         <p className="prestige-warn muted">
           This run ends here. Inventory, buildings, research, tools, skills —

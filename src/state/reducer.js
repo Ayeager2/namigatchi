@@ -10,6 +10,7 @@ import { performHunt } from "../systems/hunting.js";
 import { performSurvivalAction } from "../systems/survival.js";
 import { performCastSpell } from "../systems/spells.js";
 import { performUseTool } from "../systems/consumables.js";
+import { performBuyEchoUpgrade, applyEchoUpgrades } from "../systems/echoes.js";
 import {
   applyPassiveProduction,
   clearStalePests,
@@ -66,7 +67,8 @@ export function reducer(state, action) {
           runsStarted: lifetimeStats.runsStarted + 1,
         },
       };
-      return { persistent, run: freshRun() };
+      const run = applyEchoUpgrades(freshRun(), persistent);
+      return { persistent, run };
     }
 
     case ACTIONS.PRESTIGE: {
@@ -82,7 +84,16 @@ export function reducer(state, action) {
           runsCompleted: lifetimeStats.runsCompleted + 1,
         },
       };
-      return { persistent, run: freshRun() };
+      const run = applyEchoUpgrades(freshRun(), persistent);
+      return { persistent, run };
+    }
+
+    case ACTIONS.BUY_ECHO_UPGRADE: {
+      const { persistent, events } = performBuyEchoUpgrade(
+        state.persistent,
+        action.upgradeId
+      );
+      return { persistent, run: appendLog(state.run, events) };
     }
 
     case ACTIONS.GATHER: {
@@ -276,9 +287,6 @@ export function reducer(state, action) {
       const run = patch.run || state.run;
       const persistent = patch.persistent || state.persistent;
       const events = [];
-      // Optional auxiliary events from the dev helper (e.g. a force-fired
-      // threat's own flavor messages). These land in the log alongside the
-      // patch's msg announcement.
       if (Array.isArray(patch.events)) events.push(...patch.events);
       if (patch.msg) events.push({ kind: "dev", message: patch.msg });
       return { persistent, run: appendLog(run, events) };

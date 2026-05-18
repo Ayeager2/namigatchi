@@ -3497,3 +3497,113 @@ body.motion-reduced .tool-durability-fill {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
+
+/* ---- Prestige shop ---- */
+
+.meta-item--echoes {
+  background: linear-gradient(180deg, rgba(180, 140, 255, 0.12), rgba(106, 92, 176, 0.18));
+  border: 1px solid rgba(180, 140, 255, 0.35);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  border-radius: 12px;
+  padding: 3px 10px;
+  transition: background 120ms, transform 80ms;
+}
+
+.meta-item--echoes:hover {
+  background: linear-gradient(180deg, rgba(180, 140, 255, 0.22), rgba(106, 92, 176, 0.28));
+}
+
+.meta-item--echoes:active {
+  transform: scale(0.97);
+}
+
+.modal--echo-shop {
+  max-width: 560px;
+}
+
+.echo-shop-header {
+  align-items: flex-start;
+}
+
+.echo-shop-help {
+  font-size: 12px;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.echo-shop-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.echo-group-name {
+  font-size: 14px;
+  margin: 0 0 6px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.echo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.echo-row {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: border-color 120ms, opacity 120ms;
+}
+
+.echo-row.is-maxed {
+  opacity: 0.75;
+  border-color: rgba(180, 140, 255, 0.4);
+  background: rgba(180, 140, 255, 0.05);
+}
+
+.echo-row.is-locked {
+  opacity: 0.7;
+}
+
+.echo-row.is-affordable {
+  border-color: rgba(180, 140, 255, 0.45);
+}
+
+.echo-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.echo-row-icon {
+  font-size: 18px;
+}
+
+.echo-row-name {
+  font-weight: 600;
+  flex: 1;
+}
+
+.echo-row-level {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.echo-row-buy {
+  min-width: 96px;
+}
+
+.echo-row-desc {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+}

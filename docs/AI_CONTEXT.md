@@ -6,7 +6,7 @@
 
 ## Project (3 lines)
 
-**Namigatchi** — React 19 + Vite browser-only incremental/idle game with cosmic horror flavor.
+**Lithos** — React 19 + Vite browser-only incremental/idle game with cosmic horror flavor.
 Long arc: 8 eras (Scavenger → Awakening → Settler → Awakened World → Arcane Industry → Eldritch Reckoning → Ascendant → Cosmic). Currently shipped: Era 0–3.
 Solo passion project, Steam-bound eventually. Accessibility-first, moddability-ready, content-as-data.
 

@@ -1,4 +1,4 @@
-# Namigatchi — Systems Checklist
+# Lithos — Systems Checklist
 
 A living tracker of every gameplay system in the project. Each entry has:
 

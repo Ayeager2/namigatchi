@@ -45,7 +45,7 @@ export default function Shell({ state, actions, settingsHook }) {
   return (
     <div className="shell">
       <header className="shell-header">
-        <h1>Namigatchi</h1>
+        <h1>Lithos</h1>
         <div className="shell-meta">
           {era > 0 && <span className="meta-item meta-era">{eraInfo.name}</span>}
           {showEchoes && (

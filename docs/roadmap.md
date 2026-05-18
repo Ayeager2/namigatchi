@@ -1,4 +1,4 @@
-# Namigatchi — Roadmap & Vision
+# Lithos — Roadmap & Vision
 
 A living document capturing the vision for the project and the architectural decisions that follow from it. Built up via conversation. Update as the vision sharpens.
 

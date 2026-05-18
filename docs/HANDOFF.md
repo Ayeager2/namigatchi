@@ -10,7 +10,7 @@ Read this **first** when resuming work. The other docs are reference; this is th
 
 ## What is this project?
 
-**Namigatchi** is a long-arc incremental/idle game with cosmic horror flavor, built in React + Vite (browser-only for now, eventually Steam-bound).
+**Lithos** is a long-arc incremental/idle game with cosmic horror flavor, built in React + Vite (browser-only for now, eventually Steam-bound).
 
 You wake in a poisoned post-apocalyptic wasteland. You find a rock that talks to you in whispers. You progress through 8 eras (Scavenger → Awakening → Settler → Awakened World → Arcane Industry → Eldritch Reckoning → Ascendant → Cosmic) while the rock evolves alongside you, your hidden alignment crystallizes (good/dark), and the world transforms.
 

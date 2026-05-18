@@ -1,4 +1,4 @@
-# Namigatchi — Architecture Audit
+# Lithos — Architecture Audit
 
 A read-through of the codebase as of commit `9191057`. The goal isn't to nitpick — it's to give you an honest picture of what you have, what's solid, what's wobbly, and what'll start to bite as the project grows. This is the reference doc for "track 1" before we talk vision in "track 2".
 

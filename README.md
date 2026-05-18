@@ -1,4 +1,4 @@
-# Namigatchi
+# Lithos
 
 A long-arc incremental/idle game with cosmic horror flavor. You wake in a poisoned post-apocalyptic wasteland. You find a rock that talks to you. You progress through eight eras (Scavenger → Cosmic) while the rock evolves alongside you, your hidden alignment crystallizes, and the world transforms around you.
 

@@ -155,7 +155,7 @@ When in doubt, ask before assuming.
 
 If starting a new conversation (different machine, new session, different model — anything that loses prior context), paste this prompt at the start:
 
-> I'm continuing work on **namigatchi**, a JS/React long-arc incremental game with cosmic horror flavor. Built in React 19 + Vite, browser-only for now, eventually Steam-bound.
+> I'm continuing work on **Lithos**, a JS/React long-arc incremental game with cosmic horror flavor. Built in React 19 + Vite, browser-only for now, eventually Steam-bound.
 >
 > **Before suggesting anything, please read these in order:**
 > 1. `docs/HANDOFF.md` — current state and onboarding

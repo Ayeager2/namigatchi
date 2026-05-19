@@ -132,24 +132,37 @@ With everything Era 1 has to offer: 900ms (about 40% faster than base). Holding 
 ---
 
 ### 🟢 Buildings
-**State.** Tree-based modal with left-to-right SVG layout. Currently 5 buildings (Hut, Fire Pit, Well, Garden, Cairn). Hut requires rock awakening. Fire Pit requires Fire research. Well requires Water Carrying research; Garden requires Foraging. Well & Garden produce resources passively (see Idle / passive generation entry). Buildings have categories (shelter, comfort, tools, industry, arcane, sovereignty, cosmos) for future grouping. Each provides effects (gather bonus, rest bonus, passive output, etc.).
+**State.** Tree-based modal with left-to-right SVG layout. **11 buildings shipped** across Eras 0–3:
+- **Era 1 (shelter/comfort):** Hut, Fire Pit, Well, Garden, Cairn
+- **Era 2 (industry/settlement):** Forge, Home, Stone Walls, Rudimentary Silo, Rudimentary Farmhouse
+- **Era 3 (arcane):** Alembic
+
+Each gated by a combination of `requires.researched` / `requires.hasBuilding` / `requires.rockAwakened`. Categories drive tree color coding (shelter, comfort, tools, industry, arcane, sovereignty, cosmos). Effects are aggregator-driven: gather yield, gather cooldown reduction, rest bonus, passive production, storage caps, spoilage multiplier, defense, food-steal reduction.
 
 **Where.** `src/systems/building.js`, `src/content/buildings.js`, `src/ui/BuildingsTreeModal.jsx`, `src/ui/BuildingsPanel.jsx` (trigger).
 
-**Next steps.** Add 3–5 more Era 1 / Era 2 buildings (Well, Garden, Forge, Tool Shed, Granary). Each entry just goes in `buildings.js` with tier/col/parents.
+**Known issue.** See **BUGS.md #005** — tree modal hides nodes whose prerequisites aren't met, so most of the 11 buildings appear invisible to the player. Fix involves splitting `getVisibleBuildings` into "known" (everything for tree) vs "available" (only buildable now).
 
-**Long arc.** Many tiers of buildings. Walls/defensive structures will add to defense. Magical buildings in Era 3+. Companions (NPCs) may require specific structures (a barracks, a hearth, etc.).
+**Long arc.** Many tiers ahead. Era 4+ magitek workshops, companion-related structures, Era 3+ Stone Altar (see Pipeline). Tools-tier-3 buildings (Sanctum?) deferred.
 
 ---
 
 ### 🟢 Teachings (research)
-**State.** Bottom-up SVG tree modal. The rock whispers; player offers resources to listen. Currently 8 teachings: Foraging, Fire, Knapping (tier 1); Vigilance, Hidden Stores, Mending (tier 2); Cooking, Tracking (tier 3 — refinements that build on tier 2). Resets on prestige.
+**State.** Bottom-up SVG tree modal. The rock whispers; player offers resources to listen. **22 teachings shipped** across Eras 1–3:
+- **Era 1 tier 1 (survival foundations):** Foraging, Fire, Knapping
+- **Era 1 tier 2 (defense + craft):** Vigilance, Hidden Stores, Mending, Net Weaving, Hardened Wood (digging stick)
+- **Era 1 tier 3 (refinements):** Cooking, Tracking, Water Carrying, Trapping
+- **Era 2 (industry):** Smithing, Fletching, Home
+- **Era 3 (arcane):** Arcane Awakening, Mending Word, Soothe, Inner Hearth, Alchemy
+- **Era 3 alignment-gated:** Banish (good ≥ 3), Bend (evil ≥ 3)
+
+Resets on prestige. Tree positions hand-coded (`tier` + `col` + `parents`).
 
 **Where.** `src/systems/research.js`, `src/content/research.js`, `src/ui/TeachingsTreeModal.jsx`.
 
-**Next steps.** Add tier 2/3 nodes that branch from existing tier 1: Tracking, Cooking (parent: Fire), Trapping (parent: Vigilance), Tool-Making (parent: Knapping), etc.
+**Known issue.** Same root cause as buildings: see **BUGS.md #005** — `getVisibleResearch` hides nodes with unmet prereqs.
 
-**Long arc.** Each era unlocks a new "discipline" of teachings. Tier 3 = Arcana (magic). Tier 4 = Industry. Tier 5 = Forbidden (eldritch). Tier 6 = Sovereignty. Tier 7 = Cosmos. The tree fills out over the entire game.
+**Long arc.** Era 4 = Industry tier. Era 5 = Forbidden (eldritch). Era 6 = Sovereignty. Era 7 = Cosmos. Tree fills out across the whole game.
 
 ---
 
@@ -176,37 +189,50 @@ With everything Era 1 has to offer: 900ms (about 40% faster than base). Holding 
 ---
 
 ### 🟢 Threats
-**State.** Random encounters during gather (~7% chance). Currently 1 threat: Scavenger — steals 1–3 food, occasionally does 0–2 chip damage. Defense (from research) reduces both. Hidden Stores research reduces theft further.
+**State.** Random encounters during gather. **4 threats shipped:**
+- **Scavenger** (Era 1, ~7% chance) — steals 1–3 food, 0–2 chip damage. Defense (Vigilance research + Stone Walls building) reduces both. Hidden Stores reduces theft further.
+- **Whisperer** (Era ≥ 3, ~4%) — sanity-only drain (3–5). Defense doesn't apply. Banish/Wards clear it.
+- **Hollow Hound** (Era ≥ 3, `kind: "demon"`) — HP + sanity mixed damage. `defenseHalf: true` — only half of physical defense applies. Sanity damage never blocked. Warding Talisman halves both.
+- **Iconoclast** (Era ≥ 3, ~1%) — rarest. Resolve + Sanity drain via `happinessDrain`. No HP damage yet (building-destruction variant deferred — see ERA_PLAN).
+
+The `warded` status (5 min after Banish spell) rejects all `kind: "demon"` threats while active.
 
 **Where.** `src/systems/threats.js`, `src/content/threats.js`.
 
-**Next steps.** Add 2–3 more threat types: Wraith (does sanity damage, no food theft), Beast (more damage, less common), Scavenger Pack (rare, big food theft). Era 2+ threats: bandits (organized), demons (sanity-heavy). Era 3+: eldritch (sanity wipe).
-
-**Long arc.** Threats become COMBAT in later eras — player can fight back, not just defend. Tame creatures (the rock's evolution into companion-monster) help defend. Buildings provide passive defense (walls, watchtowers).
+**Long arc.** Era 4+ bandits (organized, large food theft, defense-respecting). Era 5+ eldritch sanity-wipes. Threats become COMBAT later eras — fight back, not just absorb. Tame creatures help defend.
 
 ---
 
 ### 🟢 Random events
-**State.** Two trigger paths: real-time interval (every ~60s of play, mostly nothing happens) and gather-triggered (4% chance per gather). Fire-and-react events apply effects directly. Choice events open a modal with options. Severity scales with era. Cooldowns prevent repeats. Currently 7 events: 5 fire-and-react (Wind from East, Cracked Earth, Hidden Spring, Strange Lights, Blood Moon) + 2 choice events (Wandering Child, Hurt Elder).
+**State.** Two trigger paths: real-time interval (every ~60s, mostly nothing happens) and gather-triggered (4% chance per gather). Fire-and-react events apply effects directly. Choice events open a modal. Severity scales with era. Cooldowns prevent repeats. **~14 events shipped** across:
+- **Era 1 fire-and-react:** Wind from East, Cracked Earth, Hidden Spring, Strange Lights, Blood Moon
+- **Era 1 choice events:** Wandering Child, Hurt Elder
+- **Era 1 pest:** Carrion Flock (sets `activePests`)
+- **Era 2 NPC hints (notHasBuilding-gated):** wandererHintHome, soldierHintWalls, childHintSilo, farmerHintFarmhouse — each disappears once the suggested building lands
+- **Era 3 alignment-gated:** Benevolent Pilgrim (good ≥ 3), Bitter Scholar (evil ≥ 3)
 
-**Pests** — events can set a temporary pest via `effects.setsPest: { pestId, durationMs }`. The pest lives in `run.activePests` and modulates other systems (gather, passive production) until its `until` timestamp passes. The TICK handler clears expired pests automatically. First example: **Carrion Flock** — fires only when a Garden exists, halves Garden output and grub gather rate for 5 minutes; each successful Hunt has a chance to disperse the flock (highest with bird drops). Pest indicator surfaces in the Action panel with remaining time.
+**Gates supported.** `requires.era`, `requires.hutBuilt`, `requires.hasBuilding`, `requires.notHasBuilding` (string or array), `requires.alignment.good`/`evil`.
 
-**Where.** `src/systems/events.js`, `src/content/events.js`, `src/ui/EventModal.jsx`, `src/ui/PestIndicator.jsx`, `src/systems/passive.js` (pest modulators + expiry).
+**Pests.** `effects.setsPest: { pestId, durationMs, intensity }` writes to `run.activePests`. Modulates other systems (gather, passive production) until expiry. Carrion Flock halves Garden output and grub gather rate for 5 min; each successful Hunt has a chance to disperse it. TICK clears expired pests.
 
-**Next steps.** Era 2+ events with bigger stakes. NPC encounter events that lead to companions (deferred — see Companions). Negative events that damage buildings (require maintenance later).
+**Where.** `src/systems/events.js`, `src/content/events.js`, `src/ui/EventModal.jsx`, `src/ui/PestIndicator.jsx`, `src/systems/passive.js`.
 
-**Long arc.** Events become the primary engine of late-game variety. Era 5 events tear holes in reality. Era 7 events involve cosmic-scale decisions.
+**Long arc.** Era 4+ events with bigger stakes. NPC events that recruit companions. Building-damage events (need maintenance system). Era 5 reality-tearing. Era 7 cosmic-scale decisions.
 
 ---
 
 ### 🟢 Hidden alignment
-**State.** Choice events accumulate `alignment.good` and `alignment.evil` in run state. Never displayed. Surfaces through consequences (deferred — events haven't yet branched on alignment).
+**State.** Choice events accumulate `alignment.good` and `alignment.evil` in run state. **Never displayed numerically.** Surfaces actively in Era 3 via `requires.alignment: { good: N }` / `{ evil: N }` gates — supported by events, research (canListen + getVisibleResearch), and spells (canCastSpell). Player only sees consequences, not the counter.
 
-**Where.** `src/state/run.js` (`alignment`), `src/systems/events.js`.
+**Currently surfacing:**
+- Benevolent Pilgrim event (good ≥ 3)
+- Bitter Scholar event (evil ≥ 3)
+- Banish research/spell (good ≥ 3)
+- Bend research/spell (evil ≥ 3, `alignmentDelta: { evil: 1 }` per cast cements drift)
 
-**Next steps.** Some future events should require/branch on alignment ("only available if good ≥ 5", "only the cruel see this option"). Eventually the rock's evolved form is determined by alignment.
+**Where.** `src/state/run.js` (`alignment`), `src/systems/events.js`, `src/systems/research.js`, `src/systems/spells.js`.
 
-**Long arc.** Endgame paths (Era 6/7) diverge by alignment. Companions react to alignment. Some buildings/research unavailable to wrong alignment.
+**Long arc.** Endgame paths (Era 6/7) diverge by alignment. Companions react to alignment. Some buildings/research unavailable to wrong alignment. The rock's evolved form is determined by accumulated alignment over many runs (persistent layer, deferred).
 
 ---
 
@@ -418,7 +444,7 @@ Live in `tools/`. See `tools/README.md` for the full list.
 
 ---
 
-### 🟡 Era 3 — Awakened World (first slice shipped)
+### 🟢 Era 3 — Awakened World (three slices shipped — substantially complete)
 **State.** Era 3 entry condition: Forge built + Home built + Smithing + Fletching learned + Bow crafted (toolsCrafted, lifetime-of-run). `computeEra` returns 3 when all hold. First time crossing into Era 3, a 🌌 transition story fires (sanity -5, no resolve change — the air goes wrong). Tracked via `run.eraMilestonesSeen`.
 
 **Spirit stat.** Seventh stat field on `run.stats.spirit`, present in run-defaults (default 50) for save compatibility but UI hides it until era ≥ 3 — SurvivalBars adds a third Mind row at that point. Drains from spell casting (per-spell cost). Refills slowly from Rest (+8 per rest). Future: faster Ritual action with fragment cost.
@@ -522,11 +548,6 @@ Same NPCs are intended to return in later eras as proto-companion encounters onc
 
 ---
 
-### ⬜ Era 3 — Awakened World (Magical Medieval)
-**Vision.** Magic emerges. The Spirit stat activates as a magical-energy meter (the held-back name from Resolve). Alchemy, enchantment, ritual. Magical fragments refine into spells. Alignment system surfaces in mechanics. First demons appear as threats.
-
----
-
 ### ⬜ Era 4 — Arcane Industry
 **Vision.** Magitek. Larger settlements with multiple companions. Automated gathering. NPC factions emerge.
 
@@ -579,8 +600,14 @@ When a system changes meaningfully:
 3. If it's deprecated, mark it ⬜ → 🔮 → eventually delete.
 4. Commit `docs/systems.md` along with the code change so the doc and the code stay in sync.
 
-The architecture audit (`docs/architecture.md`) is the *static structure* doc.
-The roadmap (`docs/roadmap.md`) is the *vision* doc.
-This file is the *current-state-of-play* doc.
+**Doc hierarchy.**
+- `docs/HANDOFF.md` — current state + next-moves briefing (read first when resuming)
+- `docs/AI_CONTEXT.md` — dense AI-first onboarding spine (rules + file map + state shape)
+- `docs/systems.md` (this file) — *current state of play* per system
+- `docs/ERA_PLAN.md` — planned content for next eras (design rationale)
+- `docs/BUGS.md` — open + fixed bug log
+- `docs/architecture.md` — *static structure* doc (audit + v2 addendum)
+- `docs/roadmap.md` — *long-arc vision* doc (8-era ladder, design decisions)
 
-Use them in that order: vision → architecture → systems-state → code.
+Reading order for humans: HANDOFF → roadmap → architecture → systems → BUGS / ERA_PLAN.
+Reading order for AI: AI_CONTEXT → HANDOFF → systems (only the system you're touching).

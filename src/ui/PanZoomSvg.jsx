@@ -34,9 +34,22 @@ export default function PanZoomSvg({
 
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
+  // Pan range:
+  //   - When scale ≤ 1, content fits — pan should be ~0. A small slop (`SLOP`)
+  //     lets the user nudge for breathing room but never lose the tree.
+  //   - When scale > 1, content overflows by (scale-1)*dim. Pan range grows
+  //     proportionally so all corners are reachable.
+  //
+  // Bug #009: the old formula was `(scale - 0.4) * dim / 2`, which at scale 1
+  // allowed pan of ±30% of canvas. Combined with `data-no-pan` on nodes (so
+  // clicking a node doesn't start a drag), users could pan content off-screen
+  // until nothing draggable was visible and get stuck.
+  const SLOP = 60;
   const applyBounds = (nextTx, nextTy, nextScale) => {
-    const rangeX = (width * (nextScale - 0.4)) / 2;
-    const rangeY = (height * (nextScale - 0.4)) / 2;
+    const overflowX = Math.max(0, (nextScale - 1) * width) / 2;
+    const overflowY = Math.max(0, (nextScale - 1) * height) / 2;
+    const rangeX = overflowX + SLOP;
+    const rangeY = overflowY + SLOP;
     return {
       tx: clamp(nextTx, -rangeX, rangeX),
       ty: clamp(nextTy, -rangeY, rangeY),
@@ -159,7 +172,10 @@ export default function PanZoomSvg({
           className="panzoom-btn"
           onClick={() => {
             const next = clamp(scale * 1.2, minZoom, maxZoom);
+            const bounded = applyBounds(tx, ty, next);
             setScale(next);
+            setTx(bounded.tx);
+            setTy(bounded.ty);
           }}
           title="Zoom in (+)"
           data-no-pan
@@ -171,18 +187,21 @@ export default function PanZoomSvg({
           className="panzoom-btn"
           onClick={() => {
             const next = clamp(scale / 1.2, minZoom, maxZoom);
+            const bounded = applyBounds(tx, ty, next);
             setScale(next);
+            setTx(bounded.tx);
+            setTy(bounded.ty);
           }}
-          title="Zoom out (-)"
+          title="Zoom out (−)"
           data-no-pan
         >
           −
         </button>
         <button
           type="button"
-          className="panzoom-btn"
+          className="panzoom-btn panzoom-btn--fit"
           onClick={reset}
-          title="Fit (0)"
+          title="Fit tree to view (0) — use this if you get lost"
           data-no-pan
         >
           ⤢

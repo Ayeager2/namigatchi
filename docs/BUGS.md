@@ -10,6 +10,44 @@ Add new bugs at the top. When fixing, leave the entry with status `fixed` and a 
 
 ---
 
+## #010 — Page elongates as sidebar content grows (height-locked desktop shell)
+
+**Status:** ✅ fixed (Part A) — 2026-05
+**Severity:** medium → paper-cut
+
+**Repro:** On desktop, the left column (Inventory + Buildings + Crafts + Spells) and right column (Recent log) grow taller as content accumulates. The whole page elongates instead of scrolling within each column. Header scrolls out of view, the layout feels unmoored.
+
+**Fix (Part A — shipped).** On desktop only (≥900px), the `.shell` is now a height-locked flex column (`height: 100vh; overflow: hidden`). Header / Scene / Stone strip / Footer stay at natural heights. The grid takes `flex: 1` with `min-height: 0` so it can fill remaining space. Each `.shell-area` (left / center / right) gets `overflow-y: auto` with subtle styled scrollbars (Firefox + WebKit). Mobile (≤900px) keeps natural page-scroll — single-column stack doesn't need height-locking.
+
+**Where.** `src/index.css` — new media-query block after the existing grid rules.
+
+**Still planned (Part B).** Left column tab system (Inventory / Tools / Arcane) to replace the stacked card layout — that's the architectural follow-up. See ERA_PLAN.md "Layout refactor" section. Part A makes the elongation pain stop *today*; Part B makes the left column scale gracefully when more tools and spells land.
+
+---
+
+## #009 — Tree modal pan gets stuck — can't drag back to center
+
+**Status:** ✅ fixed — 2026-05
+**Severity:** medium
+
+**Repro:** Open Teachings (or Buildings) tree modal. Scroll/drag a little bit in any direction. The content moves off-screen and there's no way to drag it back — the visible canvas is now covered in tree nodes (which have `data-no-pan` so clicking them doesn't start a drag), and there's no empty SVG space left to grab.
+
+**Root cause:** Pan bounds in `PanZoomSvg.jsx`:
+```js
+const rangeX = (width * (nextScale - 0.4)) / 2;
+```
+At scale 1.0 this allowed pan of ±(width × 0.3) — meaning content could shift 30% in any direction. Combined with `data-no-pan` on tree nodes (which is correct — node click should select, not pan), the user could pan the tree to a position where all visible SVG space is covered by nodes, leaving nothing draggable.
+
+**Fix:** Bounds formula tightened to `Math.max(0, (scale - 1) * dim) / 2 + SLOP`:
+- At scale ≤ 1 (content fits the viewBox): pan range is just `SLOP` (60px) in each direction — enough for breathing room, not enough to lose the tree.
+- At scale > 1 (content overflows): pan range grows with overflow so all corners are reachable, plus SLOP buffer.
+
+Plus: the in-modal `+` / `−` zoom buttons now re-clamp pan to the new bounds on each zoom step (previously they only changed scale, leaving stale pan positions). And the `⤢` Fit button got a longer tooltip ("Fit tree to view (0) — use this if you get lost") to make it obvious as the recovery action.
+
+**Where.** `src/ui/PanZoomSvg.jsx` (bounds math + zoom-button re-clamp + Fit tooltip).
+
+---
+
 ## #008 — Era background indicator (visual cue on era change)
 
 **Status:** open

@@ -169,6 +169,60 @@ button {
   text-align: center;
 }
 
+/* ---- desktop: height-locked shell, columns scroll independently ----
+   Mobile (≤900px) keeps natural page-scroll. On desktop the shell is
+   pinned to the viewport, header + scene + stone-strip + footer stay
+   at their natural heights, and only the three columns scroll inside
+   their own areas. See ERA_PLAN.md "Layout refactor — Part A". */
+
+@media (min-width: 900px) {
+  .shell {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-bottom: 16px;
+  }
+
+  /* Static rows (header, scene, stone strip, footer) keep natural height */
+  .shell > *:not(.shell-grid) {
+    flex-shrink: 0;
+  }
+
+  .shell-grid {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    align-items: stretch;
+    margin-bottom: 0;
+  }
+
+  .shell-area {
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    padding-right: 4px;
+    /* Subtle scrollbars — Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: var(--bg-elev2) transparent;
+  }
+
+  /* Subtle scrollbars — WebKit */
+  .shell-area::-webkit-scrollbar {
+    width: 8px;
+  }
+  .shell-area::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .shell-area::-webkit-scrollbar-thumb {
+    background: var(--bg-elev2);
+    border-radius: 4px;
+  }
+  .shell-area::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-dim);
+  }
+}
+
 .footer-actions {
   display: flex;
   gap: 8px;
@@ -3607,3 +3661,454 @@ body.motion-reduced .tool-durability-fill {
   font-size: 12px;
   line-height: 1.45;
 }
+
+/* =====================================================================
+   Layout refactor — Part B + C
+   Vertical-rail tabs in the left column, unified action strip in the
+   footer, Channel-the-Rock inline in the stone strip.
+   See ERA_PLAN.md "Layout refactor" section.
+   ===================================================================== */
+
+/* ---- LeftColumn shell: vertical rail + content pane ---- */
+
+.left-col {
+  display: flex;
+  gap: 0;
+  align-items: stretch;
+  min-height: 0;
+}
+
+/* Rail: fixed-width icon column. Hovering a button "pops out" its label
+   as an overlay to the right (absolute-positioned) — no reflow, content
+   pane keeps its width. Pattern borrowed from Discord's server bar. */
+.lc-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 40px;
+  flex-shrink: 0;
+  padding: 4px 0 4px 0;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  position: relative;
+  z-index: 1;
+}
+
+.lc-rail-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  border-left: 2px solid transparent;
+  padding: 8px 4px;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  border-radius: 0;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.lc-rail-btn:hover {
+  background: var(--bg-elev);
+  color: var(--text);
+}
+
+.lc-rail-btn.is-active {
+  background: var(--bg-elev);
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+
+.lc-rail-icon {
+  font-size: 18px;
+  width: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Pop-out label: absolutely positioned just to the right of the icon.
+   Hidden by default, fades + slides in when the button is hovered or
+   focused. Doesn't displace the content pane. */
+.lc-rail-label {
+  position: absolute;
+  left: calc(100% - 2px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-6px);
+  background: var(--bg-elev2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-left-color: var(--accent-dim);
+  padding: 6px 12px;
+  border-radius: 0 6px 6px 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.35);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  z-index: 5;
+}
+
+.lc-rail-btn:hover .lc-rail-label,
+.lc-rail-btn:focus-visible .lc-rail-label {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+/* Content pane: holds the active tab's body */
+.lc-content {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 0 4px 12px;
+  min-height: 0;
+}
+
+/* ---- Body & Mind tab wrapper ---- */
+.bodymind-tab {
+  padding: 4px 2px;
+}
+
+.bodymind-empty {
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 12px 4px;
+}
+
+/* ---- Trigger-summary tabs (Tools / Arcane / Buildings) ---- */
+
+.lc-trigger {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  text-align: center;
+}
+
+.lc-trigger-title {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0 0 4px;
+}
+
+.lc-trigger-lead {
+  font-size: 12px;
+  font-style: italic;
+  margin: 0 0 14px;
+}
+
+.lc-trigger-stats {
+  display: flex;
+  justify-content: space-around;
+  gap: 8px;
+  margin: 8px 0 14px;
+}
+
+.lc-trigger-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.lc-trigger-stat-num {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.lc-trigger-stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.lc-trigger-open {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.lc-trigger-hint {
+  font-size: 11px;
+  margin: 10px 0 0;
+}
+
+/* ---- Mobile fallback: rail becomes horizontal tabs on narrow viewports ---- */
+
+@media (max-width: 900px) {
+  .left-col {
+    flex-direction: column;
+  }
+
+  .lc-rail {
+    flex-direction: row;
+    width: 100%;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 4px;
+    gap: 4px;
+  }
+
+  .lc-rail-btn {
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    padding: 6px 10px;
+    border-radius: 6px;
+    gap: 6px;
+  }
+
+  .lc-rail-btn.is-active {
+    border-left-color: transparent;
+    border-bottom-color: var(--accent);
+  }
+
+  /* Mobile: labels become inline (no pop-out), positioned next to icons */
+  .lc-rail-label {
+    position: static;
+    transform: none;
+    opacity: 1;
+    pointer-events: auto;
+    background: transparent;
+    border: none;
+    border-left: none;
+    padding: 0;
+    box-shadow: none;
+    font-size: 13px;
+    color: inherit;
+    white-space: nowrap;
+  }
+
+  .lc-rail-btn:hover .lc-rail-label,
+  .lc-rail-btn:focus-visible .lc-rail-label {
+    transform: none;
+  }
+
+  .lc-content {
+    padding: 12px 2px 2px;
+  }
+}
+
+/* ---- Stone strip: split inner clickable region + Channel button ---- */
+
+.stone-strip {
+  /* Was a single button on a flat strip; now a flex container so the
+     Channel button can sit inline on the right. */
+  justify-content: space-between;
+  cursor: default;
+}
+
+.stone-strip-inner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+  padding: 2px 0;
+  border-radius: 6px;
+  outline: none;
+}
+
+.stone-strip.is-clickable .stone-strip-inner {
+  cursor: pointer;
+}
+
+.stone-strip.is-clickable .stone-strip-inner:hover .stone-flavor {
+  text-shadow: 0 0 6px rgba(216, 196, 119, 0.4);
+}
+
+.stone-strip-inner:focus-visible {
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+.stone-channel-btn {
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+/* ---- Action strip (footer) ---- */
+/* Six uniform buttons, equal size, equal color. The strip replaces the
+   old footer's single Reset/Channel button. Channel-the-Rock now lives
+   in the stone strip above. */
+
+.action-strip {
+  margin-top: 16px;
+  border-top: 1px solid var(--border);
+  padding: 14px 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.action-strip-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  justify-content: center;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
+.action-strip-row > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* The action-strip equivalent of .btn-primary, but built to live in a
+   uniform row of six. All same size, same color. Cooldown bar from
+   Gather/Hunt rendered inline by setting `progress`. */
+.btn-action {
+  position: relative;
+  overflow: hidden;
+  background: var(--accent-dim);
+  color: var(--bg);
+  border: 1px solid var(--accent);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 12px 10px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, transform 0.05s;
+  white-space: nowrap;
+}
+
+.btn-action:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.btn-action:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-action.is-cooling {
+  cursor: wait;
+  opacity: 0.85;
+}
+
+.btn-action-icon {
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.btn-action-label {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn-action .btn-hotkey {
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--bg);
+}
+
+/* Action-strip meta row (small, right-aligned: Reset/End run) */
+.action-strip-meta {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 2px 0 0;
+}
+
+.btn-reset-run {
+  font-size: 12px;
+  padding: 4px 12px;
+}
+
+/* The EatButton lives inside an action-strip-slot so it inherits the
+   1fr sizing without polluting EatButton's internal layout. */
+.action-strip-slot {
+  display: flex;
+}
+
+.action-strip-slot .eat-btn-wrap {
+  width: 100%;
+  display: flex;
+}
+
+.action-strip-slot .eat-btn-main {
+  flex: 1 1 0;
+  min-width: 0;
+  /* Match .btn-action visual */
+  background: var(--accent-dim);
+  color: var(--bg);
+  border: 1px solid var(--accent);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 12px 10px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.action-strip-slot .eat-btn-main:hover:not(:disabled) {
+  background: var(--accent);
+}
+
+.action-strip-slot .eat-btn-main:disabled {
+  opacity: 0.45;
+}
+
+.action-strip-slot .eat-btn-chevron {
+  background: var(--accent-dim);
+  color: var(--bg);
+  border: 1px solid var(--accent);
+  border-left: none;
+  padding: 10px 8px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  flex-shrink: 0;
+}
+
+.action-strip-slot .eat-btn-chevron:hover:not(:disabled) {
+  background: var(--accent);
+}
+
+/* Mobile: stack action buttons in 2 rows of 3 if cramped */
+@media (max-width: 600px) {
+  .action-strip-row {
+    flex-wrap: wrap;
+  }
+  .action-strip-row > * {
+    flex: 1 1 30%;
+  }
+}
+
+/* ---- World-panel slim style (center column post-refactor) ---- */
+/* ActionPanel lost its action buttons + survival bars; the variant
+   --world strips the min-height that made the old panel feel weighty. */
+.action-panel--world {
+  min-height: auto !important;
+  padding: 16px 18px;
+}
+
+.action-panel--world .panel-header {
+  margin-bottom: 12px;
+}
+
+.action-panel--world .panel-header h2 {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+/* End layout refactor styles */

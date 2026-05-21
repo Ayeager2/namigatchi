@@ -1,8 +1,11 @@
-// Right column wrapper. Hosts four tabs:
+// Right column wrapper. Hosts three tabs:
 //   - Recent  (gameplay feedback — gather drops, etc.)
 //   - Unlocks (progression / narrative beats — whispers, builds, teachings)
-//   - Skills  (passive readout of skill levels & XP progress)
 //   - Stats   (observability dashboard, gated behind first prestige)
+//
+// Skills migrated to LeftColumn in the layout refactor — see ERA_PLAN.md
+// "Layout refactor — Part B". Skills now lives next to Body & Mind on the
+// left where the player's *own* readouts cluster.
 //
 // On mobile this whole column appears at the bottom of the stack;
 // the tab system works identically there.
@@ -10,28 +13,15 @@
 import { useState } from "react";
 import LogPanel from "./LogPanel.jsx";
 import UnlocksPanel from "./UnlocksPanel.jsx";
-import SkillsPanel from "./SkillsPanel.jsx";
 import StatsPanel from "./StatsPanel.jsx";
 import { isStatsUnlocked } from "../systems/stats.js";
-import { getActiveSkills } from "../content/skills.js";
 
 export default function RightColumn({ state }) {
   const [tab, setTab] = useState("log");
   const statsUnlocked = isStatsUnlocked(state);
 
-  // Skills tab is visible once the player has earned XP in any skill (i.e.
-  // taken any meaningful action). Until then, keep the right-column quiet.
-  const skillsVisible = (() => {
-    const skills = state.run.skills || {};
-    for (const def of getActiveSkills()) {
-      if ((skills[def.id]?.xp || 0) > 0) return true;
-    }
-    return false;
-  })();
-
-  // If a tab becomes hidden, snap back to log.
+  // If Stats becomes hidden (post-prestige resets shouldn't), snap back.
   if (tab === "stats" && !statsUnlocked) setTab("log");
-  if (tab === "skills" && !skillsVisible) setTab("log");
 
   return (
     <div className="right-col">
@@ -48,14 +38,6 @@ export default function RightColumn({ state }) {
         >
           Unlocks
         </button>
-        {skillsVisible && (
-          <button
-            className={`rc-tab ${tab === "skills" ? "is-active" : ""}`}
-            onClick={() => setTab("skills")}
-          >
-            Skills
-          </button>
-        )}
         {statsUnlocked && (
           <button
             className={`rc-tab ${tab === "stats" ? "is-active" : ""}`}
@@ -67,7 +49,6 @@ export default function RightColumn({ state }) {
       </div>
       {tab === "log" && <LogPanel state={state} />}
       {tab === "unlocks" && <UnlocksPanel state={state} />}
-      {tab === "skills" && <SkillsPanel state={state} />}
       {tab === "stats" && <StatsPanel state={state} />}
     </div>
   );

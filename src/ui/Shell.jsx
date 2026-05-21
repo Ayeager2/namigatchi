@@ -2,12 +2,10 @@ import { useState } from "react";
 import DevPanel, { useDevPanelToggle, isDevAvailable } from "./DevPanel.jsx";
 import Scene from "./Scene.jsx";
 import ActionPanel from "./ActionPanel.jsx";
-import InventoryPanel from "./InventoryPanel.jsx";
-import BuildingsPanel from "./BuildingsPanel.jsx";
-import CraftsPanel from "./CraftsPanel.jsx";
-import SpellsPanel from "./SpellsPanel.jsx";
+import LeftColumn from "./LeftColumn.jsx";
 import StonePanel from "./StonePanel.jsx";
 import RightColumn from "./RightColumn.jsx";
+import ActionStrip from "./ActionStrip.jsx";
 import TeachingsTreeModal from "./TeachingsTreeModal.jsx";
 import BuildingsTreeModal from "./BuildingsTreeModal.jsx";
 import ToolsModal from "./ToolsModal.jsx";
@@ -66,43 +64,42 @@ export default function Shell({ state, actions, settingsHook }) {
       <Scene state={state} />
 
       <div className="shell-grid">
-        <main className="shell-area shell-area--center">
-          <ActionPanel
-            state={state}
-            actions={actions}
-            settings={settingsHook.settings}
-            settingsHook={settingsHook}
-          />
-        </main>
-
         <aside className="shell-area shell-area--left">
-          <InventoryPanel state={state} settingsHook={settingsHook} />
-          <BuildingsPanel state={state} onOpen={() => setBuildingsOpen(true)} />
-          <CraftsPanel state={state} onOpen={() => setToolsOpen(true)} />
-          <SpellsPanel state={state} onOpen={() => setSpellsOpen(true)} />
+          <LeftColumn
+            state={state}
+            settingsHook={settingsHook}
+            onOpenTools={() => setToolsOpen(true)}
+            onOpenSpells={() => setSpellsOpen(true)}
+            onOpenBuildings={() => setBuildingsOpen(true)}
+          />
         </aside>
+
+        <main className="shell-area shell-area--center">
+          <ActionPanel state={state} />
+        </main>
 
         <aside className="shell-area shell-area--right">
           <RightColumn state={state} />
         </aside>
       </div>
 
-      <StonePanel state={state} onListen={() => setTeachingsOpen(true)} />
+      <StonePanel
+        state={state}
+        onListen={() => setTeachingsOpen(true)}
+        channelEligible={eligibleForPrestige}
+        channelReward={reward}
+        onChannel={handleResetClick}
+      />
 
-      <footer className="shell-footer">
-        {eligibleForPrestige ? (
-          <button className="btn btn-prestige" onClick={handleResetClick}>
-            Channel the Rock{" "}
-            <span className="btn-suffix">
-              +{reward.echoes} Echo{reward.echoes !== 1 ? "es" : ""}
-            </span>
-          </button>
-        ) : (
-          <button className="btn btn-ghost" onClick={handleResetClick}>
-            Reset run
-          </button>
-        )}
-      </footer>
+      <ActionStrip
+        state={state}
+        actions={actions}
+        settings={settingsHook.settings}
+        settingsHook={settingsHook}
+        prestigeEligible={eligibleForPrestige}
+        showResetButton={true}
+        onReset={handleResetClick}
+      />
 
       {teachingsOpen && (
         <TeachingsTreeModal

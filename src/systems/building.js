@@ -128,24 +128,47 @@ export function performBuild(state, buildingId) {
   return { run, persistent, events };
 }
 
-export function getVisibleBuildings(state) {
+// ─────────────────────────────────────────────────────────────────────────────
+// Tree-view visibility helpers. See BUGS.md #005.
+//
+//   getKnownBuildings(state)
+//     Everything the player should *see* in the Buildings tree. Locked nodes
+//     are included — those whose `researched` / `hasBuilding` requirements
+//     aren't met. The only filter is `rockAwakened`: before the rock wakes,
+//     buildings are entirely conceptually unknown (and the Buildings tab
+//     hasn't appeared yet anyway).
+//
+//   getAvailableBuildings(state)
+//     Buildings the player can *act on right now* — canBuild() returns ok
+//     AND the building isn't already built. Used for affordance counts and
+//     the notification badge on the Buildings tab. Excludes already-built
+//     because those are no longer "actionable."
+//
+//   getVisibleBuildings(state) — DEPRECATED back-compat alias.
+//     Kept for old callers (BuildingsPanel.jsx — currently orphaned). Maps
+//     to getKnownBuildings so the trigger card's "total" count remains the
+//     known total. New code should call getKnownBuildings or
+//     getAvailableBuildings directly.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function getKnownBuildings(state) {
   return getAllBuildings().filter((b) => {
     if (state.run.built?.[b.id]) return true;
     if (b.requires?.rockAwakened && !state.run.rockAwakened) return false;
-    if (
-      b.requires?.researched &&
-      !state.run.researched?.[b.requires.researched]
-    ) {
-      return false;
-    }
-    if (
-      b.requires?.hasBuilding &&
-      !state.run.built?.[b.requires.hasBuilding]
-    ) {
-      return false;
-    }
+    // Everything past the rock-awaken gate is "known" — locked nodes show
+    // up in the tree so the player can plan ahead.
     return true;
   });
+}
+
+export function getAvailableBuildings(state) {
+  return getKnownBuildings(state).filter(
+    (b) => !state.run.built?.[b.id] && canBuild(state, b.id).ok
+  );
+}
+
+export function getVisibleBuildings(state) {
+  return getKnownBuildings(state);
 }
 
 export function getBuildingBonuses(run) {

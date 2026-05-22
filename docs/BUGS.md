@@ -25,6 +25,33 @@ Add new bugs at the top. When fixing, leave the entry with status `fixed` and a 
 
 ---
 
+## #011 — Tree modals can't pan to reach content past the viewBox edges
+
+**Status:** ✅ fixed — 2026-05
+**Severity:** bad
+
+**Repro:** After #005 made locked nodes visible, the Buildings tree's tier-5+ structures (Forge, Home, Stone Walls, Silo, Farmhouse, Alembic) all sit *past* the right edge of the 820px viewBox at scale 1.0 — tier-7 Alembic is at x≈1350. The Teachings tree extends similarly upward, with tier-3+ nodes already above the viewBox top. The user could see the tree existed but couldn't drag right/up to reach it — pan got stuck around ±60 SLOP.
+
+**Root cause:** The bounds formula from #009 was `Math.max(0, (scale - 1) * dim) / 2 + SLOP`. It assumed content fits the viewBox at scale 1.0 — which is the opposite of reality for any tree large enough to need pan/zoom in the first place. At scale 1.0 the formula gave overflowX = 0, so pan range was just ±SLOP, which was nowhere near the right edge of the actual content.
+
+**Fix:**
+1. Added a `contentBounds={ minX, minY, maxX, maxY }` prop to `PanZoomSvg`. Each tree modal computes its real content extent (from `getBuildingTreeBounds()` / `getTreeBounds()`) and passes it.
+2. Rewrote `applyBounds` to compute valid tx/ty range from content extent:
+   ```
+   txA = width - cMaxX*s   // tx to push right edge of content to right of viewBox
+   txB = -cMinX*s          // tx to push left edge of content to left of viewBox
+   minTx = min(txA, txB) - SLOP
+   maxTx = max(txA, txB) + SLOP
+   ```
+   Using min/max handles both "content overflows viewBox" (range valid) and "content fits viewBox" (range collapses to ±SLOP) without special-casing.
+3. The ⤢ Fit button now actually fits: computes a scale that fits all content (clamped to minZoom) and centers it. Previously it just reset to scale=1 / origin, which left half the tree off-screen.
+
+A `boundsRef` keeps the long-lived wheel listener in sync with the latest `contentBounds` without forcing it to re-register on every prop change.
+
+**Where.** `src/ui/PanZoomSvg.jsx` (new prop + new applyBounds + new reset), `src/ui/BuildingsTreeModal.jsx` and `src/ui/TeachingsTreeModal.jsx` (compute & pass `contentBounds`).
+
+---
+
 ## #009 — Tree modal pan gets stuck — can't drag back to center
 
 **Status:** ✅ fixed — 2026-05
@@ -65,48 +92,45 @@ Plus: the in-modal `+` / `−` zoom buttons now re-clamp pan to the new bounds o
 
 ## #007 — Notification badge on main page for available tree items
 
-**Status:** open
+**Status:** ✅ fixed — 2026-05
 **Severity:** medium
 
-**Want:** When the player has the materials to either build or research something they haven't yet, a small red circle notification appears on the relevant trigger card (Buildings card / Stone strip for Teachings). Shows the count.
+**Fix.** Three new red-dot badges that share the same visual language:
 
-**Sketch:** `Buildings (3 available) 🔴3`. Red circle in corner of trigger card with the count. Disappears when count = 0.
+- **Left-column rail icons.** `Tools` and `Buildings` rail buttons now carry a small red bubble with the actionable count when there's stuff the player can act on (counted via `getAvailableBuildings` and the craft-affordance check). The Tools and Buildings tabs only carry the badge — Arcane deliberately doesn't, because spells are repeatable casts, not progression.
+- **Trigger card open button.** The big "Open Buildings" / "Open Crafts" button now grows a matching red bubble after the label. Same number as the rail badge — visible from inside the tab, the rail badge is visible from outside.
+- **Stone strip icon.** Counts `getAvailableResearch(state)` once the rock is awakened. The Teachings tree's entry point now signals "there's something to listen to" without the player having to open the modal.
 
-**Notes:** Easy to compute — iterate visible buildings/research, count where `canBuild(state, b.id).ok` or `canListen(state, r.id).ok`. Pair this with #006 below — once items get a green + in the tree, the count on the trigger card tells the player "stop in here, there's stuff to do."
+**Where.** `src/ui/LeftColumn.jsx` (rail + trigger card badges), `src/ui/StonePanel.jsx` (stone icon badge), `src/index.css` (`.lc-rail-badge` / `.lc-trigger-badge` / `.stone-icon-badge` shared definition).
 
 ---
 
 ## #006 — Green "+" affordance indicator on tree nodes
 
-**Status:** open
+**Status:** ✅ fixed — 2026-05
 **Severity:** medium
 
-**Want:** Tree node visual cue showing the player has the materials to build/research it RIGHT NOW. Small green "+" badge in the corner of the node SVG circle. Distinct from "unlocked / requirements met" (which the existing border-color shows) — this is specifically "you can act on this *now*."
+**Fix.** Both tree modals (`BuildingsTreeModal.jsx`, `TeachingsTreeModal.jsx`) compute an `isAffordable(state, node)` boolean — `canBuild` / `canListen` returns ok AND the node isn't already built/learned. When true, the node renders an extra `<g className="tree-node-affordable-mark">` containing a small green circle + white "+" anchored to the upper-right of the SVG node circle. The node's own border also flips to green, and the badge gently pulses to draw the eye without being aggressive.
 
-**Sketch:** In `BuildingsTreeModal.jsx` and `TeachingsTreeModal.jsx`, after computing the node state (`available` / `locked` / `built`), also compute `canAfford = canBuild(state, b.id).ok` (or `canListen` for teachings). If true and not yet built/learned, render an additional `<text>` or `<circle>` in the SVG group with the "+" mark. CSS class `.tree-node-affordable-mark` for styling.
-
-**Notes:** Pairs with #005 — once locked nodes are visible, the green + tells the player which ones they can pursue right now versus which need more progression. Pairs with #007 (notification badge) for the "click in to see what's actionable" pattern.
+**Where.** Both tree modals added the badge SVG + `is-affordable` class. CSS lives in `src/index.css` under "Affordance '+' badge on tree nodes (BUGS.md #006)".
 
 ---
 
 ## #005 — Tree modals hide nodes whose prerequisites aren't met
 
-**Status:** open
+**Status:** ✅ fixed — 2026-05
 **Severity:** bad
 
-**Repro:** Open Buildings tree modal. Only Hut, Fire Pit, Forge, Home, and a few others are visible. The Stone Walls, Silo, Farmhouse, Alembic, Water Pit, Garden, and Cairn are all in `content/buildings.js` but don't show in the tree. Same for Teachings — tier-3+ nodes that require certain alignment / research / building disappear from view.
+**Fix.** Split the visibility helpers in both systems:
 
-**Root cause:** `getVisibleBuildings` in `src/systems/building.js` and `getVisibleResearch` in `src/systems/research.js` filter out anything whose `requires.researched` / `requires.hasBuilding` / `requires.alignment` aren't satisfied. The trigger card's "available" count uses this fine, but the **tree modal** consumes the same filter — so it never shows locked content. Result: the player can't see the tree growing ahead of them.
+- `src/systems/building.js` — new `getKnownBuildings(state)` (everything past the rock-awaken gate, including locked) and `getAvailableBuildings(state)` (canBuild ok). `getVisibleBuildings` is kept as a backward-compat alias that maps to `getKnownBuildings`.
+- `src/systems/research.js` — new `getKnownResearch(state)` (everything except still-hidden alignment-gated nodes; era-gated and prereq-locked nodes are visible-as-locked) and `getAvailableResearch(state)` (canListen ok). `getVisibleResearch` aliased to `getKnownResearch`.
 
-**Fix approach:**
-1. Split into two functions per system:
-   - `getKnownBuildings(state)` — returns everything that should appear in the tree (everything except truly secret content). Includes locked nodes.
-   - `getAvailableBuildings(state)` — returns only buildings the player can actually start working on (current behavior of `getVisibleBuildings`).
-2. Tree modals use `getKnownBuildings`. Trigger card uses `getAvailableBuildings` for the count.
-3. Add a node state `locked` so the tree can render locked nodes dimmed with a tooltip explaining what's needed.
-4. Alignment-gated nodes (good/evil-requiring teachings) should stay hidden — those are designed to *appear* when alignment tips. Distinguish that case from "needs a building."
+`BuildingsTreeModal` and `TeachingsTreeModal` switched to `getKnownBuildings` / `getKnownResearch`. `getNodeState` now distinguishes three states cleanly: `built/learned` (done), `available` (prereqs met, may or may not have resources), `locked` (a hard prerequisite is missing — research / parent building / era / rockAwakened / hutBuilt). Locked nodes render dimmed (0.5 opacity bg, 0.4 opacity icon/label) so the player can see the tree growing ahead.
 
-**Pairs with #006 and #007** — once the locked nodes are visible, the affordance "+" badge and notification count become the meaningful UI signals.
+Alignment-gated teachings (Banish / Bend) stay fully hidden — those are designed to *appear* when the silent alignment counter tips, preserving the cosmic-horror reveal.
+
+**Pairs with #006 (green +) and #007 (notification badges)** — together these turn the trees into a planning surface: locked nodes show the path, green + shows what you can do *now*, red dot tells you to come look.
 
 ---
 

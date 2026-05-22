@@ -1117,6 +1117,44 @@ button {
 .tree-node--cat-sovereignty .tree-node-bg { }
 .tree-node--cat-cosmos      .tree-node-bg { }
 
+/* ---- Affordance "+" badge on tree nodes (BUGS.md #006) ----
+   Renders when canBuild / canListen returns ok — i.e. the player has
+   everything (resources AND prereqs) to act on this node right now. The
+   eye-catching green + nudges "this is what you can do." */
+.tree-node-affordable-mark circle {
+  fill: #4caf50;
+  stroke: #11150f;
+  stroke-width: 1.5;
+  filter: drop-shadow(0 0 4px rgba(76, 175, 80, 0.55));
+}
+
+.tree-node-affordable-mark text {
+  fill: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Subtle pulse so eye finds the affordance, without being annoying. */
+@keyframes tree-affordable-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.12); }
+}
+
+.tree-node.is-affordable .tree-node-affordable-mark {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tree-affordable-pulse 2.4s ease-in-out infinite;
+}
+
+/* Affordable nodes get a green ring to reinforce the badge. Beats the gold
+   "available" stroke since it implies stronger readiness. */
+.tree-node.is-affordable .tree-node-bg {
+  stroke: #4caf50;
+  filter: drop-shadow(0 0 5px rgba(76, 175, 80, 0.35));
+}
+
 .tree-detail-cat {
   font-size: 11px;
   text-transform: uppercase;
@@ -3838,9 +3876,89 @@ body.motion-reduced .tool-durability-fill {
   margin-top: 4px;
 }
 
+.lc-trigger-open--with-badge {
+  position: relative;
+}
+
 .lc-trigger-hint {
   font-size: 11px;
   margin: 10px 0 0;
+}
+
+/* ---- Notification badges (BUGS.md #007) ----
+   Small red circle with a count, used on:
+     - Left-column rail icons (.lc-rail-badge)
+     - Trigger-card open button (.lc-trigger-badge)
+     - Stone strip icon (.stone-icon-badge)
+   Same visual language across the three so the player learns "red dot =
+   actionable" once and reads it everywhere. */
+
+.lc-rail-badge,
+.lc-trigger-badge,
+.stone-icon-badge {
+  background: #c8443c;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0;
+  text-shadow: none;
+  box-shadow: 0 0 0 2px var(--bg, #1b1b1b),
+              0 0 6px rgba(200, 68, 60, 0.55);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+/* Rail icon badge sits at the top-right of the 30px icon box. */
+.lc-rail-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  /* On desktop the rail is narrow — pull the badge a bit so it doesn't
+     run off the right side. */
+  transform: translate(40%, -40%);
+}
+
+@media (max-width: 900px) {
+  /* Mobile rail tabs flow horizontally — keep the badge anchored to the
+     icon rather than the right edge of the button (which would float far
+     away when the label is inline). */
+  .lc-rail-badge {
+    position: absolute;
+    top: 4px;
+    right: auto;
+    left: 22px;
+    transform: none;
+  }
+}
+
+/* Inline badge on the trigger card's "Open …" button. Sits to the right
+   of the label with a small gap. */
+.lc-trigger-badge {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* Stone strip icon badge — anchor to top-right of the icon span. */
+.stone-icon {
+  position: relative;
+}
+
+.stone-icon-badge {
+  position: absolute;
+  top: -4px;
+  right: -10px;
+  /* The stone strip's background can be either dormant-grey or awakened-
+     purple — the badge ring uses bg-elev so it stays visible on either. */
+  box-shadow: 0 0 0 2px var(--bg-elev, #232323),
+              0 0 6px rgba(200, 68, 60, 0.55);
 }
 
 /* ---- Mobile fallback: rail becomes horizontal tabs on narrow viewports ---- */

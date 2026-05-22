@@ -12,7 +12,7 @@ import {
   getBuildingTreeBounds,
 } from "../content/buildings.js";
 import { getResource } from "../content/resources.js";
-import { canBuild, getVisibleBuildings } from "../systems/building.js";
+import { canBuild, getKnownBuildings } from "../systems/building.js";
 import PanZoomSvg from "./PanZoomSvg.jsx";
 
 // Tree canvas dimensions (viewBox coords; CSS scales the SVG).
@@ -44,18 +44,43 @@ function getNodeState(state, node) {
   if (state.run.built?.[node.id]) return "built";
   const check = canBuild(state, node.id);
   if (check.ok) return "available";
-  // Reason is "Not enough resources" → still buildable in concept
+  // Resources are the only missing piece → still browseable as a goal.
   if (check.reason === "Not enough resources.") return "available";
+  // Some prerequisite isn't met (research, parent building, rock not woken).
   return "locked";
 }
 
+// Affordable === player can build it RIGHT NOW. Used for the green "+"
+// badge that nudges "you can take this action."
+function isAffordable(state, node) {
+  if (state.run.built?.[node.id]) return false;
+  return canBuild(state, node.id).ok;
+}
+
 export default function BuildingsTreeModal({ state, actions, onClose }) {
-  const all = useMemo(() => getVisibleBuildings(state), [state]);
+  // Tree shows everything past the rock-awaken gate, including locked nodes
+  // so the player can plan toward them. See BUGS.md #005.
+  const all = useMemo(() => getKnownBuildings(state), [state]);
   const allBounds = useMemo(() => getBuildingTreeBounds(), []);
   // Use full bounds (including hidden buildings) so positions stay stable
   // as more become visible.
   const bounds = allBounds;
   const [selectedId, setSelectedId] = useState(null);
+
+  // Content-bounding-box for the pan/zoom container. The tree extends FAR
+  // past the viewBox at scale 1.0 — tier-7 alembic sits at x ≈ 90 + 180*7
+  // = 1350 inside an 820-wide viewBox. PanZoomSvg uses this to compute the
+  // pan range so every corner of content is reachable. See PanZoomSvg.jsx.
+  const contentBounds = useMemo(() => {
+    const LABEL_PAD = 28; // node label sits ~20px below the circle
+    const ROOT_LABEL_PAD = ROOT_R + 28;
+    return {
+      minX: rootPos.x - ROOT_R - 10,
+      minY: Math.min(PAD_Y - NODE_R, rootPos.y - ROOT_R) - 10,
+      maxX: PAD_X + TIER_GAP * bounds.tiers + NODE_R + 40,
+      maxY: Math.max(H - PAD_Y + NODE_R + LABEL_PAD, rootPos.y + ROOT_LABEL_PAD),
+    };
+  }, [bounds]);
 
   const positions = useMemo(() => {
     const out = {};
@@ -128,7 +153,13 @@ export default function BuildingsTreeModal({ state, actions, onClose }) {
 
         <div className="modal-body modal-body--tree">
           <div className="tree-canvas">
-            <PanZoomSvg width={W} height={H} className="tree-svg" ariaLabel="Buildings tree (drag to pan, wheel to zoom)">
+            <PanZoomSvg
+              width={W}
+              height={H}
+              contentBounds={contentBounds}
+              className="tree-svg"
+              ariaLabel="Buildings tree (drag to pan, wheel to zoom)"
+            >
               {/* Edges */}
               {edges.map((e) => (
                 <line
@@ -171,14 +202,15 @@ export default function BuildingsTreeModal({ state, actions, onClose }) {
               {all.map((b) => {
                 const pos = positions[b.id];
                 const ns = getNodeState(state, b);
+                const affordable = isAffordable(state, b);
                 const isSel = selectedId === b.id;
                 const cat = b.category || "shelter";
                 return (
                   <g
                     key={b.id}
                     className={`tree-node tree-node--${ns} tree-node--cat-${cat} ${
-                      isSel ? "is-selected" : ""
-                    }`}
+                      affordable ? "is-affordable" : ""
+                    } ${isSel ? "is-selected" : ""}`}
                     onClick={() => setSelectedId(b.id)}
                     role="button"
                     tabIndex={0}
@@ -206,6 +238,24 @@ export default function BuildingsTreeModal({ state, actions, onClose }) {
                     >
                       {b.name}
                     </text>
+                    {/* Green "+" affordance badge — "you can build this NOW".
+                        See BUGS.md #006. */}
+                    {affordable && (
+                      <g className="tree-node-affordable-mark" aria-hidden="true">
+                        <circle
+                          cx={pos.x + NODE_R - 4}
+                          cy={pos.y - NODE_R + 4}
+                          r={10}
+                        />
+                        <text
+                          x={pos.x + NODE_R - 4}
+                          y={pos.y - NODE_R + 8}
+                          textAnchor="middle"
+                        >
+                          +
+                        </text>
+                      </g>
+                    )}
                   </g>
                 );
               })}

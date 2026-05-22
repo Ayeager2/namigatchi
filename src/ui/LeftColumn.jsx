@@ -22,7 +22,11 @@ import BodyMindTab from "./BodyMindTab.jsx";
 import InventoryPanel from "./InventoryPanel.jsx";
 import SkillsPanel from "./SkillsPanel.jsx";
 import { getActiveSkills } from "../content/skills.js";
-import { canBuild, getVisibleBuildings } from "../systems/building.js";
+import {
+  canBuild,
+  getKnownBuildings,
+  getAvailableBuildings,
+} from "../systems/building.js";
 import { canCraft, getVisibleTools } from "../systems/crafting.js";
 import { getKnownSpells, canCastSpell } from "../systems/spells.js";
 import { survivalActive } from "../systems/survival.js";
@@ -37,7 +41,19 @@ function skillsHasXp(state) {
 
 // Generic trigger summary panel used by Tools / Arcane / Buildings tabs.
 // Shows two big counts and an open-modal button.
-function TriggerSummary({ title, lead, stats, buttonLabel, onOpen, hint }) {
+//
+// `actionableCount` (BUGS.md #007) — when > 0, paint a small red bubble on
+// the open-modal button so the player sees "there's something to do in
+// here." Same number that drives the rail-icon badge.
+function TriggerSummary({
+  title,
+  lead,
+  stats,
+  buttonLabel,
+  onOpen,
+  hint,
+  actionableCount,
+}) {
   return (
     <div className="lc-trigger">
       <h3 className="lc-trigger-title">{title}</h3>
@@ -52,10 +68,18 @@ function TriggerSummary({ title, lead, stats, buttonLabel, onOpen, hint }) {
       </div>
       <button
         type="button"
-        className="btn btn-primary lc-trigger-open"
+        className="btn btn-primary lc-trigger-open lc-trigger-open--with-badge"
         onClick={onOpen}
       >
         {buttonLabel}
+        {actionableCount > 0 && (
+          <span
+            className="lc-trigger-badge"
+            aria-label={`${actionableCount} actionable`}
+          >
+            {actionableCount}
+          </span>
+        )}
       </button>
       {hint && <p className="muted lc-trigger-hint">{hint}</p>}
     </div>
@@ -77,8 +101,21 @@ export default function LeftColumn({
   const toolsVisible = tools.length > 0;
   const knownSpells = getKnownSpells(state);
   const arcaneVisible = knownSpells.length > 0;
-  const buildings = getVisibleBuildings(state);
+  const buildings = getKnownBuildings(state);
   const buildingsVisible = buildings.length > 0;
+
+  // ─── Actionable counts (BUGS.md #007) ────────────────────────────────────
+  //
+  // For the Tools tab: number of recipes the player can craft right now AND
+  // hasn't already produced one of (own count == 0). Excludes already-owned
+  // tools so the badge calms down once you've crafted the thing.
+  const toolsActionable = tools.filter(
+    (t) => (state.run.inventory?.[t.id] || 0) === 0 && canCraft(state, t.id).ok
+  ).length;
+  // For the Buildings tab: anything affordable AND not yet built.
+  const buildingsActionable = getAvailableBuildings(state).length;
+  // Arcane: deliberately no badge. Spells are repeatable casts, not
+  // progression — pinging them constantly would be noise.
 
   // Ordered tab descriptors. Hidden tabs are filtered out below.
   const allTabs = [
@@ -87,16 +124,24 @@ export default function LeftColumn({
       icon: "🫀",
       label: "Body & Mind",
       visible: bodyMindVisible,
+      actionable: 0,
     },
-    { id: "skills", icon: "📊", label: "Skills", visible: skillsVisible },
-    { id: "inv", icon: "🎒", label: "Inventory", visible: inventoryVisible },
-    { id: "tools", icon: "🔨", label: "Tools", visible: toolsVisible },
-    { id: "arcane", icon: "✨", label: "Arcane", visible: arcaneVisible },
+    { id: "skills", icon: "📊", label: "Skills", visible: skillsVisible, actionable: 0 },
+    { id: "inv", icon: "🎒", label: "Inventory", visible: inventoryVisible, actionable: 0 },
+    {
+      id: "tools",
+      icon: "🔨",
+      label: "Tools",
+      visible: toolsVisible,
+      actionable: toolsActionable,
+    },
+    { id: "arcane", icon: "✨", label: "Arcane", visible: arcaneVisible, actionable: 0 },
     {
       id: "buildings",
       icon: "🏛️",
       label: "Buildings",
       visible: buildingsVisible,
+      actionable: buildingsActionable,
     },
   ];
   const tabs = allTabs.filter((t) => t.visible);
@@ -163,12 +208,27 @@ export default function LeftColumn({
             aria-selected={tab === t.id}
             className={`lc-rail-btn ${tab === t.id ? "is-active" : ""}`}
             onClick={() => setTab(t.id)}
-            title={t.label}
+            title={
+              t.actionable > 0
+                ? `${t.label} — ${t.actionable} available`
+                : t.label
+            }
           >
             <span className="lc-rail-icon" aria-hidden="true">
               {t.icon}
             </span>
             <span className="lc-rail-label">{t.label}</span>
+            {/* Notification badge — small red dot with count when the tab
+                has actionable items the player hasn't done yet.
+                See BUGS.md #007. */}
+            {t.actionable > 0 && (
+              <span
+                className="lc-rail-badge"
+                aria-label={`${t.actionable} actionable`}
+              >
+                {t.actionable}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -186,6 +246,7 @@ export default function LeftColumn({
             stats={toolStats}
             buttonLabel="Open Crafts"
             onOpen={onOpenTools}
+            actionableCount={toolsActionable}
             hint={
               survivalActive(state)
                 ? "Recipes and durability live in the Crafts panel."
@@ -210,6 +271,7 @@ export default function LeftColumn({
             stats={buildingStats}
             buttonLabel="Open Buildings"
             onOpen={onOpenBuildings}
+            actionableCount={buildingsActionable}
             hint="Pan and zoom inside — drag the tree, scroll to zoom."
           />
         )}

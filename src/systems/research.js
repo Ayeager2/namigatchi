@@ -81,14 +81,39 @@ export function performListen(state, researchId) {
   return { run, persistent, events };
 }
 
-export function getVisibleResearch(state) {
+// ─────────────────────────────────────────────────────────────────────────────
+// Tree-view visibility helpers. See BUGS.md #005.
+//
+//   getKnownResearch(state)
+//     Everything the player should *see* in the Teachings tree. Era-gated
+//     and prerequisite-locked nodes are included — they render as locked,
+//     not hidden, so the player can plan ahead.
+//
+//     Alignment-gated nodes (good/evil-requiring) stay hidden until the
+//     silent counter tips. Those are designed to *appear* on alignment —
+//     part of the cosmic-horror surprise. Distinguish from "needs a
+//     parent" or "needs an era" which are visible-but-locked.
+//
+//     The `hutBuilt` gate is also respected: before the hut, even the
+//     Teachings modal can't be opened, so showing nothing here is
+//     consistent with the rest of the UI.
+//
+//   getAvailableResearch(state)
+//     Research the player can *act on right now* — canListen() returns ok.
+//     Used for affordance counts and the notification badge on the
+//     Teachings trigger (the Stone strip).
+//
+//   getVisibleResearch(state) — DEPRECATED back-compat alias.
+//     Maps to getKnownResearch. Old callers (ResearchPanel.jsx — orphaned)
+//     work but should migrate.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function getKnownResearch(state) {
   return getAllResearch().filter((r) => {
     if (state.run.researched?.[r.id]) return true;
     if (r.requires?.hutBuilt && !state.run.built?.hut) return false;
-    if (r.requires?.era && computeEra(state) < r.requires.era) return false;
-    // Alignment-gated nodes stay hidden until the silent counter is high
-    // enough. The player never sees a number — the node simply appears
-    // when something inside them has tipped.
+    // Alignment-gated nodes stay hidden. Era-gated and prereq-gated nodes
+    // are *visible-as-locked* so the player can see the path ahead.
     if (r.requires?.alignment) {
       const align = state.run.alignment || { good: 0, evil: 0 };
       if (r.requires.alignment.good && (align.good || 0) < r.requires.alignment.good) {
@@ -100,6 +125,16 @@ export function getVisibleResearch(state) {
     }
     return true;
   });
+}
+
+export function getAvailableResearch(state) {
+  return getKnownResearch(state).filter(
+    (r) => !state.run.researched?.[r.id] && canListen(state, r.id).ok
+  );
+}
+
+export function getVisibleResearch(state) {
+  return getKnownResearch(state);
 }
 
 export function getResearchBonuses(run) {

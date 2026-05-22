@@ -9,11 +9,10 @@
 import { useState, useMemo } from "react";
 import {
   RESEARCH,
-  getAllResearch,
   getTreeBounds,
 } from "../content/research.js";
 import { getResource } from "../content/resources.js";
-import { canListen } from "../systems/research.js";
+import { canListen, getKnownResearch } from "../systems/research.js";
 import PanZoomSvg from "./PanZoomSvg.jsx";
 
 // Tree canvas dimensions (in viewBox coords; CSS scales the SVG).
@@ -44,18 +43,43 @@ const rootPos = { x: W / 2, y: H - PAD_Y };
 
 function getNodeState(state, node) {
   if (state.run.researched?.[node.id]) return "learned";
-  // Available iff requirements (parents + cost) — we'll show unmet but visible
-  // so the player can plan ahead.
-  const parents = node.parents || [];
-  const parentsLearned = parents.every((p) => state.run.researched?.[p]);
-  if (!parentsLearned) return "locked";
-  return "available";
+  const check = canListen(state, node.id);
+  if (check.ok) return "available";
+  // Only resources are missing → still browseable as a planning goal.
+  if (check.reason === "Not enough offerings.") return "available";
+  // Some hard prerequisite isn't met (parents, era, hut, etc.).
+  return "locked";
+}
+
+// Affordable === player can act on this teaching RIGHT NOW.
+function isAffordable(state, node) {
+  if (state.run.researched?.[node.id]) return false;
+  return canListen(state, node.id).ok;
 }
 
 export default function TeachingsTreeModal({ state, actions, onClose }) {
   const bounds = useMemo(() => getTreeBounds(), []);
-  const all = useMemo(() => getAllResearch(), []);
+  // Show every research node the player should know about. Alignment-gated
+  // nodes (banish / bend) stay hidden until the silent counter tips — see
+  // getKnownResearch in systems/research.js. Era-gated and prereq-locked
+  // nodes render here as `locked`.
+  const all = useMemo(() => getKnownResearch(state), [state]);
   const [selectedId, setSelectedId] = useState(null);
+
+  // Content bounding box for pan/zoom. The tree grows UPWARD from the rock
+  // (root at y = H - PAD_Y), so tier-8 spells sit at y ≈ 400 - 150*8 = -800,
+  // well above the viewBox top. PanZoomSvg uses this so users can drag up
+  // to reach tier-4+ nodes. See PanZoomSvg.jsx.
+  const contentBounds = useMemo(() => {
+    const LABEL_PAD = 28;
+    const topY = H - PAD_Y - TIER_GAP * bounds.tiers - NODE_R - LABEL_PAD;
+    return {
+      minX: 0,
+      minY: topY - 10,
+      maxX: W,
+      maxY: rootPos.y + ROOT_R + LABEL_PAD,
+    };
+  }, [bounds]);
 
   const positions = useMemo(() => {
     const out = {};
@@ -125,7 +149,13 @@ export default function TeachingsTreeModal({ state, actions, onClose }) {
 
         <div className="modal-body modal-body--tree">
           <div className="tree-canvas">
-            <PanZoomSvg width={W} height={H} className="tree-svg" ariaLabel="Teachings tree (drag to pan, wheel to zoom)">
+            <PanZoomSvg
+              width={W}
+              height={H}
+              contentBounds={contentBounds}
+              className="tree-svg"
+              ariaLabel="Teachings tree (drag to pan, wheel to zoom)"
+            >
               {/* Edges */}
               {edges.map((e) => (
                 <line
@@ -168,13 +198,14 @@ export default function TeachingsTreeModal({ state, actions, onClose }) {
               {all.map((r) => {
                 const pos = positions[r.id];
                 const ns = getNodeState(state, r);
+                const affordable = isAffordable(state, r);
                 const isSel = selectedId === r.id;
                 return (
                   <g
                     key={r.id}
                     className={`tree-node tree-node--${ns} ${
-                      isSel ? "is-selected" : ""
-                    }`}
+                      affordable ? "is-affordable" : ""
+                    } ${isSel ? "is-selected" : ""}`}
                     onClick={() => setSelectedId(r.id)}
                     role="button"
                     tabIndex={0}
@@ -202,6 +233,24 @@ export default function TeachingsTreeModal({ state, actions, onClose }) {
                     >
                       {r.name}
                     </text>
+                    {/* Green "+" affordance badge — "you can listen NOW".
+                        See BUGS.md #006. */}
+                    {affordable && (
+                      <g className="tree-node-affordable-mark" aria-hidden="true">
+                        <circle
+                          cx={pos.x + NODE_R - 4}
+                          cy={pos.y - NODE_R + 4}
+                          r={10}
+                        />
+                        <text
+                          x={pos.x + NODE_R - 4}
+                          y={pos.y - NODE_R + 8}
+                          textAnchor="middle"
+                        >
+                          +
+                        </text>
+                      </g>
+                    )}
                   </g>
                 );
               })}

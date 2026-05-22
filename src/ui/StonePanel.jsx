@@ -10,6 +10,7 @@
 // Renders nothing if rock not found yet.
 
 import { getRockProgress, getRockState } from "../systems/rock.js";
+import { getAvailableResearch } from "../systems/research.js";
 
 export default function StonePanel({
   state,
@@ -26,6 +27,14 @@ export default function StonePanel({
   const progress = getRockProgress(run);
   const isDormant = rock === "dormant";
   const canListen = !!run.built?.hut && !!onListen;
+
+  // Count teachings the player can listen to right now. Drives the small
+  // red notification badge on the stone strip (BUGS.md #007). Only
+  // meaningful once the stone has awakened — dormant rock can't be
+  // listened to.
+  const availableTeachings = !isDormant
+    ? getAvailableResearch(state).length
+    : 0;
 
   // Flash animation when awakening just happened (within 4s).
   const since = run.rockAwakenedAt ? Date.now() - run.rockAwakenedAt : Infinity;
@@ -59,7 +68,17 @@ export default function StonePanel({
       }${justAwakened ? " just-awakened" : ""}`}
     >
       <div className="stone-strip-inner" {...innerProps}>
-        <span className="stone-icon">{isDormant ? "🪨" : "👁️"}</span>
+        <span className="stone-icon">
+          {isDormant ? "🪨" : "👁️"}
+          {availableTeachings > 0 && (
+            <span
+              className="stone-icon-badge"
+              aria-label={`${availableTeachings} teachings available`}
+            >
+              {availableTeachings}
+            </span>
+          )}
+        </span>
         <div className="stone-info">
           <div className="stone-title">
             The Stone

@@ -1,8 +1,14 @@
 // Shared pan + zoom container for SVG-based tree modals (buildings, teachings).
 //
 // Props:
-//   width, height — viewBox dimensions of the underlying tree
-//   children       — SVG content (already laid out in those coords)
+//   width, height   — viewBox dimensions (the *window* on the content)
+//   children        — SVG content (already laid out in content coords)
+//   contentBounds   — { minX, minY, maxX, maxY } of the actual content's
+//                     extent in content coords. Defaults to the viewBox
+//                     dimensions, but most real trees extend FAR past it
+//                     (e.g. Buildings tier-7 alembic is at x≈1350 in an
+//                     820-wide viewBox). Drives the pan range so every
+//                     corner of content is reachable at every zoom level.
 //   minZoom, maxZoom — clamp range (default 0.5..2.5)
 //
 // React quirk that bit us (bug #004): React attaches `onWheel` as a passive
@@ -12,15 +18,20 @@
 
 import { useEffect, useRef, useState } from "react";
 
+// Pan/zoom container — see header comment above for prop docs.
 export default function PanZoomSvg({
   width,
   height,
   children,
+  contentBounds,
   minZoom = 0.5,
   maxZoom = 2.5,
   className = "",
   ariaLabel,
 }) {
+  // Resolve content bounds. If the caller didn't pass any, fall back to
+  // assuming content fits the viewBox. (Backward-compatible default.)
+  const cb = contentBounds || { minX: 0, minY: 0, maxX: width, maxY: height };
   const svgRef = useRef(null);
   const [scale, setScale] = useState(1);
   const [tx, setTx] = useState(0);
@@ -32,29 +43,55 @@ export default function PanZoomSvg({
   const latestRef = useRef({ scale, tx, ty });
   latestRef.current = { scale, tx, ty };
 
+  // Latest contentBounds for the long-lived wheel/keyboard handlers, since
+  // applyBounds is a fresh closure on every render but the handlers aren't.
+  const boundsRef = useRef(cb);
+  boundsRef.current = cb;
+
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
-  // Pan range:
-  //   - When scale ≤ 1, content fits — pan should be ~0. A small slop (`SLOP`)
-  //     lets the user nudge for breathing room but never lose the tree.
-  //   - When scale > 1, content overflows by (scale-1)*dim. Pan range grows
-  //     proportionally so all corners are reachable.
+  // Pan range — content-aware.
   //
-  // Bug #009: the old formula was `(scale - 0.4) * dim / 2`, which at scale 1
-  // allowed pan of ±30% of canvas. Combined with `data-no-pan` on nodes (so
-  // clicking a node doesn't start a drag), users could pan content off-screen
-  // until nothing draggable was visible and get stuck.
-  const SLOP = 60;
-  const applyBounds = (nextTx, nextTy, nextScale) => {
-    const overflowX = Math.max(0, (nextScale - 1) * width) / 2;
-    const overflowY = Math.max(0, (nextScale - 1) * height) / 2;
-    const rangeX = overflowX + SLOP;
-    const rangeY = overflowY + SLOP;
+  // At translation `t` and scale `s`, the visible region in content coords is
+  // ([-t/s, (dim - t)/s]). For the user to be able to see content edge at
+  // contentCoord = c, we need t somewhere in [dim - c*s, -c*s]:
+  //
+  //   • To bring the LEFT edge of content (cMinX) onto the right side of the
+  //     viewBox: tx = -cMinX * s  → cMinX appears at left of viewbox when
+  //     tx = -cMinX*s. To see it at all: tx ≥ -cMinX*s (anything larger pushes
+  //     it further into view).
+  //   • To bring the RIGHT edge of content (cMaxX) into view from the right:
+  //     tx ≤ width - cMaxX*s.
+  //
+  // So the valid range is [width - cMaxX*s, -cMinX*s]. When content is smaller
+  // than the viewBox, this becomes a degenerate (inverted) range — use
+  // Math.min/Math.max so callers always get a sensible clamp.
+  //
+  // SLOP lets the user nudge a bit past the edges so the corner nodes don't
+  // hug the bezel.
+  //
+  // Bug #009 (pan-stuck): old formula tightened to ±SLOP at scale 1.0,
+  // assuming content fit the viewBox. But the real trees extend WAY past
+  // the viewBox at scale 1.0 — that's why this content-aware version exists.
+  const SLOP = 80;
+  const applyBoundsWith = (bounds, nextTx, nextTy, nextScale) => {
+    const txA = width - bounds.maxX * nextScale;
+    const txB = -bounds.minX * nextScale;
+    const minTx = Math.min(txA, txB) - SLOP;
+    const maxTx = Math.max(txA, txB) + SLOP;
+
+    const tyA = height - bounds.maxY * nextScale;
+    const tyB = -bounds.minY * nextScale;
+    const minTy = Math.min(tyA, tyB) - SLOP;
+    const maxTy = Math.max(tyA, tyB) + SLOP;
+
     return {
-      tx: clamp(nextTx, -rangeX, rangeX),
-      ty: clamp(nextTy, -rangeY, rangeY),
+      tx: clamp(nextTx, minTx, maxTx),
+      ty: clamp(nextTy, minTy, maxTy),
     };
   };
+  const applyBounds = (nextTx, nextTy, nextScale) =>
+    applyBoundsWith(cb, nextTx, nextTy, nextScale);
 
   const onPointerDown = (e) => {
     if (e.target.closest("[data-no-pan]")) return;
@@ -109,7 +146,12 @@ export default function PanZoomSvg({
       const cy = (y - curTy) / curScale;
       const newTx = x - cx * nextScale;
       const newTy = y - cy * nextScale;
-      const bounded = applyBounds(newTx, newTy, nextScale);
+      const bounded = applyBoundsWith(
+        boundsRef.current,
+        newTx,
+        newTy,
+        nextScale
+      );
       setScale(nextScale);
       setTx(bounded.tx);
       setTy(bounded.ty);
@@ -119,10 +161,29 @@ export default function PanZoomSvg({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [width, height, minZoom, maxZoom]);
 
+  // Fit-to-view: pick a scale where the whole content bounding box fits in
+  // the viewBox, then translate so the center of content is the center of
+  // the viewBox. This is what the ⤢ button now does — it's the recovery
+  // action when the user has panned themselves into a strange corner. If
+  // the caller didn't pass contentBounds, this degenerates to the old
+  // "scale 1, origin" behavior.
   const reset = () => {
-    setScale(1);
-    setTx(0);
-    setTy(0);
+    const cw = cb.maxX - cb.minX;
+    const ch = cb.maxY - cb.minY;
+    if (cw <= 0 || ch <= 0) {
+      setScale(1);
+      setTx(0);
+      setTy(0);
+      return;
+    }
+    const sx = width / cw;
+    const sy = height / ch;
+    const fitScale = clamp(Math.min(sx, sy), minZoom, maxZoom);
+    const ccx = (cb.minX + cb.maxX) / 2;
+    const ccy = (cb.minY + cb.maxY) / 2;
+    setScale(fitScale);
+    setTx(width / 2 - ccx * fitScale);
+    setTy(height / 2 - ccy * fitScale);
   };
 
   // Keyboard shortcuts when SVG focused.

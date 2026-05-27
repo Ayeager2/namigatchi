@@ -5,6 +5,7 @@ export const TOOL_CATEGORIES = {
   bronze:     { id: "bronze",     name: "Bronze",     order: 2 },
   iron:       { id: "iron",       name: "Iron",       order: 3 },
   arcane:     { id: "arcane",     name: "Arcane",     order: 4 },
+  alchemy:    { id: "alchemy",    name: "Alchemy",    order: 4.5 },
   consumable: { id: "consumable", name: "Potions",    order: 5 },
 };
 
@@ -195,6 +196,48 @@ export const TOOLS = {
     onCraftedMessage: "💜 A Spirit Draught. The vial hums faintly.",
     onUseMessage: "💜 You drink the Spirit Draught. The Spirit returns in a rush.",
     tier: 3, col: 5,
+  },
+
+  // ─── Alchemy recipes that produce craft-material resources (Era 2+) ────
+  //
+  // These entries live in TOOLS by code-location convenience, but they don't
+  // produce tools — they produce *resources*. The `producesResource` field
+  // tells the crafting system "when this recipe runs, increment THIS resource
+  // in inventory instead of creating a tool instance." See systems/crafting.js
+  // canCraft + performCraft producesResource branches.
+  //
+  // Both gate on `altarWork` researched — same gate as the Stone Altar itself,
+  // so when the player learns altarWork they immediately see how to make the
+  // materials for studying at the altar.
+  //
+  // `recipeFamily: "alchemy"` will route these to the Alchemy subtab when the
+  // Crafting page (Task #48) lands. See ERA_PLAN.md "Arcane Studies".
+  scrollCraft: {
+    id: "scrollCraft", name: "Scroll", icon: "📜",
+    category: "alchemy",
+    isStackable: true,
+    recipeFamily: "alchemy",
+    description: "Beaten wood-fiber rolled thin. The Stone says it's listening when ink touches it.",
+    cost: { wood: 2, fragments: 1 },
+    requires: { researched: "altarWork" },
+    producesResource: { id: "scroll", qty: 1 },
+    effectSummary: "Craft +1 Scroll. Consumed when you begin a study at the Altar.",
+    onCraftedMessage: "📜 You roll the parchment thin. It waits for ink.",
+    tier: 1, col: 0,
+  },
+
+  inkCraft: {
+    id: "inkCraft", name: "Ink", icon: "🖋️",
+    category: "alchemy",
+    isStackable: true,
+    recipeFamily: "alchemy",
+    description: "Charred wood and crushed grub-dark, stirred until even. Stays black; doesn't dry the way ordinary ink does.",
+    cost: { wood: 1, food: 1 },
+    requires: { researched: "altarWork" },
+    producesResource: { id: "ink", qty: 1 },
+    effectSummary: "Craft +1 Ink. Consumed when you begin a study at the Altar.",
+    onCraftedMessage: "🖋️ You crush the wood to char, the grub to bitter dark. The ink takes.",
+    tier: 1, col: 1,
   },
 };
 

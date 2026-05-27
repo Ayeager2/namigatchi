@@ -2,6 +2,7 @@
 
 import { getTool, getAllTools } from "../content/tools.js";
 import { totalWater, spendWater } from "../content/resources.js";
+import { getResourceCap } from "./storage.js";
 import { gainXp, getSkillState } from "./skills.js";
 import {
   decayForAction,
@@ -51,6 +52,18 @@ export function canCraft(state, toolId) {
   // stack. Non-stackable tools (axe, bow, etc.) are unique items.
   if (!tool.isStackable && (state.run.inventory?.[toolId] || 0) > 0) {
     return { ok: false, reason: "You already have one." };
+  }
+
+  // Resource-producing recipes (scrollCraft, inkCraft, etc.) — block when
+  // the output resource is already at its baseCap, so the craft doesn't
+  // silently lose the produced unit. See content/tools.js producesResource.
+  if (tool.producesResource) {
+    const { id: outId } = tool.producesResource;
+    const cap = getResourceCap(state, outId);
+    const have = state.run.inventory?.[outId] || 0;
+    if (cap !== Infinity && have >= cap) {
+      return { ok: false, reason: "No room to store more." };
+    }
   }
 
   const req = tool.requires || {};

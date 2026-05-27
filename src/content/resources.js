@@ -3,13 +3,17 @@
 import { TOOLS } from "./tools.js";
 
 export const RESOURCE_CATEGORIES = {
-  materials: { id: "materials", name: "Materials", order: 1 },
-  drink:     { id: "drink",     name: "Drink",     order: 2 },
-  food:      { id: "food",      name: "Food",      order: 3 },
-  tool:      { id: "tool",      name: "Tools",     order: 4 },
-  fragment:  { id: "fragment",  name: "Arcane",    order: 5 },
-  mystic:    { id: "mystic",    name: "Mystic",    order: 6 },
-  unknown:   { id: "unknown",   name: "Unknown",   order: 99 },
+  materials:     { id: "materials",     name: "Materials",         order: 1 },
+  drink:         { id: "drink",         name: "Drink",             order: 2 },
+  food:          { id: "food",          name: "Food",              order: 3 },
+  tool:          { id: "tool",          name: "Tools",             order: 4 },
+  // Craft materials are intermediate products — crafted from raw materials,
+  // then consumed by *other* crafts or by Arcane Studies. Scrolls and ink
+  // are the seed of this category (see ERA_PLAN.md "Arcane Studies").
+  craftMaterial: { id: "craftMaterial", name: "Craft Materials",   order: 4.5 },
+  fragment:      { id: "fragment",      name: "Arcane",            order: 5 },
+  mystic:        { id: "mystic",        name: "Mystic",            order: 6 },
+  unknown:       { id: "unknown",       name: "Unknown",           order: 99 },
 };
 
 // The set of resource ids that represent drinkable water, ordered from
@@ -137,6 +141,44 @@ export const RESOURCES = {
     category: "materials",
     description: "Stiff vanes still flecked with old blood. Light. Useful, somehow.",
     baseCap: 30,
+  },
+
+  // ─── Craft materials (Era 2+) ──────────────────────────────────────────
+  //
+  // Intermediate goods crafted from raw resources, then consumed by *other*
+  // crafts or by Arcane Studies (timed magic study at the Stone Altar — see
+  // ERA_PLAN.md "Arcane Studies"). Hidden until the player has researched
+  // altarWork, so they don't clutter the inventory pre-Era-2.
+  //
+  // No spoilage — parchment and ink keep.
+  scroll: {
+    id: "scroll",
+    name: "Scroll",
+    icon: "📜",
+    category: "craftMaterial",
+    description:
+      "Rolled parchment of beaten wood-fiber. Blank until something is written on it. The Stone says: write what I tell you, and the world will listen.",
+    baseCap: 10,
+    hiddenUntil: { researched: "altarWork" },
+    hiddenName: "???",
+    hiddenIcon: "❓",
+    hiddenDescription: "A material you don't yet know how to make.",
+    hiddenCategory: "unknown",
+  },
+
+  ink: {
+    id: "ink",
+    name: "Ink",
+    icon: "🖋️",
+    category: "craftMaterial",
+    description:
+      "Char and crushed grub-dark, mixed to a sluggish black. It thinks slower than you. That's the point.",
+    baseCap: 10,
+    hiddenUntil: { researched: "altarWork" },
+    hiddenName: "???",
+    hiddenIcon: "❓",
+    hiddenDescription: "A material you don't yet know how to make.",
+    hiddenCategory: "unknown",
   },
 };
 

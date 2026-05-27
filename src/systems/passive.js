@@ -35,14 +35,33 @@ export function getProductionRates(run) {
   return rates;
 }
 
+// Sum stat-per-minute trickles from owned buildings. Stone Altar (+0.2
+// sanity/min, +0.1 spirit/min) is the first user; future arcane buildings
+// will likely plug in here too. Each contribution is additive across all
+// owned buildings.
+function getBuildingStatRates(run) {
+  let spiritPerMinute = 0;
+  let sanityPerMinute = 0;
+  for (const b of getAllBuildings()) {
+    if (!run.built?.[b.id]) continue;
+    if (b.effect?.spiritPerMinute) spiritPerMinute += b.effect.spiritPerMinute;
+    if (b.effect?.sanityPerMinute) sanityPerMinute += b.effect.sanityPerMinute;
+  }
+  return { spiritPerMinute, sanityPerMinute };
+}
+
 export function applyPassiveProduction(state) {
   const run = state.run;
   const rates = getProductionRates(run);
   // Read tool-based passive stat gains (e.g. Spirit Censer +1 Spirit / min).
   const toolEff = getToolEffects(run);
-  const spiritPerMin = toolEff.spiritPerMinute || 0;
+  // Building-side stat trickles (e.g. Stone Altar +0.2 sanity / min).
+  const buildingStatRates = getBuildingStatRates(run);
+  const spiritPerMin =
+    (toolEff.spiritPerMinute || 0) + buildingStatRates.spiritPerMinute;
+  const sanityPerMin = buildingStatRates.sanityPerMinute;
 
-  if (Object.keys(rates).length === 0 && spiritPerMin === 0) {
+  if (Object.keys(rates).length === 0 && spiritPerMin === 0 && sanityPerMin === 0) {
     return { run, events: [] };
   }
 
@@ -77,8 +96,9 @@ export function applyPassiveProduction(state) {
     }
   }
 
-  // Spirit Censer (and future arcane passive stat gear). Spirit is a stat,
-  // not a resource — accumulate it in passiveAccum under a special key.
+  // Spirit Censer + Stone Altar contribute passive Spirit. Spirit is a
+  // stat, not a resource — accumulate in passiveAccum under a special key
+  // so partial gains carry over between ticks.
   let stats = run.stats;
   if (spiritPerMin > 0) {
     const key = "_stat_spirit";
@@ -93,6 +113,25 @@ export function applyPassiveProduction(state) {
       }
       accum[key] -= whole;
       if (accum[key] > spiritPerMin) accum[key] = spiritPerMin;
+    }
+  }
+
+  // Stone Altar's passive Sanity trickle. Same accumulator pattern as
+  // Spirit above — the +0.2/min rate means partial points accrue
+  // between ticks and only credited when they reach a whole integer.
+  if (sanityPerMin > 0) {
+    const key = "_stat_sanity";
+    accum[key] = (accum[key] || 0) + sanityPerMin * elapsedMin;
+    const whole = Math.floor(accum[key]);
+    if (whole > 0) {
+      const current = stats?.sanity ?? 50;
+      const next = Math.max(0, Math.min(100, current + whole));
+      const applied = next - current;
+      if (applied > 0) {
+        stats = { ...stats, sanity: next };
+      }
+      accum[key] -= whole;
+      if (accum[key] > sanityPerMin) accum[key] = sanityPerMin;
     }
   }
 

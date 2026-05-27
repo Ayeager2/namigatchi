@@ -43,7 +43,7 @@ export const BUILDINGS = {
   well: {
     id: "well", name: "Water Hole", icon: "🪣", category: "comfort",
     description: "A pit dug deep, lined with stone. The earth holds water in its bones — what comes up is muddy, but it comes up.",
-    cost: { wood: 30, stone: 40, water: 5 },
+    cost: { wood: 30, stone: 40 },
     requires: { researched: "waterCarrying" },
     effect: {},
     passiveProduce: { water_muddy: { perMinute: 1 } },
@@ -157,6 +157,29 @@ export const BUILDINGS = {
     onBuiltMessage: "⚗️ The Alembic stands. The coil catches the firelight and bends it strange.",
     whisperOnBuilt: "The stone whispers: now you can make what the world will not give.",
     tier: 7, col: 0, parents: ["forge"],
+  },
+
+  // ─── Era 2 deepening — Stone Altar ──────────────────────────────────
+  // Gate to Arcane Studies (see ERA_PLAN.md). A flat-topped stone you
+  // raise inside your home, knee-high. The stone — your stone — sits on
+  // it. Passive sanity + spirit trickle while it stands. Later, this is
+  // where timed magic study happens (Tasks #27, #30) and where weapon
+  // enchants get applied (Task #37).
+  //
+  // Etching milestones: as you complete major milestones (huts built,
+  // tools crafted, awakening, future studies completed), the altar
+  // accrues etchings on its surface — see persistent.altarEtchings
+  // (introduced when the etching system lands).
+  stoneAltar: {
+    id: "stoneAltar", name: "Stone Altar", icon: "🕯️", category: "arcane",
+    description: "Flat-topped stone, knee-high, polished smooth. The stone — your stone — sits on it now. When you sit with it, the world goes quiet. The lessons that take real time live here.",
+    cost: { stone: 80, wood: 40, fragments: 5 },
+    requires: { researched: "altarWork", hasBuilding: "home" },
+    effect: { sanityPerMinute: 0.2, spiritPerMinute: 0.1 },
+    effectSummary: "+0.2 sanity / min · +0.1 spirit / min · gates Arcane Studies (later).",
+    onBuiltMessage: "🕯️ The Altar takes shape — flat stone, polished, knee-high. You set the stone on it. It looks at you, then closes its eye.",
+    whisperOnBuilt: "The stone whispers: now there is a place. Sit with me. There is work that does not end when you stand up.",
+    tier: 6, col: 3, parents: ["home"],
   },
 };
 

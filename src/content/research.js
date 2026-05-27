@@ -165,6 +165,21 @@ export const RESEARCH = {
     tier: 5, col: 1, parents: ["smithing"],
   },
 
+  // ─── Era 2 deepening — Altar Work ───────────────────────────────────
+  // Gate to Arcane Studies (see ERA_PLAN.md). Once you have a Home, the
+  // stone teaches you to make a real place for it inside your walls.
+  // Unlocks the Stone Altar building (see buildings.js stoneAltar) which
+  // in turn enables timed magic study at the deeper layer of research.
+  altarWork: {
+    id: "altarWork", name: "Altar Work", icon: "🕯️",
+    whisper: "The stone speaks of a flat place inside your home. Of a stone you'd lay it down on, when the lesson runs long. The work that does not end when you stand up.",
+    cost: { stone: 20, water: 5, fragments: 3 },
+    requires: { hutBuilt: true, era: 2 },
+    effect: { unlocksBuilding: "stoneAltar" },
+    onLearnedMessage: "You listen, and the stone teaches you how to make a place for it. There is work that needs stillness. Real work.",
+    tier: 6, col: 2, parents: ["home"],
+  },
+
   // ============== Era 3 (Awakened World) ==============
 
   arcaneAwakening: {

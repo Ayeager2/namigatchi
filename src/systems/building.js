@@ -2,6 +2,7 @@
 // Reducer dispatches BUILD; this file owns the actual logic.
 
 import { getBuilding, getAllBuildings } from "../content/buildings.js";
+import { totalWater, spendWater } from "../content/resources.js";
 import {
   decayForAction,
   initialStats,
@@ -38,6 +39,14 @@ export function canBuild(state, buildingId) {
   }
 
   for (const [res, qty] of Object.entries(building.cost || {})) {
+    // "water" is a virtual key — sums across the water tier ladder.
+    // See content/resources.js totalWater/spendWater.
+    if (res === "water") {
+      if (totalWater(state.run.inventory) < qty) {
+        return { ok: false, reason: "Not enough resources." };
+      }
+      continue;
+    }
     if ((state.run.inventory[res] || 0) < qty) {
       return { ok: false, reason: "Not enough resources." };
     }
@@ -66,9 +75,13 @@ export function performBuild(state, buildingId) {
     };
   }
 
-  // Spend resources
-  const inventory = { ...state.run.inventory };
+  // Spend resources. Virtual "water" cost drains lowest tier first.
+  let inventory = { ...state.run.inventory };
   for (const [res, qty] of Object.entries(building.cost)) {
+    if (res === "water") {
+      inventory = spendWater(inventory, qty);
+      continue;
+    }
     inventory[res] = (inventory[res] || 0) - qty;
   }
 

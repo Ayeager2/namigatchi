@@ -3245,6 +3245,136 @@ body.motion-reduced .tool-durability-fill {
   font-variant-numeric: tabular-nums;
 }
 
+/* ---- drink button with water-tier dropdown ----
+   Mirrors EatButton structurally. See ui/DrinkButton.jsx and ERA_PLAN.md
+   "Water tiers + dysentery". */
+
+.drink-btn-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.drink-btn-main {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 14px;
+}
+
+.drink-btn-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.drink-btn-label {
+  font-size: 14px;
+}
+
+.drink-btn-chevron {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: none;
+  padding: 10px 8px;
+  font-size: 11px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.drink-btn-chevron:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.drink-btn-menu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  min-width: 260px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+  padding: 4px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.drink-btn-menu-header {
+  padding: 6px 10px 4px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.drink-btn-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 8px 10px;
+  cursor: pointer;
+  border-radius: 5px;
+  color: inherit;
+  font: inherit;
+}
+
+.drink-btn-menu-item:hover:not(:disabled) {
+  background: var(--bg-elev2);
+}
+
+.drink-btn-menu-item.is-active {
+  background: var(--accent-dim);
+  color: var(--bg);
+}
+
+.drink-btn-menu-item.is-empty {
+  opacity: 0.5;
+}
+
+.drink-btn-menu-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.drink-btn-menu-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.drink-btn-menu-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.drink-btn-menu-meta {
+  font-size: 10px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.drink-btn-risk {
+  color: #d4894c;
+  font-weight: 600;
+}
+
+.drink-btn-menu-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 6px;
+}
+
+.drink-btn-menu-utility {
+  background: rgba(80, 60, 40, 0.18);
+}
+
 /* ---- prestige / reset modal ---- */
 
 .modal-overlay--prestige {
@@ -4154,18 +4284,21 @@ body.motion-reduced .tool-durability-fill {
   padding: 4px 12px;
 }
 
-/* The EatButton lives inside an action-strip-slot so it inherits the
-   1fr sizing without polluting EatButton's internal layout. */
+/* The EatButton and DrinkButton both live inside an action-strip-slot so
+   they inherit the 1fr sizing without polluting the button's internal
+   layout. Both share the same .btn-action visual via the same overrides. */
 .action-strip-slot {
   display: flex;
 }
 
-.action-strip-slot .eat-btn-wrap {
+.action-strip-slot .eat-btn-wrap,
+.action-strip-slot .drink-btn-wrap {
   width: 100%;
   display: flex;
 }
 
-.action-strip-slot .eat-btn-main {
+.action-strip-slot .eat-btn-main,
+.action-strip-slot .drink-btn-main {
   flex: 1 1 0;
   min-width: 0;
   /* Match .btn-action visual */
@@ -4179,15 +4312,18 @@ body.motion-reduced .tool-durability-fill {
   border-bottom-right-radius: 0;
 }
 
-.action-strip-slot .eat-btn-main:hover:not(:disabled) {
+.action-strip-slot .eat-btn-main:hover:not(:disabled),
+.action-strip-slot .drink-btn-main:hover:not(:disabled) {
   background: var(--accent);
 }
 
-.action-strip-slot .eat-btn-main:disabled {
+.action-strip-slot .eat-btn-main:disabled,
+.action-strip-slot .drink-btn-main:disabled {
   opacity: 0.45;
 }
 
-.action-strip-slot .eat-btn-chevron {
+.action-strip-slot .eat-btn-chevron,
+.action-strip-slot .drink-btn-chevron {
   background: var(--accent-dim);
   color: var(--bg);
   border: 1px solid var(--accent);
@@ -4198,7 +4334,8 @@ body.motion-reduced .tool-durability-fill {
   flex-shrink: 0;
 }
 
-.action-strip-slot .eat-btn-chevron:hover:not(:disabled) {
+.action-strip-slot .eat-btn-chevron:hover:not(:disabled),
+.action-strip-slot .drink-btn-chevron:hover:not(:disabled) {
   background: var(--accent);
 }
 

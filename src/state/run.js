@@ -3,8 +3,15 @@
 export const RUN_DEFAULTS = {
   startedAt: 0,
   era: 0,
-  inventory: { wood: 0, stone: 0, water: 0, fragments: 0 },
-  gathered: { wood: 0, stone: 0, water: 0, fragments: 0 },
+  inventory: {
+    wood: 0, stone: 0, fragments: 0,
+    // Water tier ladder — see content/resources.js WATER_TIERS.
+    water_stagnant: 0, water_muddy: 0, water_boiled: 0,
+  },
+  gathered: {
+    wood: 0, stone: 0, fragments: 0,
+    water_stagnant: 0, water_muddy: 0, water_boiled: 0,
+  },
   gatherCount: 0,
   lastGatheredAt: 0,
   rockFound: false,

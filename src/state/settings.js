@@ -23,6 +23,10 @@ export const SETTINGS_DEFAULTS = {
   // Preferred food to eat first when the player clicks Eat.
   // null = auto (default lowest-tier-first behavior).
   eatPreference: null,
+  // Preferred water tier to drink on main-button click. null = auto
+  // (best-available, picks the highest tier present). See DrinkButton.jsx
+  // and systems/survival.js performDrink.
+  drinkPreference: null,
 };
 
 export function loadSettings() {

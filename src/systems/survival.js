@@ -2,8 +2,21 @@
 
 import { SURVIVAL } from "../content/survival.js";
 import { getResearch } from "../content/research.js";
-import { getResourcesByCategory, getResource } from "../content/resources.js";
+import {
+  getResourcesByCategory,
+  getResource,
+  totalWater,
+  spendWater,
+  WATER_TIERS,
+} from "../content/resources.js";
 import { getBuilding as getBuildingDef } from "../content/buildings.js";
+import {
+  rollDysentery,
+  shortenDysentery,
+  isSick,
+  getDiseaseDecayMultiplier,
+  getDiseaseYieldMultiplier,
+} from "./disease.js";
 
 export function survivalActive(state) {
   return !!state.run.built?.hut;
@@ -11,7 +24,10 @@ export function survivalActive(state) {
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 
-export function decayForAction(stats, kind) {
+// `runForDisease` is optional — pass the run if you want disease decay
+// multipliers applied. Callers that don't have the run (legacy paths) get
+// the old unmultiplied behavior.
+export function decayForAction(stats, kind, runForDisease) {
   const key = `per${kind}`;
   const decay = SURVIVAL[key];
   if (!decay) return stats;
@@ -27,9 +43,15 @@ export function decayForAction(stats, kind) {
     extraHappiness += SURVIVAL.happinessPenalties.perLowEnergy;
   }
 
+  // Dysentery doubles hunger/thirst drain — multiply only the *positive*
+  // delta (the drain), not negative-effect "decay" entries that boost.
+  const dis = runForDisease ? getDiseaseDecayMultiplier(runForDisease) : { hunger: 1, thirst: 1 };
+  const hungerDelta = (decay.hunger || 0) > 0 ? (decay.hunger || 0) * dis.hunger : (decay.hunger || 0);
+  const thirstDelta = (decay.thirst || 0) > 0 ? (decay.thirst || 0) * dis.thirst : (decay.thirst || 0);
+
   return {
-    hunger: clamp((stats.hunger ?? 0) + (decay.hunger || 0), 0, 100),
-    thirst: clamp((stats.thirst ?? 0) + (decay.thirst || 0), 0, 100),
+    hunger: clamp((stats.hunger ?? 0) + hungerDelta, 0, 100),
+    thirst: clamp((stats.thirst ?? 0) + thirstDelta, 0, 100),
     energy: clamp((stats.energy ?? 100) + (decay.energy || 0), 0, 100),
     hp: clamp((stats.hp ?? 100) + (decay.hp || 0), 0, 100),
     happiness: clamp(
@@ -42,7 +64,8 @@ export function decayForAction(stats, kind) {
   };
 }
 
-export function getYieldMultiplier(stats) {
+// `runForDisease` optional — apply disease yield penalty if passed.
+export function getYieldMultiplier(stats, runForDisease) {
   if (!stats) return 1.0;
   let mult = 1.0;
   if (stats.hunger >= SURVIVAL.penalties.hungerHigh) {
@@ -54,6 +77,7 @@ export function getYieldMultiplier(stats) {
   if (stats.energy <= SURVIVAL.penalties.energyLow) {
     mult *= SURVIVAL.yieldMultipliers.energyLow;
   }
+  if (runForDisease) mult *= getDiseaseYieldMultiplier(runForDisease);
   return mult;
 }
 
@@ -129,6 +153,12 @@ export function canPerformSurvivalAction(state, actionId) {
   }
 
   for (const [res, qty] of Object.entries(def.cost || {})) {
+    if (res === "water") {
+      if (totalWater(state.run.inventory) < qty) {
+        return { ok: false, reason: def.missingMessage || "Missing resources." };
+      }
+      continue;
+    }
     if ((state.run.inventory[res] || 0) < qty) {
       return { ok: false, reason: def.missingMessage || "Missing resources." };
     }
@@ -155,8 +185,12 @@ export function performSurvivalAction(state, actionId, opts = {}) {
     };
   }
 
-  const inventory = { ...state.run.inventory };
+  let inventory = { ...state.run.inventory };
   for (const [res, qty] of Object.entries(def.cost || {})) {
+    if (res === "water") {
+      inventory = spendWater(inventory, qty);
+      continue;
+    }
     inventory[res] = (inventory[res] || 0) - qty;
   }
 
@@ -219,4 +253,159 @@ export function boostStats(stats, change) {
 
 export function initialStats() {
   return { ...SURVIVAL.startValues };
+}
+
+// ─── Tiered drink — replaces the old single-water drink action ─────────────
+//
+// Behavior:
+//   • If `waterType` is given and present in inventory: drink that tier.
+//   • Else: drink the best (highest-tier) water the player has — same
+//     auto-pick logic DrinkButton uses for its main click.
+//   • Apply that resource's `thirstRelief` (as a negative thirst delta).
+//   • Roll dysentery against the resource's `dysenteryChance`.
+//   • Drinking BOILED while already sick shortens dysentery by 60s. The
+//     spec calls this out as a recovery accelerator.
+//
+// Returns the standard { run, persistent, events } shape that the reducer
+// expects.
+
+const DRINK_SHORTENS_MS = 60 * 1000; // 1 min off dysentery per boiled drink
+
+function pickBestAvailableWater(inventory) {
+  // WATER_TIERS is worst → best. Pick the highest-index tier with stock.
+  for (let i = WATER_TIERS.length - 1; i >= 0; i--) {
+    const id = WATER_TIERS[i];
+    if ((inventory?.[id] || 0) > 0) return id;
+  }
+  return null;
+}
+
+export function performDrink(state, waterType, rng = Math.random) {
+  if (!survivalActive(state)) {
+    return {
+      run: state.run,
+      persistent: state.persistent,
+      events: [{ kind: "actionFail", message: "No needs yet." }],
+    };
+  }
+
+  const inv = state.run.inventory || {};
+  let chosen = waterType && (inv[waterType] || 0) > 0 ? waterType : null;
+  if (!chosen) chosen = pickBestAvailableWater(inv);
+  if (!chosen) {
+    return {
+      run: state.run,
+      persistent: state.persistent,
+      events: [{ kind: "actionFail", message: "No water to drink." }],
+    };
+  }
+
+  const resource = getResource(chosen);
+  if (!resource) {
+    return {
+      run: state.run,
+      persistent: state.persistent,
+      events: [{ kind: "actionFail", message: "Unknown water." }],
+    };
+  }
+
+  let inventory = { ...inv };
+  inventory[chosen] = (inventory[chosen] || 0) - 1;
+
+  const thirstRelief = resource.thirstRelief || 25;
+  let stats = applyEffect(state.run.stats || SURVIVAL.startValues, {
+    thirst: -thirstRelief,
+    happiness: 1,
+  });
+
+  let run = { ...state.run, inventory, stats };
+  const events = [
+    {
+      kind: "consume",
+      message: `${resource.icon} You drink ${resource.name.toLowerCase()}. The thirst recedes.`,
+    },
+  ];
+
+  // Roll dysentery for risky tiers.
+  const dys = rollDysentery(run, resource.dysenteryChance || 0, Date.now(), rng);
+  run = dys.run;
+  events.push(...dys.events);
+
+  // If this is boiled (or higher) AND the player is already sick, shorten
+  // recovery — a small carrot for "drink the good stuff while sick."
+  if (
+    chosen === "water_boiled" &&
+    isSick(run, "dysentery") &&
+    dys.events.length === 0 // didn't just trigger fresh dysentery
+  ) {
+    const sh = shortenDysentery(run, DRINK_SHORTENS_MS);
+    run = sh.run;
+    events.push(...sh.events);
+  }
+
+  return { run, persistent: state.persistent, events };
+}
+
+// Boil 1 wood + 1 muddy → 1 boiled. Gated on Boiling research AND Fire Pit
+// (Fire Pit is the only place we can actually drive heat into the cup).
+export function performBoilWater(state) {
+  if (!survivalActive(state)) {
+    return {
+      run: state.run,
+      persistent: state.persistent,
+      events: [{ kind: "actionFail", message: "No needs yet." }],
+    };
+  }
+  if (!state.run.researched?.boiling) {
+    return {
+      run: state.run,
+      persistent: state.persistent,
+      events: [{ kind: "actionFail", message: "You haven't learned to boil yet." }],
+    };
+  }
+  if (!state.run.built?.firepit) {
+    return {
+      run: state.run,
+      persistent: state.persistent,
+      events: [{ kind: "actionFail", message: "You need a fire to boil over." }],
+    };
+  }
+  const inv = state.run.inventory || {};
+  if ((inv.wood || 0) < 1) {
+    return {
+      run: state.run,
+      persistent: state.persistent,
+      events: [{ kind: "actionFail", message: "Not enough wood for the fire." }],
+    };
+  }
+  if ((inv.water_muddy || 0) < 1) {
+    return {
+      run: state.run,
+      persistent: state.persistent,
+      events: [{ kind: "actionFail", message: "No muddy water to boil." }],
+    };
+  }
+
+  const inventory = {
+    ...inv,
+    wood: (inv.wood || 0) - 1,
+    water_muddy: (inv.water_muddy || 0) - 1,
+    water_boiled: (inv.water_boiled || 0) + 1,
+  };
+
+  let run = { ...state.run, inventory };
+  // Boiling counts as a light action — apply Craft-tier decay.
+  run = { ...run, stats: decayForAction(run.stats || {}, "Craft", run) };
+
+  return {
+    run,
+    persistent: state.persistent,
+    events: [
+      {
+        kind: "consume",
+        message:
+          "🫖 You set the cup over the fire. The bubbles rise, the boil holds, then quiets. +1 boiled water.",
+      },
+    ],
+  };
 }

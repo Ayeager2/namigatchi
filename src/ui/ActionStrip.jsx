@@ -22,6 +22,8 @@ import {
 import { canGatherFull, getGatherCooldownMs } from "../systems/gathering.js";
 import { canHunt, getHuntStatus } from "../systems/hunting.js";
 import EatButton from "./EatButton.jsx";
+import DrinkButton from "./DrinkButton.jsx";
+import { totalWater } from "../content/resources.js";
 
 // Generic "primary action" button used by Gather/Hunt/Rest. Honors disabled
 // reasoning + optional hotkey hint + optional cooldown progress bar.
@@ -109,7 +111,16 @@ export default function ActionStrip({
   const gatherCheck = canGatherFull(state);
   const huntCheck = canHunt(state);
   const eatCheck = canPerformSurvivalAction(state, "eat");
-  const drinkCheck = canPerformSurvivalAction(state, "drink");
+  // Drink no longer uses cost-based gating (the cost is dynamic per
+  // chosen tier — see performDrink in systems/survival.js). Gate manually:
+  // survival must be active AND the player must hold any water tier.
+  const drinkCheck = (() => {
+    if (!survivalActive(state)) return { ok: false, reason: "No needs yet." };
+    if (totalWater(state.run.inventory) <= 0) {
+      return { ok: false, reason: "No water to drink." };
+    }
+    return { ok: true };
+  })();
   const restCheck = canPerformSurvivalAction(state, "rest");
   const ritualKnown = !!state.run.researched?.arcaneAwakening;
   const ritualCheck = ritualKnown
@@ -160,16 +171,17 @@ export default function ActionStrip({
               />
             </div>
 
-            {/* Drink — stubbed dropdown shape (single option for now;
-                Part D will populate with water tiers). */}
-            <ActionButton
-              label="Drink"
-              icon="💧"
-              hotkey={keybinds.drink}
-              onClick={actions.drink}
-              disabled={!drinkCheck.ok}
-              reason={drinkCheck.reason}
-            />
+            {/* Drink dropdown — tiered water + Boil utility. ERA_PLAN.md
+                "Water tiers + dysentery" Part D. */}
+            <div className="action-strip-slot">
+              <DrinkButton
+                state={state}
+                actions={actions}
+                settings={settings}
+                settingsHook={settingsHook}
+                drinkCheck={drinkCheck}
+              />
+            </div>
 
             <ActionButton
               label="Rest"

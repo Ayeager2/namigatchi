@@ -36,16 +36,20 @@ export const BUILDINGS = {
     tier: 2, col: 0, parents: ["hut"],
   },
 
+  // NOTE: keyed as `well` for backward-save-compat. Display name and
+  // production are the Era-1 "Water Hole" (muddy water) — see ERA_PLAN.md
+  // "Water tiers + dysentery". A later, cleaner Well building can be
+  // introduced as the upgrade tier when Era 2+ filtration content lands.
   well: {
-    id: "water pit", name: "Water pit", icon: "🪣", category: "comfort",
-    description: "A pit dug deep, lined with stone. The earth holds water in its bones.",
+    id: "well", name: "Water Hole", icon: "🪣", category: "comfort",
+    description: "A pit dug deep, lined with stone. The earth holds water in its bones — what comes up is muddy, but it comes up.",
     cost: { wood: 30, stone: 40, water: 5 },
     requires: { researched: "waterCarrying" },
     effect: {},
-    passiveProduce: { water: { perMinute: 1 } },
-    effectSummary: "+g water / minute — passive trickle, even while away.",
-    onBuiltMessage: "🪣 The water pit goes deep. Water seeps in slow.",
-    whisperOnBuilt: "The stone whispers: the earth has been thirsty too.",
+    passiveProduce: { water_muddy: { perMinute: 1 } },
+    effectSummary: "+1 muddy water / minute — passive trickle, even while away.",
+    onBuiltMessage: "🪣 The water hole goes deep. Muddy water seeps in slow.",
+    whisperOnBuilt: "The stone whispers: the earth has been thirsty too. What you draw from it carries the dust.",
     tier: 3, col: 0, parents: ["hut"],
   },
 
@@ -81,9 +85,13 @@ export const BUILDINGS = {
     requires: { researched: "hiddenStores" },
     effect: {},
     storageCaps: {
-      wood: 50, stone: 50, water: 20, food: 15, bird_meat: 10, feathers: 20,
+      wood: 50, stone: 50,
+      // Water-tier ladder (see resources.js): muddy is the main Era-1 storage
+      // target; stagnant should be drunk/used quickly; boiled is rare.
+      water_muddy: 20, water_stagnant: 10, water_boiled: 5,
+      food: 15, bird_meat: 10, feathers: 20,
     },
-    effectSummary: "+50 wood/stone · +20 water · +15 grubs · +10 bird meat · +20 feathers — caps raised.",
+    effectSummary: "+50 wood/stone · +20 muddy water · +10 stagnant · +5 boiled · +15 grubs · +10 bird meat · +20 feathers — caps raised.",
     onBuiltMessage: "🗿 You stack the cairn slow, fitting stone to stone.",
     whisperOnBuilt: "The stone whispers: keeping is its own kind of work.",
     tier: 4, col: 0, parents: ["hut"],

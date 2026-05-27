@@ -91,6 +91,20 @@ export const RESEARCH = {
     tier: 3, col: 1, parents: ["fire"],
   },
 
+  // ─── Era 1–2: boiling water ──────────────────────────────────────────
+  // Listened on the fire-and-cooking branch. Unlocks the Boil action
+  // (consumes wood + muddy → boiled), which clears most of the dysentery
+  // risk that lower tiers carry. See ERA_PLAN.md "Water tiers + dysentery".
+  boiling: {
+    id: "boiling", name: "Boiling", icon: "🫖",
+    whisper: "The stone speaks of fire driven into water. Of the small dyings that happen when the bubbles rise. What was crawling in the cup is no longer.",
+    cost: { wood: 8, water: 3 },
+    requires: { hutBuilt: true },
+    effect: { unlocksAction: "boilWater" },
+    onLearnedMessage: "You listen, and the stone teaches you to drive the fire into the cup. What you boil, you can drink without the body answering wrong.",
+    tier: 3, col: 3, parents: ["cooking"],
+  },
+
   tracking: {
     id: "tracking", name: "Tracking", icon: "🐾",
     whisper: "The stone speaks of sign. Of broken twigs, of pressed dust, of the way the world remembers what walks across it.",

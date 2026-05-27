@@ -53,7 +53,10 @@ export const ECHO_UPGRADES = {
     description: "Begin each run with +5 water per level. The skin is yours; the water is the world's.",
     baseCost: 3,
     maxLevel: 4,
-    effect: { startInventory: { water: 5 } },
+    // Echoes apply on fresh runs, before any water building — so the
+    // starting cache is stagnant ("the water is the world's") rather than
+    // muddy. See ERA_PLAN.md "Water tiers + dysentery".
+    effect: { startInventory: { water_stagnant: 5 } },
   },
 
   // ============== Body (starting physical state) ==============

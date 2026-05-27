@@ -7,6 +7,7 @@
 
 import { getTool } from "../content/tools.js";
 import { applyEffect } from "./survival.js";
+import { clearDysentery } from "./disease.js";
 
 export function canUseTool(state, toolId) {
   const tool = getTool(toolId);
@@ -44,12 +45,21 @@ export function performUseTool(state, toolId) {
   // Apply effect.
   const stats = applyEffect(state.run.stats || {}, tool.useEffect || {});
 
-  const run = { ...state.run, inventory, stats };
+  let run = { ...state.run, inventory, stats };
   const events = [
     {
       kind: "consume",
       message: tool.onUseMessage || `You use the ${tool.name}.`,
     },
   ];
+
+  // Mending Potion also cures dysentery — same body-mending logic as the
+  // Mending Word spell. See ERA_PLAN.md "Water tiers + dysentery".
+  if (toolId === "potionMending") {
+    const cure = clearDysentery(run, "potion");
+    run = cure.run;
+    events.push(...cure.events);
+  }
+
   return { run, persistent: state.persistent, events };
 }

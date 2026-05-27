@@ -6,7 +6,7 @@ const ACTION_HANDLERS = {
   gather: (actions) => actions.gather(),
   rest: (actions) => actions.rest(),
   eat: (actions, settings) => actions.eat(settings?.eatPreference || null),
-  drink: (actions) => actions.drink(),
+  drink: (actions, settings) => actions.drink(settings?.drinkPreference || null),
   hunt: (actions) => actions.hunt(),
 };
 

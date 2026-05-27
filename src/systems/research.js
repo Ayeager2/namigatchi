@@ -1,6 +1,7 @@
 // Research system — "the rock whispers a recipe; you spend resources to listen."
 
 import { getResearch, getAllResearch } from "../content/research.js";
+import { totalWater, spendWater } from "../content/resources.js";
 import { decayForAction, survivalActive, boostStats } from "./survival.js";
 import { computeEra } from "./era.js";
 
@@ -31,6 +32,12 @@ export function canListen(state, researchId) {
   }
 
   for (const [res, qty] of Object.entries(r.cost || {})) {
+    if (res === "water") {
+      if (totalWater(state.run.inventory) < qty) {
+        return { ok: false, reason: "Not enough offerings." };
+      }
+      continue;
+    }
     if ((state.run.inventory[res] || 0) < qty) {
       return { ok: false, reason: "Not enough offerings." };
     }
@@ -58,8 +65,12 @@ export function performListen(state, researchId) {
     };
   }
 
-  const inventory = { ...state.run.inventory };
+  let inventory = { ...state.run.inventory };
   for (const [res, qty] of Object.entries(r.cost)) {
+    if (res === "water") {
+      inventory = spendWater(inventory, qty);
+      continue;
+    }
     inventory[res] = (inventory[res] || 0) - qty;
   }
 

@@ -15,12 +15,29 @@ export const SURVIVAL = {
       message: "{icon} You eat {name}. The hunger eases.",
       missingMessage: "Nothing to eat.",
     },
+    // The drink action's cost/effect are resolved DYNAMICALLY from the
+    // chosen water resource — see performDrink in systems/survival.js.
+    // We keep a no-cost stub here so canPerformSurvivalAction can find the
+    // action def and so existing call paths (settings, keybinds) still
+    // resolve. The actual water consumption + thirst effect + dysentery
+    // roll all happen in performDrink based on the waterType param.
     drink: {
-      cost: { water: 1 },
-      effect: { thirst: -25, happiness: 1 },
+      cost: {},
+      effect: {},
       logKind: "consume",
       message: "💧 You drink. The thirst recedes.",
       missingMessage: "No water to drink.",
+    },
+    // Boil action — convert 1 wood + 1 muddy water into 1 boiled water.
+    // Requires Boiling research + Fire Pit built (gating handled in
+    // performBoilWater since it's stricter than research alone).
+    boilWater: {
+      cost: { wood: 1, water_muddy: 1 },
+      effect: {},
+      requires: { researched: "boiling" },
+      logKind: "consume",
+      message: "🫖 You set water over the fire. It bubbles, then quiets. +1 boiled.",
+      missingMessage: "You need wood and muddy water to boil.",
     },
     rest: {
       cost: {},

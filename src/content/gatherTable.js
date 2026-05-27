@@ -26,7 +26,7 @@ export const GATHER_TABLE = {
   preRock: [
     { weight: 32, kind: "resource", id: "wood",  qty: [1, 1] },
     { weight: 32, kind: "resource", id: "stone", qty: [1, 1] },
-    { weight: 6,  kind: "resource", id: "water", qty: [1, 1] },
+    { weight: 6,  kind: "resource", id: "water_stagnant", qty: [1, 1] },
     { weight: 28, kind: "nothing" },
     { weight: 2,  kind: "rockFind" },
   ],
@@ -37,7 +37,7 @@ export const GATHER_TABLE = {
   postRockPreAwaken: [
     { weight: 30, kind: "resource", id: "wood",  qty: [1, 2] },
     { weight: 30, kind: "resource", id: "stone", qty: [1, 2] },
-    { weight: 7,  kind: "resource", id: "water", qty: [1, 1] },
+    { weight: 7,  kind: "resource", id: "water_stagnant", qty: [1, 1] },
     { weight: 4,  kind: "resource", id: "food",  qty: [1, 1] },
     { weight: 10, kind: "nothing" },
     { weight: 19, kind: "resource", id: "fragments", qty: [1, 1] },
@@ -48,7 +48,7 @@ export const GATHER_TABLE = {
   postAwaken: [
     { weight: 36, kind: "resource", id: "wood",  qty: [1, 3] },
     { weight: 36, kind: "resource", id: "stone", qty: [1, 3] },
-    { weight: 8,  kind: "resource", id: "water", qty: [1, 1] },
+    { weight: 8,  kind: "resource", id: "water_stagnant", qty: [1, 1] },
     { weight: 5,  kind: "resource", id: "food",  qty: [1, 1] },
     { weight: 11, kind: "resource", id: "fragments", qty: [1, 1] },
     { weight: 4,  kind: "nothing" },

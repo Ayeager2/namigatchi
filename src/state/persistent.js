@@ -25,7 +25,11 @@ export const PERSISTENT_DEFAULTS = {
   lifetimeStats: {
     totalGathers: 0,
     totalResourcesGathered: 0,
-    resourcesByType: { wood: 0, stone: 0, water: 0, fragments: 0 },
+    resourcesByType: {
+      wood: 0, stone: 0, fragments: 0,
+      // Water tier ladder — see content/resources.js WATER_TIERS.
+      water_stagnant: 0, water_muddy: 0, water_boiled: 0,
+    },
     rocksFound: 0,
     rocksAwakened: 0,
     hutsBuilt: 0,

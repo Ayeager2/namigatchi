@@ -7,7 +7,12 @@ import { performBuild } from "../systems/building.js";
 import { performListen } from "../systems/research.js";
 import { performCraft } from "../systems/crafting.js";
 import { performHunt } from "../systems/hunting.js";
-import { performSurvivalAction } from "../systems/survival.js";
+import {
+  performSurvivalAction,
+  performDrink,
+  performBoilWater,
+} from "../systems/survival.js";
+import { tickDiseases } from "../systems/disease.js";
 import { performCastSpell } from "../systems/spells.js";
 import { performUseTool } from "../systems/consumables.js";
 import { performBuyEchoUpgrade, applyEchoUpgrades } from "../systems/echoes.js";
@@ -129,7 +134,15 @@ export function reducer(state, action) {
     }
 
     case ACTIONS.DRINK: {
-      const { run, persistent, events } = performSurvivalAction(state, "drink");
+      // Tiered drink (BUGS.md / ERA_PLAN.md "Water tiers + dysentery").
+      // waterType is optional; performDrink auto-picks the best tier if
+      // none provided.
+      const { run, persistent, events } = performDrink(state, action.waterType);
+      return { persistent, run: appendLog(run, events) };
+    }
+
+    case ACTIONS.BOIL_WATER: {
+      const { run, persistent, events } = performBoilWater(state);
       return { persistent, run: appendLog(run, events) };
     }
 
@@ -252,6 +265,11 @@ export function reducer(state, action) {
       const spoilResult = processSpoilage({ run, persistent });
       run = spoilResult.run;
       allEvents.push(...spoilResult.events);
+
+      // Tick diseases — slow drain + expiry. See systems/disease.js.
+      const diseaseResult = tickDiseases({ run, persistent });
+      run = diseaseResult.run;
+      allEvents.push(...diseaseResult.events);
 
       const pestResult = clearStalePests(run);
       run = pestResult.run;

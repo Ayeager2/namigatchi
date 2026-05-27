@@ -2,6 +2,7 @@
 
 import { getSpell, getAllSpells } from "../content/spells.js";
 import { applyEffect } from "./survival.js";
+import { clearDysentery } from "./disease.js";
 import { computeEra } from "./era.js";
 
 export function canCastSpell(state, spellId) {
@@ -92,7 +93,7 @@ export function performCastSpell(state, spellId) {
     statuses[id] = { until: Date.now() + (durationMs || 0) };
   }
 
-  const run = {
+  let run = {
     ...state.run,
     inventory,
     stats,
@@ -103,6 +104,15 @@ export function performCastSpell(state, spellId) {
   const events = [
     { kind: spell.logKind || "spell_good", message: spell.castMessage },
   ];
+
+  // Mending Word also cures dysentery — see ERA_PLAN.md "Water tiers +
+  // dysentery". It's "the word the body remembers," after all.
+  if (spellId === "mendingWord") {
+    const cure = clearDysentery(run, "mending");
+    run = cure.run;
+    events.push(...cure.events);
+  }
+
   return { run, persistent: state.persistent, events };
 }
 

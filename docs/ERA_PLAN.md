@@ -96,7 +96,19 @@ Each step builds on the previous. B is the biggest single change; C piggybacks o
 
 ### Water tiers + dysentery + drink dropdown
 
-**Status.** Design captured — not yet built. Pairs with Layout refactor Part D (Drink dropdown UI).
+**Status.** ✅ Era 1–2 vertical slice **SHIPPED 2026-05.** Stagnant + Muddy + Boiled tiers, full dysentery disease system, Drink dropdown with risk hints, Boil utility, save migration v1→v2. Era 3+ tiers (Filtered / Purified / Beer) still queued — see "open questions" below. Original spec retained verbatim for reference.
+
+**What shipped in the slice:**
+- Three water resources (`water_stagnant`, `water_muddy`, `water_boiled`) in `content/resources.js` with `thirstRelief` / `dysenteryChance` / `tier` / `spoilage`. Boiled water doesn't spoil.
+- Virtual-water cost helper (`totalWater`, `spendWater`) so existing `cost: { water: N }` data continues to work and drains lowest-tier-first.
+- Gathering now yields `water_stagnant`; Water Hole (the renamed Well) produces `water_muddy`.
+- New `boiling` research node (Era 1–2, after Cooking) unlocks the `boilWater` action: 1 wood + 1 muddy → 1 boiled at the Fire Pit.
+- Full `systems/disease.js` module: dysentery rolls on risky drinks, doubles hunger/thirst drain, -30% gather/hunt yield, slow HP/sanity/spirit/happiness drain, 5–10min duration, chronic compounding. Cured by Mending Word spell, Mending Potion, or fades naturally. Boiled water drunk while sick shortens recovery by 60s.
+- `ui/DrinkButton.jsx` dropdown mirroring EatButton: tier rows with ⚠ risk chip, Boil utility row at the bottom when prerequisites met. Preference persists in `settings.drinkPreference`.
+- Save migration v1→v2 in `state/save.js`: existing `water` → `water_muddy` if Water Hole built, else `water_stagnant`. Lifetime stats also remapped.
+- Events system virtualizes `water` cost (any tier) and grant (lands as muddy).
+
+**Original design captured below (still relevant for Era 3+ extension):**
 
 **The problem.** Right now Water is a single resource. The Well produces it, the Water Skin stores it, Drink consumes it for thirst. Same item from Era 1 to endgame. That's flat: no progression, no consequence, no reason to build the upgrade chain beyond raw throughput.
 

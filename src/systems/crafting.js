@@ -1,6 +1,7 @@
 // Crafting system. Reducer dispatches CRAFT_TOOL; this file owns the logic.
 
 import { getTool, getAllTools } from "../content/tools.js";
+import { totalWater, spendWater } from "../content/resources.js";
 import { gainXp, getSkillState } from "./skills.js";
 import {
   decayForAction,
@@ -72,6 +73,12 @@ export function canCraft(state, toolId) {
   }
 
   for (const [res, qty] of Object.entries(tool.cost || {})) {
+    if (res === "water") {
+      if (totalWater(state.run.inventory) < qty) {
+        return { ok: false, reason: "Not enough materials." };
+      }
+      continue;
+    }
     if ((state.run.inventory?.[res] || 0) < qty) {
       return { ok: false, reason: "Not enough materials." };
     }
@@ -89,7 +96,7 @@ export function performCraft(state, toolId, rng = Math.random) {
     return { run: state.run, persistent: state.persistent, events: [{ kind: "craftFail", message: check.reason }] };
   }
 
-  const inventory = { ...state.run.inventory };
+  let inventory = { ...state.run.inventory };
   const { level: craftLevel } = getSkillState(state.run, "crafting");
   const refundChance = Math.min(0.02 * craftLevel, 0.30);
 
@@ -102,7 +109,11 @@ export function performCraft(state, toolId, rng = Math.random) {
         refunds.push(res);
       }
     }
-    inventory[res] = (inventory[res] || 0) - actual;
+    if (res === "water") {
+      inventory = spendWater(inventory, actual);
+    } else {
+      inventory[res] = (inventory[res] || 0) - actual;
+    }
   }
 
   inventory[toolId] = (inventory[toolId] || 0) + 1;

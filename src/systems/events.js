@@ -2,6 +2,7 @@
 
 import { getAllEvents, getEvent } from "../content/events.js";
 import { applyEffect } from "./survival.js";
+import { totalWater, spendWater } from "../content/resources.js";
 import { computeEra } from "./era.js";
 
 export const INTERVAL_MS = 60 * 1000;
@@ -77,6 +78,19 @@ function applyEventEffects(state, effects, multiplier = 1.0) {
   if (effects.inventory) {
     for (const [k, v] of Object.entries(effects.inventory)) {
       const delta = Math.round(v * multiplier);
+      // Virtual "water" key — grants land as water_muddy (the realistic
+      // tier strangers/events would deliver). Negative deltas drain from
+      // lowest tier first via spendWater. See ERA_PLAN.md "Water tiers".
+      if (k === "water") {
+        if (delta >= 0) {
+          run.inventory.water_muddy =
+            (run.inventory.water_muddy || 0) + delta;
+        } else {
+          const toSpend = Math.min(totalWater(run.inventory), -delta);
+          run.inventory = spendWater(run.inventory, toSpend);
+        }
+        continue;
+      }
       run.inventory[k] = Math.max(0, (run.inventory[k] || 0) + delta);
     }
   }
@@ -185,7 +199,9 @@ export function respondToActiveEvent(state, choiceId) {
 
   if (choice.cost) {
     for (const [res, qty] of Object.entries(choice.cost)) {
-      if ((state.run.inventory[res] || 0) < qty) {
+      const have =
+        res === "water" ? totalWater(state.run.inventory) : (state.run.inventory[res] || 0);
+      if (have < qty) {
         return {
           run: state.run,
           persistent: state.persistent,
@@ -198,9 +214,13 @@ export function respondToActiveEvent(state, choiceId) {
     }
   }
 
-  const inventory = { ...state.run.inventory };
+  let inventory = { ...state.run.inventory };
   if (choice.cost) {
     for (const [res, qty] of Object.entries(choice.cost)) {
+      if (res === "water") {
+        inventory = spendWater(inventory, qty);
+        continue;
+      }
       inventory[res] = (inventory[res] || 0) - qty;
     }
   }

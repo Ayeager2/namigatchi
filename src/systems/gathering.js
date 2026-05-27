@@ -125,7 +125,9 @@ export function performGather(state, rng = Math.random) {
     (toolEff.gatherBonus || 0) +
     skillGatherBonus;
 
-  const yieldMult = survivalActive(state) ? getYieldMultiplier(run.stats) : 1.0;
+  const yieldMult = survivalActive(state)
+    ? getYieldMultiplier(run.stats, run)
+    : 1.0;
 
   persistent.lifetimeStats.totalGathers += 1;
 
@@ -139,7 +141,10 @@ export function performGather(state, rng = Math.random) {
       const [lo, hi] = result.qty;
       const baseQty = randInt(rng, lo, hi);
       let perResourceBonus = 0;
-      if (result.id === "water") perResourceBonus = toolEff.waterBonus || 0;
+      // Water tools (Digging Stick, Water Skin) boost the early-game water
+      // gather, which is now `water_stagnant` (Era 1 default — see
+      // ERA_PLAN.md "Water tiers + dysentery").
+      if (result.id === "water_stagnant") perResourceBonus = toolEff.waterBonus || 0;
       else if (result.id === "wood") perResourceBonus = toolEff.woodBonus || 0;
       else if (result.id === "stone") perResourceBonus = toolEff.stoneBonus || 0;
       else if (result.id === "food") perResourceBonus = toolEff.foodBonus || 0;
@@ -212,7 +217,7 @@ export function performGather(state, rng = Math.random) {
   }
 
   if (survivalActive({ ...state, run })) {
-    run.stats = decayForAction(run.stats || {}, "Gather");
+    run.stats = decayForAction(run.stats || {}, "Gather", run);
   }
 
   if (survivalActive({ ...state, run })) {
@@ -245,7 +250,7 @@ export function performGather(state, rng = Math.random) {
   const wearGather = applyToolWear(run, "gather");
   run = wearGather.run;
   events.push(...wearGather.events);
-  if (result.kind === "resource" && result.id === "water") {
+  if (result.kind === "resource" && result.id === "water_stagnant") {
     const wearWater = applyToolWear(run, "waterGather");
     run = wearWater.run;
     events.push(...wearWater.events);

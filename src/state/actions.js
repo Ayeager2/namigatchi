@@ -13,6 +13,7 @@ export const ACTIONS = {
 
   EAT: "EAT",
   DRINK: "DRINK",
+  BOIL_WATER: "BOIL_WATER",
   REST: "REST",
   RITUAL: "RITUAL",
   CAST_SPELL: "CAST_SPELL",

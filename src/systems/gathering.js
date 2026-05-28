@@ -21,6 +21,7 @@ import {
   getYieldMultiplier,
   canGather as canGatherSurvival,
 } from "./survival.js";
+import { getStudyPassives } from "./studies.js";
 import { rollThreatEncounter } from "./threats.js";
 import { rollGatherEvent } from "./events.js";
 import { pickWeighted, randInt } from "../util/rng.js";
@@ -149,7 +150,23 @@ export function performGather(state, rng = Math.random) {
       else if (result.id === "stone") perResourceBonus = toolEff.stoneBonus || 0;
       else if (result.id === "food") perResourceBonus = toolEff.foodBonus || 0;
       const rawQty = baseQty + gatherBonus + perResourceBonus;
-      const qty = Math.max(1, Math.round(rawQty * yieldMult));
+      let qty = Math.max(1, Math.round(rawQty * yieldMult));
+
+      // ─── Stoneword passive — First Listening (Task #31) ────────────
+      // Small chance for the gather to yield double — "the world gives,
+      // when you knew to listen." Stacks with other yield boosts.
+      const studyPassives = getStudyPassives(run);
+      if (
+        studyPassives.gatherDoubleChance &&
+        rng() < studyPassives.gatherDoubleChance
+      ) {
+        qty *= 2;
+        events.push({
+          kind: "event_good",
+          message: "👂 The ash gives more than it should — because you knew to listen.",
+        });
+      }
+
       run.inventory[result.id] = (run.inventory[result.id] || 0) + qty;
       run.gathered[result.id] = (run.gathered[result.id] || 0) + qty;
       persistent.lifetimeStats.totalResourcesGathered += qty;

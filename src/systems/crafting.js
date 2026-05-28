@@ -3,6 +3,7 @@
 import { getTool, getAllTools } from "../content/tools.js";
 import { totalWater, spendWater } from "../content/resources.js";
 import { getResourceCap } from "./storage.js";
+import { getStudyPassives } from "./studies.js";
 import { gainXp, getSkillState } from "./skills.js";
 import {
   decayForAction,
@@ -16,10 +17,22 @@ export function applyToolWear(run, actionTag) {
   const events = [];
   let changed = false;
 
+  // Study passives soften wear — Stone Mend (Elemental) 25%, Binding Mark
+  // (Sigilcraft) 50%. They stack additively up to a cap of 90% reduction
+  // (tools can never become fully unbreakable through studies alone).
+  const passives = getStudyPassives(run);
+  const wearReduction = Math.min(0.9, passives.toolDurabilityBonus || 0);
+  // Convert wear reduction to a chance to SKIP this wear tick — gives a
+  // smooth probabilistic feel rather than fractional durability.
+  const skipChance = wearReduction;
+
   for (const tool of getAllTools()) {
     if (!(inventory[tool.id] > 0)) continue;
     const dur = tool.durability;
     if (!dur || dur.wearsOn !== actionTag) continue;
+
+    // Roll for the study-passive durability save.
+    if (skipChance > 0 && Math.random() < skipChance) continue;
 
     const current = toolDurability[tool.id];
     const seeded = typeof current === "number" ? current : dur.max;
@@ -129,10 +142,29 @@ export function performCraft(state, toolId, rng = Math.random) {
     }
   }
 
-  inventory[toolId] = (inventory[toolId] || 0) + 1;
+  // Resource-producing recipes (scrollCraft, inkCraft) increment a *resource*
+  // in inventory rather than the recipe id. Regular tool recipes still
+  // increment under their tool id. Either way: clamp to baseCap if the
+  // produced item has one (canCraft already blocks at-cap, so this is
+  // belt-and-suspenders for the edge of an exactly-full inventory).
+  if (tool.producesResource) {
+    const { id: outId, qty = 1 } = tool.producesResource;
+    const cap = getResourceCap(state, outId);
+    const have = inventory[outId] || 0;
+    const room = cap === Infinity ? qty : Math.max(0, cap - have);
+    inventory[outId] = have + Math.min(qty, room);
+  } else {
+    inventory[toolId] = (inventory[toolId] || 0) + 1;
+  }
 
   const toolDurability = { ...(state.run.toolDurability || {}) };
-  if (tool.durability && typeof tool.durability.max === "number") {
+  // Resource-producing recipes don't have durability — durability tracks a
+  // physical tool instance, not a stack of materials.
+  if (
+    !tool.producesResource &&
+    tool.durability &&
+    typeof tool.durability.max === "number"
+  ) {
     toolDurability[toolId] = tool.durability.max;
   }
 

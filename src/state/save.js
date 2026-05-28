@@ -7,7 +7,7 @@ import { PERSISTENT_DEFAULTS } from "./persistent.js";
 import { RUN_DEFAULTS, freshRun } from "./run.js";
 
 const STORAGE_KEY = "namigatchi-save";
-const CURRENT_VERSION = 2;
+const CURRENT_VERSION = 3;
 
 export function loadGame() {
   try {
@@ -50,12 +50,25 @@ function migrate(saved) {
     saved = migrate1to2(saved);
     v = 2;
   }
+  if (v < 3) {
+    saved = migrate2to3(saved);
+    v = 3;
+  }
 
   // Merge with defaults to handle any new fields added since save.
   return {
     persistent: { ...PERSISTENT_DEFAULTS, ...(saved.persistent || {}) },
     run: { ...RUN_DEFAULTS, ...(saved.run || freshRun()) },
   };
+}
+
+// v2 → v3: Arcane Studies state added to run (#27). No data to remap —
+// new fields all default to empty/zero. The RUN_DEFAULTS merge at the
+// bottom of migrate() handles populating them. This migration exists
+// for explicit version tracking and a future-proof hook if we add
+// migration of, say, an early STUDIES iteration to a renamed shape.
+function migrate2to3(saved) {
+  return { ...saved, version: 3 };
 }
 
 // v1 → v2: Water resource splits into a tier ladder (water_stagnant,

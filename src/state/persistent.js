@@ -52,6 +52,14 @@ export const PERSISTENT_DEFAULTS = {
   // Once a track is unlocked, it's available forever — surviving prestige.
   // Shape: { trackId: { unlockedAt: ms } }.
   unlockedMusic: {},
+
+  // Etchings accumulated on the Stone Altar across all runs. Each etching
+  // is a milestone the player crossed (first study, first cross-path
+  // lesson, etc.). The altar is the long-arc trophy wall — survives
+  // prestige. Shape: { etchingId: { stampedAt: ms, label: str } }.
+  // See systems/studies.js applyCompletionEffects + ERA_PLAN.md
+  // "Era 2 → 3 transition" Stone Altar entry.
+  altarEtchings: {},
 };
 
 // How many run snapshots to keep in history. Older ones get dropped.

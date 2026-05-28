@@ -3,6 +3,7 @@
 import { getAllBuildings } from "../content/buildings.js";
 import { getResourceCap } from "./storage.js";
 import { getToolEffects } from "../content/tools.js";
+import { getStudyPassives } from "./studies.js";
 
 export const MAX_CATCHUP_MIN = 30;
 const LOG_DROP_THRESHOLD = 1;
@@ -14,6 +15,22 @@ function getProductionModulators(run) {
   }
   if (run.built?.farmhouse && run.built?.garden) {
     mods.food = (mods.food ?? 1) * 1.5;
+  }
+  // ─── Study passive bonuses (Task #31) ───────────────────────────────
+  // Coax Spring (Elemental tier 1) — Water Hole +50% throughput. Applies
+  // to all water tiers it produces (currently water_muddy only).
+  // Quicken Growth (Elemental tier 1) — Garden food +50%.
+  // Both are additive across whatever's already in mods. Stacks with
+  // farmhouse boost — by design (you've earned both).
+  const passives = getStudyPassives(run);
+  if (passives.waterHoleSpeedBonus) {
+    const mult = 1 + passives.waterHoleSpeedBonus;
+    mods.water_muddy = (mods.water_muddy ?? 1) * mult;
+    mods.water_stagnant = (mods.water_stagnant ?? 1) * mult;
+    mods.water_boiled = (mods.water_boiled ?? 1) * mult;
+  }
+  if (passives.gardenSpeedBonus) {
+    mods.food = (mods.food ?? 1) * (1 + passives.gardenSpeedBonus);
   }
   return mods;
 }

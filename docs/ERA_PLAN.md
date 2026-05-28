@@ -300,33 +300,50 @@ Player progresses: fundamentals at the stone → build the Stone Altar → start
 - Starting a study costs 1 scroll + 1 ink (consumed at start, not refunded if you switch away).
 - **Abandoning** a study explicitly (Cancel button) discards its accumulated time but refunds nothing — same effect as just never finishing it. Materials were the price of admission; time was free to hold.
 
-#### Three magic paths (subtrees)
+#### Seven magic paths (subtrees) — expanded 2026-05
 
-Each path is its own SVG tree at the Altar. Player can study from any path at any time, but each completion shifts the silent counters — over time you become what you study.
+Locked in via AskUserQuestion: **7 total paths**, with **mixed crossover** topology — most nodes are path-specific, but deep / apex nodes require completion across multiple paths. Each path's per-completion delta is locked in `content/studies.js` `STUDY_PATHS` and applied uniformly by performCompleteStudy (#31).
 
-**1. The Light path (Godly / Mending)** — heals, wards, blessings
-- Each completion: **+3 sanity, +1 good alignment**
-- Example nodes:
-  - *Greater Mending* — +60 HP spell variant
-  - *Sanctuary* — area ward, reduces threat encounters
-  - *Cleansing Word* — clears all status effects (dysentery, etc.)
-  - *Blessing* — temp +stat aura
+**1. The Light path** — heals, wards, blessings
+- *Per completion:* +3 sanity, +1 good alignment
+- Example nodes: Greater Mending · Sanctuary · Cleansing Word · Blessing
 
-**2. The Bend path (Dark / Drain)** — drain, curse, dominate
-- Each completion: **-3 sanity, +1 evil alignment**
-- Example nodes:
-  - *Greater Bend* — drain more, no spirit cost
-  - *Curse* — debuff a threat
-  - *Soulflame* — convert HP → spell power
-  - *Dominate* — force an NPC choice
+**2. The Bend path** — drain, curse, dominate
+- *Per completion:* −3 sanity, +1 evil alignment
+- Example nodes: Greater Bend · Curse · Soulflame · Dominate
 
-**3. The Elemental path (World / Restoration)** — earth, water, growth
-- Each completion: **+1 sanity, +1 world score** (see below)
-- Example nodes:
-  - *Coax Spring* — Water Hole produces faster
-  - *Quicken Growth* — Garden output boost
-  - *Stone Mend* — repair tool durability
-  - *Ash Cleanse* — heal a patch of the wasteland (long-arc lore hook)
+**3. The Elemental path** — earth, water, growth, restoration
+- *Per completion:* +1 sanity, +1 world score
+- Example nodes: Coax Spring · Quicken Growth · Stone Mend · Ash Cleanse
+
+**4. Sigilcraft (Inkwork)** — written magic, persistent enchantments
+- *Per completion:* +1 sanity, +0.5 world score
+- Example nodes: First Sigil · Binding Mark · (later: enchant unlocks for Combat Phase 6)
+- **Foundation node** (First Sigil) gates weapon enchant slots
+- Ties: scroll + ink resources, weapon enchants (#37)
+
+**5. Memory (Echo)** — recall lost, restore broken, read past of threats
+- *Per completion:* +2 sanity, +0.5 world score
+- Example nodes: First Echo · Reading the Past · (later: deep recall, restore-from-rubble)
+- Ties: prestige Echo currency lore, threat-stat visibility in combat log
+
+**6. Stoneword (Listening)** — divination, perception, foresight
+- *Per completion:* +2 sanity, +0.5 world score
+- Example nodes: First Listening · Weakness-Sight · (later: event preview, hidden resource sense)
+- Cosmic-horror foresight vibe
+
+**7. Voidcall (Beyond)** — pull from outside the world. APEX-GATED.
+- *Per completion:* **−5 sanity, +2 evil, −1 world score** — the world thins where you stand
+- Hidden until `alignment.evil ≥ 5` (deep commitment to Bend)
+- Example nodes: First Beckoning · (later: open the door, summon beyond)
+- The literal cost of evil power — you erode the very world you live in
+
+**Cross-path nodes** sit visually within their "home" path's tree, but their `requires.parents` cross paths. First content examples:
+- **Wardweave** (Sigilcraft home) — requires `sanctuary` (Light) + `firstSigil` (Sigilcraft). Grants permanent +2 Armor (Task #39).
+- **Ghostcall** (Memory home) — requires `firstEcho` (Memory) + `curse` (Bend). Summons the shade of defeated threats.
+- **Truesight** (Stoneword home, tier 4) — requires `weaknessSight` (Stoneword) + `cleansingWord` (Light). +20% combat acc + 10% evasion.
+
+The crossover encourages **build identity**: a "Light + Sigilcraft" player ends up with a different toolkit than "Bend + Memory" or "Elemental + Stoneword."
 
 #### Hidden World Score
 

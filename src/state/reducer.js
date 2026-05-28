@@ -13,6 +13,12 @@ import {
   performBoilWater,
 } from "../systems/survival.js";
 import { tickDiseases } from "../systems/disease.js";
+import {
+  performStartStudy,
+  performSetActiveStudy,
+  performCancelStudy,
+  tickStudies,
+} from "../systems/studies.js";
 import { performCastSpell } from "../systems/spells.js";
 import { performUseTool } from "../systems/consumables.js";
 import { performBuyEchoUpgrade, applyEchoUpgrades } from "../systems/echoes.js";
@@ -48,6 +54,15 @@ function appendLog(run, events) {
     log = [entry, ...log];
   }
   return { ...run, log: log.slice(0, MAX_LOG) };
+}
+
+// Player-initiated world action — appendLog + stamp `lastActionAt` so the
+// Arcane Studies clock pauses (systems/studies.js). Use this everywhere a
+// world action happens (gather, build, eat, etc). Meta-actions (LOAD,
+// RESET, dev patches, view changes) should NOT call this — they go
+// through plain appendLog.
+function appendLogAndStamp(run, events, now = Date.now()) {
+  return appendLog({ ...run, lastActionAt: now }, events);
 }
 
 function endRunAndSnapshot(state, ending) {
@@ -103,34 +118,34 @@ export function reducer(state, action) {
 
     case ACTIONS.GATHER: {
       const { run, persistent, events } = performGather(state);
-      return { persistent, run: appendLog(run, events) };
+      return { persistent, run: appendLogAndStamp(run, events) };
     }
 
     case ACTIONS.BUILD: {
       const { run, persistent, events } = performBuild(state, action.buildingId);
-      return { persistent, run: appendLog(run, events) };
+      return { persistent, run: appendLogAndStamp(run, events) };
     }
 
     case ACTIONS.RESEARCH: {
       const { run, persistent, events } = performListen(state, action.researchId);
-      return { persistent, run: appendLog(run, events) };
+      return { persistent, run: appendLogAndStamp(run, events) };
     }
 
     case ACTIONS.CRAFT_TOOL: {
       const { run, persistent, events } = performCraft(state, action.toolId);
-      return { persistent, run: appendLog(run, events) };
+      return { persistent, run: appendLogAndStamp(run, events) };
     }
 
     case ACTIONS.HUNT: {
       const { run, persistent, events } = performHunt(state);
-      return { persistent, run: appendLog(run, events) };
+      return { persistent, run: appendLogAndStamp(run, events) };
     }
 
     case ACTIONS.EAT: {
       const { run, persistent, events } = performSurvivalAction(state, "eat", {
         preferredFoodId: action.preferredFoodId,
       });
-      return { persistent, run: appendLog(run, events) };
+      return { persistent, run: appendLogAndStamp(run, events) };
     }
 
     case ACTIONS.DRINK: {
@@ -138,31 +153,51 @@ export function reducer(state, action) {
       // waterType is optional; performDrink auto-picks the best tier if
       // none provided.
       const { run, persistent, events } = performDrink(state, action.waterType);
-      return { persistent, run: appendLog(run, events) };
+      return { persistent, run: appendLogAndStamp(run, events) };
     }
 
     case ACTIONS.BOIL_WATER: {
       const { run, persistent, events } = performBoilWater(state);
-      return { persistent, run: appendLog(run, events) };
+      return { persistent, run: appendLogAndStamp(run, events) };
     }
 
     case ACTIONS.REST: {
       const { run, persistent, events } = performSurvivalAction(state, "rest");
-      return { persistent, run: appendLog(run, events) };
+      return { persistent, run: appendLogAndStamp(run, events) };
     }
 
     case ACTIONS.RITUAL: {
       const { run, persistent, events } = performSurvivalAction(state, "ritual");
-      return { persistent, run: appendLog(run, events) };
+      return { persistent, run: appendLogAndStamp(run, events) };
     }
 
     case ACTIONS.CAST_SPELL: {
       const { run, persistent, events } = performCastSpell(state, action.spellId);
-      return { persistent, run: appendLog(run, events) };
+      return { persistent, run: appendLogAndStamp(run, events) };
     }
 
     case ACTIONS.USE_TOOL: {
       const { run, persistent, events } = performUseTool(state, action.toolId);
+      return { persistent, run: appendLogAndStamp(run, events) };
+    }
+
+    // ─── Arcane Studies (#27) ─────────────────────────────────────────
+    // START_STUDY costs scroll + ink AND counts as a world action — it
+    // stamps lastActionAt so the clock starts paused (player gets ~5s
+    // to see the start before time begins to accrue). SET_ACTIVE and
+    // CANCEL are pure focus / housekeeping — no stamp.
+    case ACTIONS.START_STUDY: {
+      const { run, persistent, events } = performStartStudy(state, action.nodeId);
+      return { persistent, run: appendLog(run, events) };
+    }
+
+    case ACTIONS.SET_ACTIVE_STUDY: {
+      const { run, persistent, events } = performSetActiveStudy(state, action.nodeId);
+      return { persistent, run: appendLog(run, events) };
+    }
+
+    case ACTIONS.CANCEL_STUDY: {
+      const { run, persistent, events } = performCancelStudy(state, action.nodeId);
       return { persistent, run: appendLog(run, events) };
     }
 
@@ -271,6 +306,16 @@ export function reducer(state, action) {
       run = diseaseResult.run;
       allEvents.push(...diseaseResult.events);
 
+      // Tick the active arcane study, if any. Clock only advances when the
+      // player has been idle for >= IDLE_THRESHOLD_MS. Completion fires a
+      // log event + applies per-path deltas + writes altar etchings (which
+      // is why persistent comes back through this call). See systems/
+      // studies.js applyCompletionEffects.
+      const studyResult = tickStudies({ run, persistent });
+      run = studyResult.run;
+      persistent = studyResult.persistent;
+      allEvents.push(...studyResult.events);
+
       const pestResult = clearStalePests(run);
       run = pestResult.run;
       allEvents.push(...pestResult.events);
@@ -290,10 +335,11 @@ export function reducer(state, action) {
     }
 
     case ACTIONS.RESPOND_TO_EVENT: {
+      // Responding to an event is a player-initiated action — pause studies.
       const result = respondToActiveEvent(state, action.choiceId);
       return {
         persistent: result.persistent,
-        run: appendLog(result.run, result.events),
+        run: appendLogAndStamp(result.run, result.events),
       };
     }
 

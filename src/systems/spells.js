@@ -1,6 +1,7 @@
 // Spells system. Pure functions for spell eligibility + casting.
 
 import { getSpell, getAllSpells } from "../content/spells.js";
+import { getAllTools } from "../content/tools.js";
 import { applyEffect } from "./survival.js";
 import { clearDysentery } from "./disease.js";
 import { computeEra } from "./era.js";
@@ -16,6 +17,14 @@ export function canCastSpell(state, spellId) {
   }
   if (spell.requires?.researched) {
     if (!state.run.researched?.[spell.requires.researched]) {
+      return { ok: false, reason: "Spell not learned." };
+    }
+  }
+  // Arcane Studies — `requires.studied: <studyId>` gates spells unlocked
+  // by completing a study at the Stone Altar. See content/studies.js and
+  // ERA_PLAN.md "Arcane Studies".
+  if (spell.requires?.studied) {
+    if (!state.run.studiesCompleted?.[spell.requires.studied]) {
       return { ok: false, reason: "Spell not learned." };
     }
   }
@@ -113,6 +122,67 @@ export function performCastSpell(state, spellId) {
     events.push(...cure.events);
   }
 
+  // ─── Arcane Studies spell side-effects ───────────────────────────────
+  //
+  // The Cleansing Word lifts a specific set of statuses (dysentery, curses,
+  // future illnesses). Lighter than Mending which lifts dysentery as a
+  // side-effect of healing — Cleansing Word's PURPOSE is to clear.
+  if (Array.isArray(spell.clearsStatuses) && spell.clearsStatuses.length > 0) {
+    const nextStatuses = { ...(run.statuses || {}) };
+    for (const sid of spell.clearsStatuses) {
+      if (nextStatuses[sid]) {
+        delete nextStatuses[sid];
+        events.push({
+          kind: "spell_good",
+          message: `🌬️ The ${sid} lifts.`,
+        });
+        // Specific narrative beat for dysentery — leverage the disease module
+        // so its own state cleanup is consistent.
+        if (sid === "dysentery") {
+          const cure = clearDysentery({ ...run, statuses: nextStatuses }, "mending");
+          run = cure.run;
+        }
+      }
+    }
+    run = { ...run, statuses: nextStatuses };
+  }
+
+  // Echo restores tool durability across ALL owned tools (Memory path —
+  // see content/studies.js firstEcho). `repairsAllTools` is the fraction
+  // of each tool's max durability to restore.
+  if (typeof spell.repairsAllTools === "number") {
+    const toolDurability = { ...(run.toolDurability || {}) };
+    let anyRepaired = false;
+    for (const tool of getAllTools()) {
+      if (!(run.inventory?.[tool.id] > 0)) continue;
+      const dur = tool.durability;
+      if (!dur || typeof dur.max !== "number") continue;
+      const current = typeof toolDurability[tool.id] === "number"
+        ? toolDurability[tool.id]
+        : dur.max;
+      const restore = Math.floor(dur.max * spell.repairsAllTools);
+      const next = Math.min(dur.max, current + restore);
+      if (next > current) {
+        toolDurability[tool.id] = next;
+        anyRepaired = true;
+      }
+    }
+    run = { ...run, toolDurability };
+    if (anyRepaired) {
+      events.push({ kind: "spell_good", message: "🔔 Your tools remember being whole." });
+    }
+  }
+
+  // Voidcall (and other apex-dark spells) thin the world a little. World
+  // Score lives under run for now (run-local, see Task #29). Negative
+  // numbers are fine — Voidcall *erodes* the score.
+  if (typeof spell.worldScoreDelta === "number") {
+    run = {
+      ...run,
+      worldScore: (run.worldScore || 0) + spell.worldScoreDelta,
+    };
+  }
+
   return { run, persistent: state.persistent, events };
 }
 
@@ -122,6 +192,17 @@ export function hasStatus(run, statusId) {
 }
 
 export function getKnownSpells(state) {
-  const learned = state.run.researched || {};
-  return getAllSpells().filter((s) => learned[s.requires?.researched]);
+  const researched = state.run.researched || {};
+  const studied = state.run.studiesCompleted || {};
+  return getAllSpells().filter((s) => {
+    const req = s.requires || {};
+    // A spell is "known" if EITHER its research OR its study has been
+    // completed. Spells gated by both keys (rare) need both.
+    if (req.researched && !researched[req.researched]) return false;
+    if (req.studied && !studied[req.studied]) return false;
+    // Spells with neither gate are always known (no current data has
+    // this shape, but the default-true keeps it safe).
+    if (!req.researched && !req.studied) return true;
+    return true;
+  });
 }

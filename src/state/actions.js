@@ -19,6 +19,11 @@ export const ACTIONS = {
   CAST_SPELL: "CAST_SPELL",
   USE_TOOL: "USE_TOOL",
 
+  // Arcane Studies — timed magic study at the Stone Altar (#27).
+  START_STUDY: "START_STUDY",         // start a new study
+  SET_ACTIVE_STUDY: "SET_ACTIVE_STUDY", // switch which in-progress study accrues time
+  CANCEL_STUDY: "CANCEL_STUDY",       // abandon an in-progress study (no refund)
+
   TICK: "TICK",
   RESPOND_TO_EVENT: "RESPOND_TO_EVENT",
   SYNC_MUSIC_UNLOCKS: "SYNC_MUSIC_UNLOCKS",

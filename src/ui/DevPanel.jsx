@@ -14,6 +14,7 @@ import { getActiveSkills } from "../content/skills.js";
 import { getAllEvents } from "../content/events.js";
 import { getAllThreats } from "../content/threats.js";
 import { getAllSpells } from "../content/spells.js";
+import { getAllStudies, STUDY_PATHS } from "../content/studies.js";
 import { computeEra, getNextEraRequirements } from "../systems/era.js";
 
 const TABS = [
@@ -21,6 +22,7 @@ const TABS = [
   { id: "content", label: "🌍 Content" },
   { id: "state", label: "🧠 State" },
   { id: "encounters", label: "⚔️ Encounters" },
+  { id: "arcane", label: "🕯️ Arcane" },
   { id: "system", label: "⏱️ System" },
 ];
 
@@ -46,6 +48,19 @@ function Btn({ label, onClick, danger = false, small = false }) {
 }
 
 function giveTool(state, t) {
+  // Resource-producing recipes (scrollCraft, inkCraft) — grant the
+  // *resource* into inventory, not the recipe id. Mirrors performCraft.
+  if (t.producesResource) {
+    const { id: outId, qty = 1 } = t.producesResource;
+    const haveQty = state.run.inventory?.[outId] || 0;
+    return {
+      run: {
+        ...state.run,
+        inventory: { ...state.run.inventory, [outId]: haveQty + qty },
+      },
+      msg: `🛠️ +${qty} ${t.name}.`,
+    };
+  }
   const haveQty = state.run.inventory?.[t.id] || 0;
   return {
     run: {
@@ -92,7 +107,11 @@ export default function DevPanel({ state, actions, onClose }) {
               Era {era} · {Object.keys(state.run.built || {}).length} built ·{" "}
               {Object.keys(state.run.researched || {}).length} researched ·{" "}
               good {alignment.good || 0} · evil {alignment.evil || 0} · Echoes{" "}
-              {state.persistent.echoes}
+              {state.persistent.echoes} · WS{" "}
+              {Math.round((state.run.worldScore || 0) * 10) / 10}
+              {state.run.worldScoreRevealed ? " (revealed)" : ""} ·{" "}
+              studies {Object.keys(state.run.studiesCompleted || {}).length}/
+              {Object.keys(state.run.studyProgress || {}).length}
               {nextEraReqs.length > 0 && (
                 <><br />Next era needs: {nextEraReqs.join(", ")}</>
               )}
@@ -121,6 +140,7 @@ export default function DevPanel({ state, actions, onClose }) {
             <StateTab state={state} apply={apply} stats={stats} alignment={alignment} statuses={statuses} />
           )}
           {tab === "encounters" && <EncountersTab state={state} apply={apply} />}
+          {tab === "arcane" && <ArcaneTab state={state} apply={apply} />}
           {tab === "system" && <SystemTab state={state} actions={actions} apply={apply} />}
         </div>
       </div>
@@ -261,14 +281,117 @@ function StateTab({ state, apply, stats, alignment, statuses }) {
       <Section title="Statuses">
         <Btn label="Apply Warded (5 min)" onClick={() => apply(dev.devApplyStatus(state, "warded", 300))} />
         <Btn label="Clear Warded" onClick={() => apply(dev.devApplyStatus(state, "warded", 0))} />
+        <Btn label="Apply Dysentery (5 min)" onClick={() => apply(dev.devApplyDysentery(state, 5))} />
+        <Btn label="Clear Dysentery" onClick={() => apply(dev.devApplyDysentery(state, 0))} />
         <div className="dev-row-stats muted">
           Active:{" "}
-          {Object.entries(statuses).filter(([, s]) => s?.until > Date.now()).length === 0
+          {Object.entries(statuses).filter(([, s]) => s?.until > Date.now() || s?.expiresAt > Date.now() || s?.active).length === 0
             ? "none"
-            : Object.entries(statuses).filter(([, s]) => s?.until > Date.now())
-                .map(([id, s]) => `${id} (${Math.ceil((s.until - Date.now()) / 1000)}s)`)
+            : Object.entries(statuses)
+                .filter(([, s]) => s?.until > Date.now() || s?.expiresAt > Date.now() || s?.active)
+                .map(([id, s]) => {
+                  const until = s.until || s.expiresAt || 0;
+                  const remaining = until > Date.now() ? `${Math.ceil((until - Date.now()) / 1000)}s` : "active";
+                  return `${id} (${remaining})`;
+                })
                 .join(", ")}
         </div>
+      </Section>
+    </>
+  );
+}
+
+// ─── Arcane tab — Studies, World Score, water tiers, dysentery shortcuts ───
+function ArcaneTab({ state, apply }) {
+  const wsScore = state.run.worldScore || 0;
+  const completedStudies = Object.keys(state.run.studiesCompleted || {});
+  const inProgressStudies = Object.keys(state.run.studyProgress || {});
+  const activeStudyId = state.run.activeStudyId;
+  const altarBuilt = !!state.run.built?.stoneAltar;
+
+  return (
+    <>
+      <Section title="Quick-unlock the Arcane Studies arc">
+        <Btn
+          label={`🕯️ Build Stone Altar (with prereqs)${altarBuilt ? " ✓" : ""}`}
+          onClick={() => apply(dev.devBuildStoneAltar(state))}
+        />
+        <Btn label="📜 +5 Scrolls & Inks" onClick={() => apply(dev.devGiveStudyMaterials(state, 5))} />
+        <Btn label="📜 +20 Scrolls & Inks" onClick={() => apply(dev.devGiveStudyMaterials(state, 20))} />
+        <div className="dev-row-stats muted">
+          Scroll: {state.run.inventory?.scroll || 0} · Ink:{" "}
+          {state.run.inventory?.ink || 0}
+        </div>
+      </Section>
+
+      <Section title="Water tiers">
+        <Btn label="🩸 +10 stagnant" onClick={() => apply(dev.devGiveWater(state, "water_stagnant", 10))} />
+        <Btn label="💧 +10 muddy" onClick={() => apply(dev.devGiveWater(state, "water_muddy", 10))} />
+        <Btn label="🫖 +10 boiled" onClick={() => apply(dev.devGiveWater(state, "water_boiled", 10))} />
+        <div className="dev-row-stats muted">
+          Stagnant: {state.run.inventory?.water_stagnant || 0} · Muddy:{" "}
+          {state.run.inventory?.water_muddy || 0} · Boiled:{" "}
+          {state.run.inventory?.water_boiled || 0}
+        </div>
+      </Section>
+
+      <Section title="Studies">
+        <Btn label="Complete active study" onClick={() => apply(dev.devCompleteActiveStudy(state))} />
+        <Btn label="Complete ALL studies" onClick={() => apply(dev.devCompleteAllStudies(state))} />
+        <Btn label="Reset all study state" danger onClick={() => apply(dev.devResetStudies(state))} />
+        <div className="dev-row-stats muted">
+          Completed: {completedStudies.length}/{getAllStudies().length} · In progress:{" "}
+          {inProgressStudies.length} · Active: {activeStudyId || "none"}
+        </div>
+        <div className="dev-row-stats muted" style={{ marginTop: 4 }}>
+          Per-path completed:{" "}
+          {Object.values(STUDY_PATHS).map((p) => {
+            const count = getAllStudies().filter(
+              (s) => s.path === p.id && state.run.studiesCompleted?.[s.id]
+            ).length;
+            return `${p.icon}${count}`;
+          }).join(" ")}
+        </div>
+      </Section>
+
+      <Section title="World Score (hidden meter)">
+        <Btn label="WS → 0" onClick={() => apply(dev.devSetWorldScore(state, 0))} />
+        <Btn label="WS → 5 (gather +5%)" onClick={() => apply(dev.devSetWorldScore(state, 5))} />
+        <Btn label="WS → 15 (garden +20%)" onClick={() => apply(dev.devSetWorldScore(state, 15))} />
+        <Btn label="WS → 30 (water promote chance)" onClick={() => apply(dev.devSetWorldScore(state, 30))} />
+        <Btn label="WS → 50 (water hole → boiled)" onClick={() => apply(dev.devSetWorldScore(state, 50))} />
+        <Btn label="WS → 80 (garden → bird meat)" onClick={() => apply(dev.devSetWorldScore(state, 80))} />
+        <Btn label="WS → 100 (apex reveal)" onClick={() => apply(dev.devSetWorldScore(state, 100))} />
+        <Btn label="WS +5" onClick={() => apply(dev.devSetWorldScore(state, wsScore + 5))} />
+        <Btn label="WS -5" onClick={() => apply(dev.devSetWorldScore(state, Math.max(0, wsScore - 5)))} />
+        <div className="dev-row-stats muted">
+          Current: {Math.round(wsScore * 10) / 10}
+          {state.run.worldScoreRevealed ? " · revealed" : ""}
+        </div>
+      </Section>
+
+      <Section title="Altar etchings (persistent)">
+        <div className="dev-row-stats muted">
+          {Object.keys(state.persistent.altarEtchings || {}).length} etching(s)
+          {Object.keys(state.persistent.altarEtchings || {}).length > 0 && (
+            <>
+              <br />
+              {Object.entries(state.persistent.altarEtchings || {})
+                .map(([id, e]) => `${id}: ${e.label || "(unlabeled)"}`)
+                .join(", ")}
+            </>
+          )}
+        </div>
+        <Btn
+          label="Clear all etchings"
+          danger
+          onClick={() =>
+            apply({
+              persistent: { ...state.persistent, altarEtchings: {} },
+              msg: "🛠️ Altar etchings wiped.",
+            })
+          }
+        />
       </Section>
     </>
   );

@@ -266,3 +266,149 @@ export function devForceThreat(state, threatId) {
     msg: `🛠️ Forced threat "${threatId}".`,
   };
 }
+
+// ─── Arcane Studies + World Score + Dysentery dev helpers (Tasks #25-31, #29, #20) ──
+
+import { getAllStudies, getStudy } from "../content/studies.js";
+
+// Give a specific water tier. The Resources tab's "+999 of every resource"
+// already covers all three water tiers, but having one-tap-per-tier is
+// useful for testing the dysentery roll distribution.
+export function devGiveWater(state, tier = "water_stagnant", qty = 10) {
+  const inventory = {
+    ...state.run.inventory,
+    [tier]: (state.run.inventory?.[tier] || 0) + qty,
+  };
+  return { run: { ...state.run, inventory }, msg: `🛠️ +${qty} ${tier}.` };
+}
+
+// Studies require scroll + ink to START. Give a stack of each so testing
+// is unblocked even without Era-2 research progress.
+export function devGiveStudyMaterials(state, qty = 5) {
+  const inventory = {
+    ...state.run.inventory,
+    scroll: (state.run.inventory?.scroll || 0) + qty,
+    ink: (state.run.inventory?.ink || 0) + qty,
+  };
+  return { run: { ...state.run, inventory }, msg: `🛠️ +${qty} scroll, +${qty} ink.` };
+}
+
+// Build the Stone Altar (and its prereqs — Home built + altarWork
+// researched) so testing the Arcane Studies arc doesn't require
+// grinding through Era 2 first.
+export function devBuildStoneAltar(state) {
+  const built = {
+    ...(state.run.built || {}),
+    hut: state.run.built?.hut || { at: Date.now() },
+    home: state.run.built?.home || { at: Date.now() },
+    stoneAltar: { at: Date.now() },
+  };
+  const researched = {
+    ...(state.run.researched || {}),
+    home: state.run.researched?.home || { at: Date.now() },
+    altarWork: { at: Date.now() },
+  };
+  return {
+    run: { ...state.run, built, researched },
+    msg: `🛠️ Stone Altar raised.`,
+  };
+}
+
+// Set the World Score directly. Hidden meter — see ERA_PLAN.md "Arcane
+// Studies → World Score" for thresholds. 100 fires the apex reveal.
+export function devSetWorldScore(state, value = 0) {
+  // Reset the revealed flag if dropping below threshold so re-discovery
+  // works.
+  const revealed = value >= 100 ? state.run.worldScoreRevealed : false;
+  return {
+    run: {
+      ...state.run,
+      worldScore: value,
+      worldScoreAccum: 0,
+      worldScoreRevealed: revealed,
+    },
+    msg: `🛠️ World Score → ${value}.`,
+  };
+}
+
+// Mark every known study as completed. Applies the per-path deltas
+// (sanity, alignment, world score) for each as the path stamp,
+// approximately — uses straight sum without re-running tickStudies'
+// internal apply. Useful for testing late-game spell loadouts.
+export function devCompleteAllStudies(state) {
+  const studies = getAllStudies();
+  const completed = { ...(state.run.studiesCompleted || {}) };
+  for (const s of studies) {
+    if (!completed[s.id]) completed[s.id] = { completedAt: Date.now() };
+  }
+  return {
+    run: {
+      ...state.run,
+      studiesCompleted: completed,
+      studyProgress: {},
+      activeStudyId: null,
+    },
+    msg: `🛠️ All ${studies.length} studies marked complete.`,
+  };
+}
+
+// Complete just the currently active study, instantly. Useful for testing
+// completion log + etching + delta + spell unlock without waiting.
+export function devCompleteActiveStudy(state) {
+  const activeId = state.run.activeStudyId;
+  if (!activeId) return { msg: `🛠️ No active study to complete.` };
+  const def = getStudy(activeId);
+  if (!def) return { msg: `🛠️ Active study def missing.` };
+  const studyProgress = { ...(state.run.studyProgress || {}) };
+  delete studyProgress[activeId];
+  const studiesCompleted = {
+    ...(state.run.studiesCompleted || {}),
+    [activeId]: { completedAt: Date.now() },
+  };
+  return {
+    run: {
+      ...state.run,
+      studyProgress,
+      studiesCompleted,
+      activeStudyId: null,
+    },
+    msg: `🛠️ Completed "${def.name}". (Note: bypasses tickStudies' path-delta + etching wiring — apply those manually via State tab if you need them.)`,
+  };
+}
+
+// Wipe all study progress + active study + completed studies. Lets you
+// test the "first study" etching event again.
+export function devResetStudies(state) {
+  return {
+    run: {
+      ...state.run,
+      studyProgress: {},
+      activeStudyId: null,
+      studiesCompleted: {},
+      lastStudyTickAt: 0,
+    },
+    msg: `🛠️ All study state wiped.`,
+  };
+}
+
+// Apply dysentery (or clear it). See systems/disease.js.
+export function devApplyDysentery(state, durationMin = 5) {
+  if (durationMin <= 0) {
+    const statuses = { ...(state.run.statuses || {}) };
+    delete statuses.dysentery;
+    return { run: { ...state.run, statuses }, msg: `🛠️ Dysentery cleared.` };
+  }
+  const now = Date.now();
+  const statuses = {
+    ...(state.run.statuses || {}),
+    dysentery: {
+      active: true,
+      startedAt: now,
+      expiresAt: now + durationMin * 60 * 1000,
+    },
+  };
+  return {
+    run: { ...state.run, statuses },
+    msg: `🛠️ Dysentery applied for ${durationMin} min.`,
+  };
+}

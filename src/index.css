@@ -4091,6 +4091,300 @@ body.motion-reduced .tool-durability-fill {
               0 0 6px rgba(200, 68, 60, 0.55);
 }
 
+/* ---- Stone strip active-study indicator (Task #30) ----
+   Subtle thin progress bar at the bottom of the stone-info section when
+   the player has an active arcane study. Lets them feel the clock tick
+   even when they're not on the Studies tab. */
+.stone-study-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 11px;
+}
+
+.stone-study-bar-icon {
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.stone-study-bar-track {
+  flex: 1;
+  height: 4px;
+  background: var(--bg-elev, #232323);
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid var(--border, #3a3a3a);
+}
+
+.stone-study-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #d4a45c, #d4894c);
+  transition: width 0.25s ease-out;
+  border-radius: 1px;
+}
+
+.stone-study-bar.is-paused .stone-study-bar-fill {
+  background: var(--text-muted, #6a5a4a);
+  opacity: 0.6;
+}
+
+.stone-study-bar.is-paused .stone-study-bar-icon {
+  opacity: 0.5;
+  animation: stone-study-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes stone-study-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.8; }
+}
+
+/* ---- Studies panel (left rail tab content — Task #30) ---- */
+
+.studies-panel {
+  padding: 4px 2px;
+}
+
+.studies-panel-title {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0 0 4px;
+}
+
+.studies-panel-lead {
+  font-size: 12px;
+  font-style: italic;
+  margin: 0 0 12px;
+}
+
+.studies-section-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 14px 0 4px;
+}
+
+.studies-empty {
+  font-size: 12px;
+  padding: 10px 4px;
+  text-align: center;
+  font-style: italic;
+}
+
+.studies-open-trees {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.studies-completed {
+  font-size: 11px;
+  margin-top: 10px;
+  text-align: center;
+  font-style: italic;
+}
+
+/* ---- Per-study row inside StudiesPanel ---- */
+
+.study-row {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.study-row.is-active {
+  border-color: var(--accent, #d4a45c);
+  background: rgba(212, 164, 92, 0.06);
+}
+
+.study-row.is-active.is-paused {
+  border-color: var(--text-muted, #6a5a4a);
+  background: rgba(100, 100, 100, 0.04);
+}
+
+.study-row-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.study-row-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.study-row-name {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.study-row-time {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.study-row-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--bg-elev2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.study-row-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #b29ec5, #d4a45c);
+  transition: width 0.25s ease-out;
+  border-radius: 3px;
+}
+
+.study-row.is-active.is-paused .study-row-bar-fill {
+  background: var(--text-muted, #6a5a4a);
+  opacity: 0.6;
+}
+
+.study-row-status {
+  font-size: 10px;
+  font-style: italic;
+}
+
+.study-row-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.btn-tiny {
+  padding: 3px 8px;
+  font-size: 11px;
+}
+
+/* ---- StudyTreeModal — path tabs across the top ---- */
+
+.study-tab-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.study-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  border-bottom: none;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.study-tab:hover {
+  color: var(--text);
+  background: var(--bg-elev);
+}
+
+.study-tab.is-active {
+  color: var(--text);
+  background: var(--bg-elev);
+  border-color: var(--border);
+  border-bottom-color: transparent;
+  margin-bottom: -1px; /* overlap the strip's bottom border */
+}
+
+.study-tab-icon {
+  font-size: 14px;
+}
+
+/* Path-specific accent tints on active tabs */
+.study-tab--light.is-active   { border-top: 2px solid #d4a45c; }
+.study-tab--bend.is-active    { border-top: 2px solid #6a4870; }
+.study-tab--elemental.is-active { border-top: 2px solid #6a8a4a; }
+.study-tab--sigilcraft.is-active { border-top: 2px solid #7a6ac5; }
+.study-tab--memory.is-active  { border-top: 2px solid #b29ec5; }
+.study-tab--stoneword.is-active { border-top: 2px solid #8a7a6a; }
+.study-tab--voidcall.is-active { border-top: 2px solid #1a1a1a; }
+
+/* Off-path edge marker (cross-path parent indicator) */
+.tree-edge.is-offpath {
+  stroke-dasharray: 3 3;
+  opacity: 0.6;
+}
+
+.tree-offpath-label {
+  font-size: 9px;
+  fill: var(--text-muted);
+  font-style: italic;
+  pointer-events: none;
+}
+
+/* In-progress node mark (orange ⏳ pip in the upper-left corner) */
+.tree-node-inprogress-mark circle {
+  fill: #d4894c;
+  stroke: #11150f;
+  stroke-width: 1.5;
+  filter: drop-shadow(0 0 4px rgba(212, 137, 76, 0.55));
+}
+
+.tree-node-inprogress-mark text {
+  fill: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* In-progress / complete styling extensions on tree nodes */
+.tree-node--in-progress .tree-node-bg {
+  stroke: #d4894c;
+  filter: drop-shadow(0 0 5px rgba(212, 137, 76, 0.35));
+}
+
+.tree-node--complete .tree-node-bg {
+  fill: rgba(178, 158, 197, 0.18);
+  stroke: rgba(178, 158, 197, 0.85);
+}
+
+.tree-node--affordable .tree-node-bg {
+  /* affordance handled by the is-affordable class — keep this empty so
+     specificity ordering is clear */
+}
+
+/* In-progress / completion text in the detail panel */
+.tree-detail-inprogress {
+  font-size: 12px;
+  font-style: italic;
+  padding: 8px 0;
+  color: var(--accent-dim, #b08850);
+}
+
+.research-duration {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  margin: 6px 0;
+}
+
 /* ---- Mobile fallback: rail becomes horizontal tabs on narrow viewports ---- */
 
 @media (max-width: 900px) {

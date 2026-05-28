@@ -70,11 +70,22 @@ export const RUN_DEFAULTS = {
   // `now - lastActionAt > IDLE_THRESHOLD_MS` (default 5s).
   lastActionAt: 0,
 
+  // ─── World Score (Tasks #29, #31) ───────────────────────────────────
   // Hidden world-restoration score. Contributed by Elemental + Sigilcraft
-  // + Memory + Stoneword study completions and event helpfulness. Eroded
-  // by Voidcall casts. See ERA_PLAN.md "Arcane Studies → World Score" and
-  // Task #29 for the graduated effects table.
+  // + Memory + Stoneword study completions, event helpfulness, and the
+  // Ash Cleanse passive trickle. Eroded by Voidcall casts. See systems/
+  // world.js for thresholds and effects, and ERA_PLAN.md "Arcane Studies
+  // → World Score".
   worldScore: 0,
+  // Fractional accumulator for the Ash Cleanse passive's slow per-minute
+  // contribution. Carries the partial point between TICKs until it
+  // crosses a whole integer (parallel to passiveAccum for resources).
+  worldScoreAccum: 0,
+  lastWorldScoreTickAt: 0,
+  // One-shot flag set the first time worldScore crosses the apex
+  // threshold. Drives the one-time reveal log event in systems/world.js.
+  // Resets on prestige (run-local) — the player can re-discover.
+  worldScoreRevealed: false,
 
   log: [],
 };

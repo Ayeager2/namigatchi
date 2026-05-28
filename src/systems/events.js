@@ -229,6 +229,17 @@ export function respondToActiveEvent(state, choiceId) {
   const stateBeforeEffect = { ...state, run: { ...state.run, inventory } };
   const result = applyEventEffects(stateBeforeEffect, choice.effect || {}, multiplier);
 
+  // World Score contribution from event choices (Task #29). Tag a choice
+  // with `worldScoreDelta: 0.5` for "you helped a stranger" type beats,
+  // higher numbers for genuine lore-laden restoration moments. Negative
+  // values penalize cruel choices.
+  if (typeof choice.worldScoreDelta === "number" && choice.worldScoreDelta !== 0) {
+    result.run = {
+      ...result.run,
+      worldScore: (result.run.worldScore || 0) + choice.worldScoreDelta,
+    };
+  }
+
   result.run = { ...result.run, activeEvent: null };
   result.persistent = {
     ...result.persistent,

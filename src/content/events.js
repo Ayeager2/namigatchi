@@ -166,6 +166,7 @@ export const EVENTS = {
     flavor: "An elder lies by the path, bleeding from a wound. They look at you, their eyes clouded but knowing.",
     choices: [
       { id: "help", label: "Tend their wounds", cost: { water: 1, food: 1 }, missingMessage: "You haven't enough to spare.",
+        worldScoreDelta: 0.5,    // World Score (#29) — kindness leaves a mark on the world
         effect: {
           stats: { happiness: 5, sanity: 5 },
           alignment: { good: 3 },
@@ -242,6 +243,7 @@ export const EVENTS = {
     flavor: "A stranger stops outside the firelight. They do not ask, but they look cold.",
     choices: [
       { id: "wave_in", label: "Wave them in", cost: { water: 1 }, missingMessage: "You have no water to share.",
+        worldScoreDelta: 0.5,    // World Score (#29) — small kindness, small mark
         effect: {
           stats: { happiness: 3, sanity: 2 },
           alignment: { good: 1 },
@@ -591,6 +593,7 @@ export const EVENTS = {
     flavor: "A pilgrim arrives. They know your face the way a stranger should not.",
     choices: [
       { id: "welcome", label: "Welcome them", cost: { food: 3, water: 2 }, missingMessage: "You haven't enough to share.",
+        worldScoreDelta: 1,      // World Score (#29) — Era 3 pilgrim, bigger mark
         effect: {
           stats: { happiness: 6, sanity: 4, spirit: 5 },
           alignment: { good: 2 },

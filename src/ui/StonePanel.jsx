@@ -11,6 +11,11 @@
 
 import { getRockProgress, getRockState } from "../systems/rock.js";
 import { getAvailableResearch } from "../systems/research.js";
+import {
+  IDLE_THRESHOLD_MS,
+  getActiveStudyProgress,
+} from "../systems/studies.js";
+import { getStudy } from "../content/studies.js";
 
 export default function StonePanel({
   state,
@@ -35,6 +40,16 @@ export default function StonePanel({
   const availableTeachings = !isDormant
     ? getAvailableResearch(state).length
     : 0;
+
+  // Active arcane study — surfaced as a subtle progress bar at the bottom
+  // of the strip when the player has one underway. Lets them feel the
+  // clock tick even when they're not on the Studies tab. Pause indicator
+  // when their last action was recent (within IDLE_THRESHOLD_MS).
+  // Task #30 — see ERA_PLAN.md "Arcane Studies → UI".
+  const studyProgress = !isDormant ? getActiveStudyProgress(run) : null;
+  const studyDef = studyProgress ? getStudy(studyProgress.nodeId) : null;
+  const studyPaused =
+    !!studyProgress && Date.now() - (run.lastActionAt || 0) < IDLE_THRESHOLD_MS;
 
   // Flash animation when awakening just happened (within 4s).
   const since = run.rockAwakenedAt ? Date.now() - run.rockAwakenedAt : Infinity;
@@ -105,6 +120,28 @@ export default function StonePanel({
           ) : (
             <div className="stone-flavor">
               It watches you, calm and ancient.
+            </div>
+          )}
+
+          {/* Active arcane study indicator — subtle thin bar. */}
+          {studyProgress && studyDef && (
+            <div
+              className={`stone-study-bar ${studyPaused ? "is-paused" : ""}`}
+              title={
+                studyPaused
+                  ? `Studying ${studyDef.name} — paused while you act.`
+                  : `Studying ${studyDef.name}.`
+              }
+            >
+              <span className="stone-study-bar-icon" aria-hidden="true">
+                {studyPaused ? "⏸" : studyDef.icon}
+              </span>
+              <div className="stone-study-bar-track">
+                <div
+                  className="stone-study-bar-fill"
+                  style={{ width: `${studyProgress.pct * 100}%` }}
+                />
+              </div>
             </div>
           )}
         </div>

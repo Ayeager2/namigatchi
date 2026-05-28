@@ -4,6 +4,11 @@ import { getAllBuildings } from "../content/buildings.js";
 import { getResourceCap } from "./storage.js";
 import { getToolEffects } from "../content/tools.js";
 import { getStudyPassives } from "./studies.js";
+import {
+  getWorldGardenMultiplier,
+  maybePromoteWaterHoleOutput,
+  maybePromoteGardenOutput,
+} from "./world.js";
 
 export const MAX_CATCHUP_MIN = 30;
 const LOG_DROP_THRESHOLD = 1;
@@ -32,22 +37,47 @@ function getProductionModulators(run) {
   if (passives.gardenSpeedBonus) {
     mods.food = (mods.food ?? 1) * (1 + passives.gardenSpeedBonus);
   }
+  // ─── World Score garden bonus (Task #29) ────────────────────────────
+  // ≥15 threshold → Garden output ×1.2. Applies to whatever the garden's
+  // produce key is at the time (still `food` here — the key promotion
+  // to `bird_meat` happens AFTER modulators, in getProductionRates).
+  const worldGardenMult = getWorldGardenMultiplier({ run });
+  if (worldGardenMult !== 1.0) {
+    mods.food = (mods.food ?? 1) * worldGardenMult;
+  }
   return mods;
 }
 
 export function getProductionRates(run) {
-  const rates = {};
+  // Step 1: collect production under ORIGINAL building-defined keys.
+  const buildingProduction = {};
   for (const b of getAllBuildings()) {
     if (!run.built?.[b.id]) continue;
     if (!b.passiveProduce) continue;
     for (const [res, conf] of Object.entries(b.passiveProduce)) {
       const perMin = conf.perMinute || 0;
-      rates[res] = (rates[res] || 0) + perMin;
+      buildingProduction[res] = (buildingProduction[res] || 0) + perMin;
     }
   }
+
+  // Step 2: apply per-key multipliers (pests, farmhouse, study passives,
+  // world-score garden bonus). Done under ORIGINAL keys.
   const mods = getProductionModulators(run);
-  for (const res of Object.keys(rates)) {
-    if (typeof mods[res] === "number") rates[res] *= mods[res];
+  for (const res of Object.keys(buildingProduction)) {
+    if (typeof mods[res] === "number") buildingProduction[res] *= mods[res];
+  }
+
+  // Step 3: World Score key promotion (Task #29). At ≥50 the Water Hole's
+  // muddy output redirects to boiled; at ≥80 the Garden's grub output
+  // redirects to bird_meat. This is a key REMAP — the same throughput,
+  // a better resource. Done AFTER modulators so the garden's +1.2 bonus
+  // applies regardless of which food key it lands under.
+  const state = { run };
+  const rates = {};
+  for (const [res, perMin] of Object.entries(buildingProduction)) {
+    let outKey = maybePromoteWaterHoleOutput(state, res);
+    outKey = maybePromoteGardenOutput(state, outKey);
+    rates[outKey] = (rates[outKey] || 0) + perMin;
   }
   return rates;
 }
@@ -175,8 +205,9 @@ function passiveLogLine(res, qty) {
   const lines = {
     water_muddy: `💧 The water hole yields muddy water. +${qty}.`,
     water_stagnant: `🩸 +${qty} stagnant water.`,
-    water_boiled: `🫖 +${qty} boiled water.`,
+    water_boiled: `🫖 The water hole yields water clean as memory. +${qty} boiled.`,
     food: `🪱 The garden gives. +${qty} grub${qty !== 1 ? "s" : ""}.`,
+    bird_meat: `🍗 The garden gives meat — the world remembers what gardens were. +${qty}.`,
     wood: `🪵 The scrub yields wood. +${qty}.`,
   };
   return lines[res] || `+${qty} ${res}`;

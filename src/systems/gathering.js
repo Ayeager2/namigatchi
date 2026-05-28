@@ -22,6 +22,10 @@ import {
   canGather as canGatherSurvival,
 } from "./survival.js";
 import { getStudyPassives } from "./studies.js";
+import {
+  getWorldGatherMultiplier,
+  promoteStagnantGather,
+} from "./world.js";
 import { rollThreatEncounter } from "./threats.js";
 import { rollGatherEvent } from "./events.js";
 import { pickWeighted, randInt } from "../util/rng.js";
@@ -129,6 +133,8 @@ export function performGather(state, rng = Math.random) {
   const yieldMult = survivalActive(state)
     ? getYieldMultiplier(run.stats, run)
     : 1.0;
+  // World Score yield bonus (≥5 → ×1.05). See systems/world.js.
+  const worldGatherMult = getWorldGatherMultiplier(state);
 
   persistent.lifetimeStats.totalGathers += 1;
 
@@ -150,7 +156,24 @@ export function performGather(state, rng = Math.random) {
       else if (result.id === "stone") perResourceBonus = toolEff.stoneBonus || 0;
       else if (result.id === "food") perResourceBonus = toolEff.foodBonus || 0;
       const rawQty = baseQty + gatherBonus + perResourceBonus;
-      let qty = Math.max(1, Math.round(rawQty * yieldMult));
+      let qty = Math.max(1, Math.round(rawQty * yieldMult * worldGatherMult));
+
+      // World Score may promote a water_stagnant gather to a better tier
+      // (≥30: 10% chance to muddy; ≥50: muddy guaranteed, 10% to boiled).
+      // The world is giving cleaner water as you tend to it.
+      if (result.id === "water_stagnant") {
+        const promotedTier = promoteStagnantGather(state, rng);
+        if (promotedTier !== "water_stagnant") {
+          result.id = promotedTier;
+          events.push({
+            kind: "event_good",
+            message:
+              promotedTier === "water_boiled"
+                ? "💦 The puddle runs clear — the world's hand on the pour."
+                : "💦 The water's less of the dust today.",
+          });
+        }
+      }
 
       // ─── Stoneword passive — First Listening (Task #31) ────────────
       // Small chance for the gather to yield double — "the world gives,

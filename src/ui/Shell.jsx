@@ -8,6 +8,7 @@ import RightColumn from "./RightColumn.jsx";
 import ActionStrip from "./ActionStrip.jsx";
 import TeachingsTreeModal from "./TeachingsTreeModal.jsx";
 import BuildingsTreeModal from "./BuildingsTreeModal.jsx";
+import StudyTreeModal from "./StudyTreeModal.jsx";
 import ToolsModal from "./ToolsModal.jsx";
 import SpellsModal from "./SpellsModal.jsx";
 import EventModal from "./EventModal.jsx";
@@ -21,6 +22,7 @@ import { computeEra, getEra } from "../systems/era.js";
 export default function Shell({ state, actions, settingsHook }) {
   const [teachingsOpen, setTeachingsOpen] = useState(false);
   const [buildingsOpen, setBuildingsOpen] = useState(false);
+  const [studyTreeOpen, setStudyTreeOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [spellsOpen, setSpellsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -67,10 +69,12 @@ export default function Shell({ state, actions, settingsHook }) {
         <aside className="shell-area shell-area--left">
           <LeftColumn
             state={state}
+            actions={actions}
             settingsHook={settingsHook}
             onOpenTools={() => setToolsOpen(true)}
             onOpenSpells={() => setSpellsOpen(true)}
             onOpenBuildings={() => setBuildingsOpen(true)}
+            onOpenStudyTree={() => setStudyTreeOpen(true)}
           />
         </aside>
 
@@ -114,6 +118,14 @@ export default function Shell({ state, actions, settingsHook }) {
           state={state}
           actions={actions}
           onClose={() => setBuildingsOpen(false)}
+        />
+      )}
+
+      {studyTreeOpen && (
+        <StudyTreeModal
+          state={state}
+          actions={actions}
+          onClose={() => setStudyTreeOpen(false)}
         />
       )}
 

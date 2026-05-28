@@ -19,6 +19,7 @@ import {
   performCancelStudy,
   tickStudies,
 } from "../systems/studies.js";
+import { tickWorldScore } from "../systems/world.js";
 import { performCastSpell } from "../systems/spells.js";
 import { performUseTool } from "../systems/consumables.js";
 import { performBuyEchoUpgrade, applyEchoUpgrades } from "../systems/echoes.js";
@@ -315,6 +316,15 @@ export function reducer(state, action) {
       run = studyResult.run;
       persistent = studyResult.persistent;
       allEvents.push(...studyResult.events);
+
+      // Tick the World Score: applies the Ash Cleanse passive trickle and
+      // fires the apex reveal event the first time the score crosses 100.
+      // See systems/world.js. Score deltas from study completions and
+      // spell casts are applied directly by those systems — this tick
+      // handles only the passive trickle + reveal.
+      const worldResult = tickWorldScore({ run, persistent });
+      run = worldResult.run;
+      allEvents.push(...worldResult.events);
 
       const pestResult = clearStalePests(run);
       run = pestResult.run;

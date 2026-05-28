@@ -21,6 +21,7 @@ import { useEffect, useState } from "react";
 import BodyMindTab from "./BodyMindTab.jsx";
 import InventoryPanel from "./InventoryPanel.jsx";
 import SkillsPanel from "./SkillsPanel.jsx";
+import StudiesPanel from "./StudiesPanel.jsx";
 import { getActiveSkills } from "../content/skills.js";
 import {
   canBuild,
@@ -29,6 +30,7 @@ import {
 } from "../systems/building.js";
 import { canCraft, getVisibleTools } from "../systems/crafting.js";
 import { getKnownSpells, canCastSpell } from "../systems/spells.js";
+import { getKnownStudies, getStartableStudies } from "../systems/studies.js";
 import { survivalActive } from "../systems/survival.js";
 
 function skillsHasXp(state) {
@@ -88,10 +90,12 @@ function TriggerSummary({
 
 export default function LeftColumn({
   state,
+  actions,
   settingsHook,
   onOpenTools,
   onOpenSpells,
   onOpenBuildings,
+  onOpenStudyTree,
 }) {
   // Visibility of each tab.
   const bodyMindVisible = true; // always show — placeholder when survival inactive
@@ -103,6 +107,12 @@ export default function LeftColumn({
   const arcaneVisible = knownSpells.length > 0;
   const buildings = getKnownBuildings(state);
   const buildingsVisible = buildings.length > 0;
+  // Studies tab appears once the Stone Altar is built (Task #26). Even
+  // before any nodes appear in the tree, the panel offers the "Open Path
+  // Trees" entry so the player can browse what's available.
+  const studiesVisible = !!state.run.built?.stoneAltar;
+  const knownStudies = studiesVisible ? getKnownStudies(state) : [];
+  const startableStudies = studiesVisible ? getStartableStudies(state) : [];
 
   // ─── Actionable counts (BUGS.md #007) ────────────────────────────────────
   //
@@ -116,6 +126,10 @@ export default function LeftColumn({
   const buildingsActionable = getAvailableBuildings(state).length;
   // Arcane: deliberately no badge. Spells are repeatable casts, not
   // progression — pinging them constantly would be noise.
+  // Studies tab badge: count of studies the player can START right now
+  // (canStartStudy ok). Doesn't count in-progress studies — those have
+  // their own UI affordances inside the panel.
+  const studiesActionable = startableStudies.length;
 
   // Ordered tab descriptors. Hidden tabs are filtered out below.
   const allTabs = [
@@ -142,6 +156,14 @@ export default function LeftColumn({
       label: "Buildings",
       visible: buildingsVisible,
       actionable: buildingsActionable,
+    },
+    // Arcane Studies (#30) — appears once the Stone Altar is built.
+    {
+      id: "studies",
+      icon: "🕯️",
+      label: "Studies",
+      visible: studiesVisible,
+      actionable: studiesActionable,
     },
   ];
   const tabs = allTabs.filter((t) => t.visible);
@@ -273,6 +295,13 @@ export default function LeftColumn({
             onOpen={onOpenBuildings}
             actionableCount={buildingsActionable}
             hint="Pan and zoom inside — drag the tree, scroll to zoom."
+          />
+        )}
+        {tab === "studies" && (
+          <StudiesPanel
+            state={state}
+            actions={actions}
+            onOpenStudyTree={onOpenStudyTree}
           />
         )}
       </div>

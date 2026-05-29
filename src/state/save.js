@@ -7,7 +7,7 @@ import { PERSISTENT_DEFAULTS } from "./persistent.js";
 import { RUN_DEFAULTS, freshRun } from "./run.js";
 
 const STORAGE_KEY = "namigatchi-save";
-const CURRENT_VERSION = 3;
+const CURRENT_VERSION = 4;
 
 export function loadGame() {
   try {
@@ -54,6 +54,10 @@ function migrate(saved) {
     saved = migrate2to3(saved);
     v = 3;
   }
+  if (v < 4) {
+    saved = migrate3to4(saved);
+    v = 4;
+  }
 
   // Merge with defaults to handle any new fields added since save.
   return {
@@ -69,6 +73,14 @@ function migrate(saved) {
 // migration of, say, an early STUDIES iteration to a renamed shape.
 function migrate2to3(saved) {
   return { ...saved, version: 3 };
+}
+
+// v3 → v4: Combat Phase 1 — equipped weapon slot state added (#32).
+// run.equipped now exists with full slot shape. RUN_DEFAULTS.equipped is
+// a real default object (not null), so the spread merge below populates
+// old saves with the empty slot layout automatically.
+function migrate3to4(saved) {
+  return { ...saved, version: 4 };
 }
 
 // v1 → v2: Water resource splits into a tier ladder (water_stagnant,

@@ -391,6 +391,65 @@ export function devResetStudies(state) {
   };
 }
 
+// ─── Combat Phase 1 — equipment dev helpers (Task #32) ───────────────
+
+import { getAllWeapons } from "../content/weapons.js";
+import {
+  freshEquipped,
+  performEquip,
+  performUnequip,
+} from "./equipment.js";
+
+// Give one of every weapon (pure-weapon defs only — dual-use tools come
+// from devCraftAll). Inventory + durability lookups stay consistent.
+export function devGiveAllWeapons(state) {
+  const inventory = { ...state.run.inventory };
+  for (const w of getAllWeapons()) {
+    inventory[w.id] = Math.max(1, inventory[w.id] || 0);
+  }
+  return { run: { ...state.run, inventory }, msg: `🛠️ +1 of every weapon.` };
+}
+
+// Give a specific weapon or tool, with quantity. Equipment helpers in the
+// dev panel use this so testing can target a specific weapon.
+export function devGiveItem(state, id, qty = 1) {
+  const inventory = {
+    ...state.run.inventory,
+    [id]: (state.run.inventory?.[id] || 0) + qty,
+  };
+  return { run: { ...state.run, inventory }, msg: `🛠️ +${qty} ${id}.` };
+}
+
+// Equip an item to a specific slot (or auto-pick slot). Wraps the
+// system function so we get a clean { run, msg } shape for devPatch.
+export function devEquip(state, id, slot) {
+  const result = performEquip(state, id, slot);
+  return {
+    run: result.run,
+    events: result.events,
+    msg: `🛠️ Equip "${id}" → ${slot || "auto"}.`,
+  };
+}
+
+// Unequip a single slot. For "unequip all" use devUnequipAll below.
+export function devUnequipSlot(state, slot) {
+  const result = performUnequip(state, slot);
+  return {
+    run: result.run,
+    events: result.events,
+    msg: `🛠️ Unequip "${slot}".`,
+  };
+}
+
+// Clear every slot at once (replaces equipped with a fresh empty shape).
+// Doesn't touch inventory — items stay in your pack, just nothing wielded.
+export function devUnequipAll(state) {
+  return {
+    run: { ...state.run, equipped: freshEquipped() },
+    msg: `🛠️ All slots cleared.`,
+  };
+}
+
 // Apply dysentery (or clear it). See systems/disease.js.
 export function devApplyDysentery(state, durationMin = 5) {
   if (durationMin <= 0) {

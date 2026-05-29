@@ -20,6 +20,12 @@ import {
   tickStudies,
 } from "../systems/studies.js";
 import { tickWorldScore } from "../systems/world.js";
+import {
+  performEquip,
+  performUnequip,
+  performEquipRing,
+  performUnequipRing,
+} from "../systems/equipment.js";
 import { performCastSpell } from "../systems/spells.js";
 import { performUseTool } from "../systems/consumables.js";
 import { performBuyEchoUpgrade, applyEchoUpgrades } from "../systems/echoes.js";
@@ -200,6 +206,29 @@ export function reducer(state, action) {
     case ACTIONS.CANCEL_STUDY: {
       const { run, persistent, events } = performCancelStudy(state, action.nodeId);
       return { persistent, run: appendLog(run, events) };
+    }
+
+    // ─── Combat — equipment slots (#32) ───────────────────────────────
+    // Equipping/unequipping is housekeeping, not a world action. No
+    // lastActionAt stamp — studies clock doesn't pause on equip.
+    case ACTIONS.EQUIP: {
+      const { run, events } = performEquip(state, action.id, action.slot);
+      return { persistent: state.persistent, run: appendLog(run, events) };
+    }
+
+    case ACTIONS.UNEQUIP: {
+      const { run, events } = performUnequip(state, action.slot);
+      return { persistent: state.persistent, run: appendLog(run, events) };
+    }
+
+    case ACTIONS.EQUIP_RING: {
+      const { run, events } = performEquipRing(state, action.id, action.ringIndex);
+      return { persistent: state.persistent, run: appendLog(run, events) };
+    }
+
+    case ACTIONS.UNEQUIP_RING: {
+      const { run, events } = performUnequipRing(state, action.ringIndex);
+      return { persistent: state.persistent, run: appendLog(run, events) };
     }
 
     case ACTIONS.MARK_SPLASH_SEEN:

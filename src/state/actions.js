@@ -24,6 +24,12 @@ export const ACTIONS = {
   SET_ACTIVE_STUDY: "SET_ACTIVE_STUDY", // switch which in-progress study accrues time
   CANCEL_STUDY: "CANCEL_STUDY",       // abandon an in-progress study (no refund)
 
+  // Combat — equipment management (#32).
+  EQUIP: "EQUIP",                     // equip item to slot
+  UNEQUIP: "UNEQUIP",                 // clear a slot
+  EQUIP_RING: "EQUIP_RING",           // ring → ring[index] slot
+  UNEQUIP_RING: "UNEQUIP_RING",       // clear a ring index
+
   TICK: "TICK",
   RESPOND_TO_EVENT: "RESPOND_TO_EVENT",
   SYNC_MUSIC_UNLOCKS: "SYNC_MUSIC_UNLOCKS",

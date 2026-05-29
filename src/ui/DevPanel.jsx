@@ -15,6 +15,12 @@ import { getAllEvents } from "../content/events.js";
 import { getAllThreats } from "../content/threats.js";
 import { getAllSpells } from "../content/spells.js";
 import { getAllStudies, STUDY_PATHS } from "../content/studies.js";
+import { getAllWeapons } from "../content/weapons.js";
+import {
+  SLOTS,
+  HAND_SLOTS,
+  getEquippable,
+} from "../systems/equipment.js";
 import { computeEra, getNextEraRequirements } from "../systems/era.js";
 
 const TABS = [
@@ -398,6 +404,19 @@ function ArcaneTab({ state, apply }) {
 }
 
 function EncountersTab({ state, apply }) {
+  const equipped = state.run.equipped || {};
+  const weapons = getAllWeapons();
+  const inv = state.run.inventory || {};
+  // Build a one-line summary of every equipped slot. Empty slots show as
+  // "—" so the layout stays consistent.
+  const slotLabel = (slot) => {
+    const cur = equipped[slot];
+    if (!cur) return "—";
+    if (cur.twoHandedHeldIn) return `(2h held in ${cur.twoHandedHeldIn})`;
+    const def = getEquippable(cur.id);
+    return def ? `${def.icon} ${def.name}` : cur.id;
+  };
+
   return (
     <>
       <Section title="Force-fire threats">
@@ -407,6 +426,65 @@ function EncountersTab({ state, apply }) {
             onClick={() => apply(dev.devForceThreat(state, t.id))} />
         ))}
         <div className="dev-row-stats muted">Bypasses encounter chance and warded gates.</div>
+      </Section>
+
+      <Section title="Equipment slots (Phase 1 — #32)">
+        <div className="dev-row-stats muted" style={{ marginBottom: 8 }}>
+          {SLOTS.HAND_LEFT}: {slotLabel(SLOTS.HAND_LEFT)} ·{" "}
+          {SLOTS.HAND_RIGHT}: {slotLabel(SLOTS.HAND_RIGHT)} ·{" "}
+          {SLOTS.RANGED}: {slotLabel(SLOTS.RANGED)}
+          <br />
+          {SLOTS.HEAD}: {slotLabel(SLOTS.HEAD)} ·{" "}
+          {SLOTS.CHEST}: {slotLabel(SLOTS.CHEST)} ·{" "}
+          {SLOTS.LEGGINGS}: {slotLabel(SLOTS.LEGGINGS)} ·{" "}
+          {SLOTS.BOOTS}: {slotLabel(SLOTS.BOOTS)} ·{" "}
+          {SLOTS.GLOVES}: {slotLabel(SLOTS.GLOVES)}
+          <br />
+          rings filled:{" "}
+          {(equipped.rings || []).filter(Boolean).length}/10
+        </div>
+        <Btn label="🔄 Unequip all" danger onClick={() => apply(dev.devUnequipAll(state))} />
+        <Btn label="🎁 +1 of every weapon" onClick={() => apply(dev.devGiveAllWeapons(state))} />
+      </Section>
+
+      <Section title="Pure weapons — give + equip">
+        {weapons.map((w) => {
+          const own = inv[w.id] || 0;
+          return (
+            <div key={w.id} style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 4 }}>
+              <Btn small
+                label={`${w.icon} ${w.name}${own > 0 ? ` ✓×${own}` : ""}`}
+                onClick={() => apply(dev.devGiveItem(state, w.id, 1))}
+              />
+              {HAND_SLOTS.map((h) => (
+                <Btn key={h} small
+                  label={`→ ${h}`}
+                  onClick={() => apply(dev.devEquip(state, w.id, h))}
+                />
+              ))}
+            </div>
+          );
+        })}
+        <div className="dev-row-stats muted">
+          Give first, then equip into a hand. (Pure weapons; dual-use tools
+          live in the Content tab and equip the same way once they're in
+          inventory.)
+        </div>
+      </Section>
+
+      <Section title="Quick-equip existing dual-use tools">
+        {["stoneAxe", "boneKnife", "stonePickaxe", "fragmentKnife", "bow"].map((id) => {
+          const def = getEquippable(id);
+          if (!def) return null;
+          const own = inv[id] || 0;
+          const targetSlot = def.weaponStats?.type === "ranged" ? SLOTS.RANGED : SLOTS.HAND_RIGHT;
+          return (
+            <Btn key={id} small
+              label={`${def.icon} ${def.name}${own > 0 ? "" : " (need to craft)"} → ${targetSlot}`}
+              onClick={() => apply(dev.devEquip(state, id, targetSlot))}
+            />
+          );
+        })}
       </Section>
       <Section title="Pests">
         <Btn label="Trigger bird flock (5 min)" onClick={() => apply(dev.devTriggerPest(state, "birdFlock", 5))} />

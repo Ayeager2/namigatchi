@@ -1,5 +1,7 @@
 // RUN state — wipes on prestige (and on RESET_RUN).
 
+import { freshEquipped } from "../systems/equipment.js";
+
 export const RUN_DEFAULTS = {
   startedAt: 0,
   era: 0,
@@ -87,12 +89,21 @@ export const RUN_DEFAULTS = {
   // Resets on prestige (run-local) — the player can re-discover.
   worldScoreRevealed: false,
 
+  // ─── Combat / Equipment (Task #32) ─────────────────────────────────
+  // Equipped weapon/armor slot state. See systems/equipment.js for the
+  // slot layout (8 main + 13 accessories) and ERA_PLAN.md "Combat +
+  // Weapons + Specialized Skills" for the design. We call freshEquipped()
+  // here so save.js migrate() spread merges a *valid* default into old
+  // saves that don't have the field yet.
+  equipped: freshEquipped(),
+
   log: [],
 };
 
 export function freshRun() {
   return {
     ...structuredClone(RUN_DEFAULTS),
+    equipped: freshEquipped(),
     startedAt: Date.now(),
   };
 }

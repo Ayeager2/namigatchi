@@ -62,53 +62,80 @@ export const TOOLS = {
     tier: 1, col: 3,
   },
 
+  // DUAL-USE: hatchet pattern — wood-leaning. Modest combat stats so the
+  // player can wield it if needed (subfamily axe; battle axe variant in
+  // Phase 5 trades wood-yield for damage). See content/weapons.js for
+  // the subfamily pattern.
   stoneAxe: {
     id: "stoneAxe", name: "Stone Axe", icon: "🪓", category: "bronze",
-    description: "A shaped stone bound to a hardwood haft. The trees give up wood twice as easily now.",
+    subfamily: "axe",
+    description: "A shaped stone bound to a hardwood haft. The trees give up wood twice as easily now. Wielded, it does its uglier work.",
     cost: { wood: 15, stone: 20 },
     requires: { researched: "smithing", builtBuilding: "forge" },
     effect: { gatherSpeedup: 150, woodBonus: 2 },
+    // Combat (Task #33 reads this): hatchet-leaning. Decent damage band,
+    // moderate accuracy, low crit. A worse battle axe by design.
+    weaponStats: { type: "melee", damage: [3, 6], acc: 0.7, crit: 0.04 },
     durability: { max: 50, wearsOn: "gather" },
-    effectSummary: "-150ms gather · +2 wood on wood gathers · 50 gathers.",
+    effectSummary: "-150ms gather · +2 wood on wood gathers · 50 gathers. Wieldable: 3-6 dmg.",
     onCraftedMessage: "🪓 The axe head is bound. Weight in the hand. Edges that bite.",
     onBrokenMessage: "🪓 The axe head splits from the haft. Time to make another.",
     tier: 2, col: 0,
   },
 
+  // DUAL-USE: pickaxe — stone-leaning. Bad as a weapon. The player CAN
+  // wield it but the numbers won't reward them. War-pick variant in
+  // Phase 5 (#36) trades stone-yield for damage.
   stonePickaxe: {
     id: "stonePickaxe", name: "Stone Pickaxe", icon: "⛏️", category: "bronze",
-    description: "Heavy. Pointed. Made for breaking rock into more rock.",
+    subfamily: "pickaxe",
+    description: "Heavy. Pointed. Made for breaking rock into more rock. Awkward to swing at anything else.",
     cost: { wood: 12, stone: 25 },
     requires: { researched: "smithing", builtBuilding: "forge" },
     effect: { gatherSpeedup: 100, stoneBonus: 2 },
+    // Combat: heavy, slow, poor accuracy. Why would you? Mostly so the
+    // player CAN if they have to. Numbers say: don't.
+    weaponStats: { type: "melee", damage: [2, 5], acc: 0.55, crit: 0.02 },
     durability: { max: 50, wearsOn: "gather" },
-    effectSummary: "-100ms gather · +2 stone on stone gathers · 50 gathers.",
+    effectSummary: "-100ms gather · +2 stone on stone gathers · 50 gathers. Wieldable (poorly): 2-5 dmg.",
     onCraftedMessage: "⛏️ The pickaxe is whole. The earth's bones look softer now.",
     onBrokenMessage: "⛏️ The pick chips and breaks at the head.",
     tier: 2, col: 1,
   },
 
+  // DUAL-USE: cooking knife pattern — food-leaning. Decent crit (it's a
+  // knife). Dagger variant in Phase 5 trades food-bonus for damage + crit.
   boneKnife: {
     id: "boneKnife", name: "Bone Knife", icon: "🔪", category: "bronze",
-    description: "Sharpened femur, lashed to a stone grip. Better for skinning than swinging.",
+    subfamily: "knife",
+    description: "Sharpened femur, lashed to a stone grip. Better for skinning than swinging — but it'll bite when it has to.",
     cost: { stone: 10, feathers: 3, food: 5 },
     requires: { researched: "smithing", builtBuilding: "forge" },
     effect: { huntYieldBonus: 1, foodBonus: 1 },
+    // Combat: high accuracy (it's a known shape in your hand), good crit
+    // (sharp), low damage band (it's small).
+    weaponStats: { type: "melee", damage: [2, 5], acc: 0.85, crit: 0.1 },
     durability: { max: 60, wearsOn: "hunt" },
-    effectSummary: "+1 hunt yield · +1 food on food gathers · 60 hunts.",
+    effectSummary: "+1 hunt yield · +1 food on food gathers · 60 hunts. Wieldable: 2-5 dmg, +crit.",
     onCraftedMessage: "🔪 The knife is keen. The bird gives up more meat under your hand now.",
     onBrokenMessage: "🔪 The blade chips and falls from the grip.",
     tier: 2, col: 2,
   },
 
+  // DUAL-USE: ranged. The bow's combat role IS its hunt role — reach.
+  // Goes in the ranged slot (`type: "ranged"`). Two-handed in narrative
+  // but slot-system-wise it's a single ranged-slot equip.
   bow: {
     id: "bow", name: "Bow", icon: "🏹", category: "bronze",
+    subfamily: "bow",
     description: "Curved wood, sinew strung. Reach is not strength — it's better.",
     cost: { wood: 20, feathers: 8, stone: 5 },
     requires: { researched: "fletching", builtBuilding: "forge" },
     effect: { huntCooldownReduction: 2500, huntYieldBonus: 2, huntBetterBirds: 8 },
+    // Combat: ranged. High damage, good accuracy, modest crit.
+    weaponStats: { type: "ranged", damage: [5, 9], acc: 0.8, crit: 0.05 },
     durability: { max: 60, wearsOn: "hunt" },
-    effectSummary: "+2 hunt yield · -2500ms hunt cooldown · way more birds · 60 hunts.",
+    effectSummary: "+2 hunt yield · -2500ms hunt cooldown · way more birds · 60 hunts. Ranged: 5-9 dmg.",
     onCraftedMessage: "🏹 The bow is finished. You draw, release. The arrow flies. Something far falls.",
     onBrokenMessage: "🏹 The string snaps and the limb cracks. A bow's work is done.",
     tier: 2, col: 3,
@@ -116,14 +143,18 @@ export const TOOLS = {
 
   // ===== Arcane tier (Era 3) =====
 
+  // DUAL-USE arcane: a dagger that's also a great food-gather tool. Combat
+  // stats are dagger-tier (high crit, decent acc) with arcane damage band.
   fragmentKnife: {
     id: "fragmentKnife", name: "Fragment Knife", icon: "🗡️", category: "arcane",
+    subfamily: "knife",
     description: "A bone knife rebound. The blade is veined with shard, and the shard hums against the back of your skull when you draw it. The cut is cleaner. The cost is paid elsewhere.",
     cost: { fragments: 5, stone: 10, food: 5 },
     requires: { researched: "arcaneAwakening", builtBuilding: "forge" },
     effect: { huntYieldBonus: 2, foodBonus: 2, sanityPerFoodGather: -1 },
+    weaponStats: { type: "melee", damage: [4, 8], acc: 0.88, crit: 0.15 },
     durability: { max: 80, wearsOn: "hunt" },
-    effectSummary: "+2 hunt yield · +2 food on food gathers · -1 sanity per food gather (the blade hums) · 80 hunts.",
+    effectSummary: "+2 hunt yield · +2 food on food gathers · -1 sanity per food gather (the blade hums) · 80 hunts. Wieldable: 4-8 dmg, high crit.",
     onCraftedMessage: "🗡️ The Fragment Knife is whole. Light bends along the edge.",
     onBrokenMessage: "🗡️ The shard inlay shatters. The blade goes quiet, then breaks.",
     tier: 3, col: 0,

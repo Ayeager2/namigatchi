@@ -60,6 +60,12 @@ export const PERSISTENT_DEFAULTS = {
   // See systems/studies.js applyCompletionEffects + ERA_PLAN.md
   // "Era 2 → 3 transition" Stone Altar entry.
   altarEtchings: {},
+
+  // Resources the player has *learned* about in past lives. Anything in
+  // here bypasses `hiddenUntil` in content/resources.js — fragments stop
+  // reading "???" once you've ascended even once. Populated by the
+  // PRESTIGE reducer case. Shape: { resourceId: true }.
+  permanentlyKnown: {},
 };
 
 // How many run snapshots to keep in history. Older ones get dropped.

@@ -17,6 +17,7 @@ import {
   getDiseaseDecayMultiplier,
   getDiseaseYieldMultiplier,
 } from "./disease.js";
+import { reduceDeathDebuff } from "./death.js";
 
 export function survivalActive(state) {
   return !!state.run.built?.hut;
@@ -196,9 +197,13 @@ export function performSurvivalAction(state, actionId, opts = {}) {
 
   let effect = def.effect ? { ...def.effect } : { ...(def.baseEffect || {}) };
   let message = def.message;
+  // Track the food consumed this action — used below for the death-debuff
+  // recovery hook (Task #50). null when the action didn't consume food.
+  let consumedFood = null;
   if (def.consumesCategory) {
     const food = pickFoodToConsume(state, def.consumesCategory, opts.preferredFoodId);
     if (food) {
+      consumedFood = food;
       inventory[food.id] = (inventory[food.id] || 0) - 1;
       const cookingBonus = getCookingBonus(state);
       const nutrition = (food.nutrition || 10) + cookingBonus;
@@ -240,10 +245,24 @@ export function performSurvivalAction(state, actionId, opts = {}) {
 
   const stats = applyEffect(state.run.stats || SURVIVAL.startValues, effect);
 
+  let run = { ...state.run, inventory, stats };
+  const events = [{ kind: def.logKind || "consume", message }];
+
+  // ─── Death-debuff recovery (#50) ────────────────────────────────────
+  // Every food consumed in an eat action shaves the active death-debuff
+  // magnitude. Foods carry their own `deathDebuffRecovery` rate — grubs
+  // are the trace; bird meat is the real protein recovery. See
+  // systems/death.js + content/resources.js.
+  if (consumedFood && consumedFood.deathDebuffRecovery) {
+    const r = reduceDeathDebuff(run, consumedFood.deathDebuffRecovery);
+    run = r.run;
+    events.push(...r.events);
+  }
+
   return {
-    run: { ...state.run, inventory, stats },
+    run,
     persistent: state.persistent,
-    events: [{ kind: def.logKind || "consume", message }],
+    events,
   };
 }
 

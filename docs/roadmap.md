@@ -209,6 +209,8 @@ The rock (the namigatchi) is not a side-system. It is the **connective tissue of
 
 These are the architectural forks we haven't yet resolved. None need to be answered today.
 
+> **Many of these have been resolved since this section was written** — see `docs/HANDOFF.md` for current state and `docs/ERA_PLAN.md` for the locked-in design entries. Resolved (2026-05): **combat shape** (passive multi-round log + boss modals), **alignment system** (silent counter, surfaces via NPC reactions + content gates, never shown as numbers), **save format** (`v4` schema with migration chain `v1→v2→v3→v4`), **content pipeline** (content-as-data is the architectural rule; JSON migration is a one-day refactor when needed). Still genuinely open: **game space** (still pure menus + scene), **world state model** (radiation per-biome is future), **story structure** (linear+branching atmospheric events working today, episodic chapters TBD), **visual style** (still emoji + SVG), **tech stack future** (Electron/Tauri TBD pre-Steam).
+
 ### Game space (next conversation)
 
 Pure menus vs discrete zones vs open-world map. Trade-offs to think through:

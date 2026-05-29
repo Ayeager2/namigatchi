@@ -207,6 +207,52 @@ export const THREATS = {
     },
   },
 
+  soullessStalker: {
+    id: "soullessStalker",
+    name: "Soulless Stalker",
+    icon: "🪦",
+    description: "A long, low figure that follows you through the gather grounds. When it catches up, what it takes isn't blood.",
+    kind: "demon",
+    encounterChance: 0.02,
+    requires: { hutBuilt: true, era: 3 },
+    minGathersAfterGate: 0,
+    combat: {
+      hp: 18,
+      acc: 0.85,
+      eva: 0.15,
+      damage: { min: 3, max: 6 },
+      // ─── Task #42 — damage profile routing ─────────────────────────
+      // Horror threat. The Stalker's damage drains SANITY directly. Armor
+      // does not reduce sanity damage (the mind has no armor). Recovery
+      // requires sanity-restoring items — Soothe spell, Stillness Potion,
+      // Light-path study completions.
+      damageType: "sanity",
+    },
+    combatFlavor: {
+      opener: [
+        "🪦 A figure that bends the air around it begins to follow. You stop. It does not.",
+        "🪦 Long limbs. Long stride. It comes at you sidelong, the way a thought does.",
+        "🪦 The Stalker arrives. You feel where it stands more than you see it.",
+      ],
+      attack: [
+        "It puts a long finger against your forehead, and a piece of you goes elsewhere. {dmg} ◐.",
+        "Its mouth opens and the sound that comes out isn't sound. {dmg} ◐.",
+        "It looks at you, and the looking lands like a slap. {dmg} ◐.",
+      ],
+      miss: [
+        "It reaches — and your edges hold. The reach passes through.",
+        "Something cold passes near your spine. Then nothing.",
+      ],
+      victory: [
+        "The Stalker collapses inward like a sheet of paper. The shape was the only thing holding it.",
+        "You drive it back. It goes back to wherever this kind of thing waits.",
+      ],
+      defeat: [
+        "Your eyes lose their hold. The Stalker stands over you, patient. Then it is gone, and most of you with it.",
+      ],
+    },
+  },
+
   corruptedWalker: {
     id: "corruptedWalker",
     name: "Corrupted Walker",

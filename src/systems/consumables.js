@@ -8,6 +8,7 @@
 import { getTool } from "../content/tools.js";
 import { applyEffect } from "./survival.js";
 import { clearDysentery } from "./disease.js";
+import { reduceDeathDebuff } from "./death.js";
 
 export function canUseTool(state, toolId) {
   const tool = getTool(toolId);
@@ -59,6 +60,15 @@ export function performUseTool(state, toolId) {
     const cure = clearDysentery(run, "potion");
     run = cure.run;
     events.push(...cure.events);
+  }
+
+  // ─── Death-debuff recovery (#50) ──────────────────────────────────
+  // Tool defs (Mending Potion etc.) carry deathDebuffRecovery — applied
+  // here per-use. Same shape as food in survival.js — see systems/death.js.
+  if (tool.deathDebuffRecovery) {
+    const r = reduceDeathDebuff(run, tool.deathDebuffRecovery);
+    run = r.run;
+    events.push(...r.events);
   }
 
   return { run, persistent: state.persistent, events };

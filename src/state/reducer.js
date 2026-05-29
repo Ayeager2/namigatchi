@@ -26,6 +26,11 @@ import {
   performEquipRing,
   performUnequipRing,
 } from "../systems/equipment.js";
+import {
+  getAllResources,
+  isResourceHidden,
+} from "../content/resources.js";
+import { SURVIVAL } from "../content/survival.js";
 import { performCastSpell } from "../systems/spells.js";
 import { performUseTool } from "../systems/consumables.js";
 import { performBuyEchoUpgrade, applyEchoUpgrades } from "../systems/echoes.js";
@@ -79,6 +84,43 @@ function endRunAndSnapshot(state, ending) {
   return { snapshot, lifetimeStats, runHistory };
 }
 
+// Snapshot every resource the player had unhidden at the moment of
+// ascension — those names + descriptions stay known across every future
+// run. Most relevant for fragments ("Arcane Shards" — once you've learned
+// what they are, they don't go back to "???" in your next life). Called
+// from the PRESTIGE reducer case.
+function snapshotKnownResources(state) {
+  const known = { ...(state.persistent.permanentlyKnown || {}) };
+  for (const r of getAllResources()) {
+    // Only care about resources that have a hidden state to begin with.
+    if (!r.hiddenUntil) continue;
+    if (!isResourceHidden(state, r)) known[r.id] = true;
+  }
+  return known;
+}
+
+// Build the post-prestige run. The player ascended — they don't start
+// life over in a daze. They start at Era 1: rock found + awakened, hut
+// raised, survival mechanics active. They still rebuild Fire Pit, Water
+// Hole, Garden, etc. — but the cosmic-horror opening is something they
+// only experience once.
+function seedAscensionRun(persistent) {
+  const fresh = freshRun();
+  const now = Date.now();
+  return applyEchoUpgrades(
+    {
+      ...fresh,
+      rockFound: true,
+      rockAwakened: true,
+      rockAwakenedAt: now - 5000, // outside the awakening-flash window
+      built: { ...fresh.built, hut: { at: now } },
+      stats: { ...SURVIVAL.startValues },
+      splashSeen: true, // splash is for first-life only
+    },
+    persistent
+  );
+}
+
 export function reducer(state, action) {
   switch (action.type) {
     case ACTIONS.LOAD:
@@ -101,17 +143,26 @@ export function reducer(state, action) {
     case ACTIONS.PRESTIGE: {
       const reward = getPrestigeReward(state);
       const { lifetimeStats, runHistory } = endRunAndSnapshot(state, "prestige");
+      // Snapshot anything the player knew (resources with hiddenUntil
+      // that were currently revealed) so it stays known across this and
+      // all future ascensions. Most importantly: fragments stop reading
+      // "???" once they've ascended carrying knowledge of them.
+      const permanentlyKnown = snapshotKnownResources(state);
       const persistent = {
         ...state.persistent,
         echoes: state.persistent.echoes + reward.echoes,
         runHistory,
+        permanentlyKnown,
         lifetimeStats: {
           ...lifetimeStats,
           runsStarted: lifetimeStats.runsStarted + 1,
           runsCompleted: lifetimeStats.runsCompleted + 1,
         },
       };
-      const run = applyEchoUpgrades(freshRun(), persistent);
+      // Ascension start: Era 1 — rock found + awakened, hut already
+      // raised, survival mechanics live. The "find the stone in the
+      // dust" opening only plays once per save lifetime.
+      const run = seedAscensionRun(persistent);
       return { persistent, run };
     }
 

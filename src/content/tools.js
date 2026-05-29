@@ -193,7 +193,10 @@ export const TOOLS = {
     cost: { fragments: 2, food: 5, water: 3 },
     requires: { researched: "alchemy", builtBuilding: "alembic" },
     useEffect: { hp: 40 },
-    effectSummary: "Instant +40 HP. Single use.",
+    // Big death-debuff hit — the panic button. 3-4 doses fully clears
+    // a fresh death cascade. See systems/death.js + Task #50.
+    deathDebuffRecovery: 0.30,
+    effectSummary: "Instant +40 HP. Strong death-debuff recovery. Single use.",
     onCraftedMessage: "🧪 A vial of Mending. The cork seats. The fluid steadies.",
     onUseMessage: "🧪 You drink the Mending. The body answers.",
     tier: 3, col: 3,

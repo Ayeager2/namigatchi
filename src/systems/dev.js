@@ -458,6 +458,48 @@ export function devUnequipAll(state) {
   };
 }
 
+// Death-debuff dev helpers (#50). Apply the cascade directly, or set the
+// magnitude to a specific value, or clear it. Useful for testing food
+// recovery rates without grinding through a real combat death.
+import { applyDeathDebuff, clearDeathDebuff } from "./death.js";
+
+export function devApplyDeathDebuff(state) {
+  const result = applyDeathDebuff(state.run);
+  return {
+    run: result.run,
+    events: result.events,
+    msg: `🛠️ Death-debuff cascade applied (mag=${result.run.statuses?.deathDebuff?.magnitude}).`,
+  };
+}
+
+export function devSetDeathDebuffMagnitude(state, value) {
+  const v = Math.max(0, Math.min(0.95, value));
+  if (v <= 0) {
+    const result = clearDeathDebuff(state.run, "dev");
+    return { run: result.run, events: result.events, msg: `🛠️ Death-debuff cleared.` };
+  }
+  const cur = state.run.statuses?.deathDebuff;
+  const statuses = {
+    ...(state.run.statuses || {}),
+    deathDebuff: {
+      active: true,
+      magnitude: v,
+      startedAt: cur?.startedAt || Date.now(),
+      lastDeathAt: cur?.lastDeathAt || Date.now(),
+      deaths: cur?.deaths || 1,
+    },
+  };
+  return {
+    run: { ...state.run, statuses },
+    msg: `🛠️ Death-debuff magnitude → ${v}.`,
+  };
+}
+
+export function devClearDeathDebuff(state) {
+  const result = clearDeathDebuff(state.run, "dev");
+  return { run: result.run, events: result.events, msg: `🛠️ Death-debuff cleared.` };
+}
+
 // Apply dysentery (or clear it). See systems/disease.js.
 export function devApplyDysentery(state, durationMin = 5) {
   if (durationMin <= 0) {

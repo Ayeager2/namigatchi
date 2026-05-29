@@ -289,6 +289,16 @@ function StateTab({ state, apply, stats, alignment, statuses }) {
         <Btn label="Clear Warded" onClick={() => apply(dev.devApplyStatus(state, "warded", 0))} />
         <Btn label="Apply Dysentery (5 min)" onClick={() => apply(dev.devApplyDysentery(state, 5))} />
         <Btn label="Clear Dysentery" onClick={() => apply(dev.devApplyDysentery(state, 0))} />
+        <Btn label="💔 Apply Death Debuff (cascade)" danger onClick={() => apply(dev.devApplyDeathDebuff(state))} />
+        <Btn label="Set Death Debuff → 0.5" onClick={() => apply(dev.devSetDeathDebuffMagnitude(state, 0.5))} />
+        <Btn label="Set Death Debuff → 0.25" onClick={() => apply(dev.devSetDeathDebuffMagnitude(state, 0.25))} />
+        <Btn label="Clear Death Debuff" onClick={() => apply(dev.devClearDeathDebuff(state))} />
+        <div className="dev-row-stats muted">
+          Death debuff:{" "}
+          {state.run.statuses?.deathDebuff?.active
+            ? `mag ${Math.round((state.run.statuses.deathDebuff.magnitude || 0) * 100)}% · deaths ×${state.run.statuses.deathDebuff.deaths || 1}`
+            : "none"}
+        </div>
         <div className="dev-row-stats muted">
           Active:{" "}
           {Object.entries(statuses).filter(([, s]) => s?.until > Date.now() || s?.expiresAt > Date.now() || s?.active).length === 0

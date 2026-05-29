@@ -38,10 +38,18 @@ import {
   getEquippedRangedDef,
 } from "./equipment.js";
 import { applyToolWear } from "./crafting.js";
-import { getDefense } from "./defense.js";
 import { applyEffect } from "./survival.js";
 import { getStudyStatBonuses } from "./studies.js";
+import { applyDeathDebuff } from "./death.js";
 import { randInt } from "../util/rng.js";
+
+// Note: `getDefense` from systems/defense.js is no longer imported here.
+// Per Task #39 (locked 2026-05), `defense` is the SETTLEMENT stat — it
+// protects your structures from raids and food theft (resolveThreat in
+// threats.js). It does NOT reduce personal combat damage anymore. Only
+// the `armor` stat (currently sourced from study completions like
+// Wardweave) reduces hits in the fight loop. Walls don't help when a
+// wild dog jumps you in the wilderness.
 
 // ─── Constants ─────────────────────────────────────────────────────────
 
@@ -154,10 +162,9 @@ export function resolveFight(state, threatDef, rng = Math.random) {
   let foeHp = cb.hp ?? 10;
 
   const playerArmor = getPersonalArmor(state);
-  // For now defense (settlement) still leaks into combat as fallback armor
-  // — see Task #39 to fully split. Keeps current threat balance until
-  // armor content arrives.
-  const fallbackDefense = getDefense(state);
+  // Task #39 (locked): combat damage is reduced ONLY by personal `armor`.
+  // The settlement `defense` stat applies to raids on structures (handled
+  // by resolveThreat in threats.js), not to attacks on the player.
 
   const events = [];
   const flavor = threatDef.combatFlavor || {};
@@ -218,12 +225,12 @@ export function resolveFight(state, threatDef, rng = Math.random) {
     const threatHits = threatHitRoll < (threatAcc - PLAYER_BASE_EVA);
     if (threatHits) {
       const raw = randInt(rng, threatDmg.min, threatDmg.max);
-      // Armor reduction. hp-damage threats fully discount; sanity/spirit
-      // damage isn't reduced by armor (the mind has no armor). The
-      // fallback defense lands on hp damage only.
+      // Armor reduction. hp-damage threats are softened by personal
+      // armor (#39); sanity/spirit damage isn't reduced by armor (the
+      // mind has no armor — see #42 for the broader stat-damage system).
       let reduced = raw;
       if (damageType === "hp") {
-        reduced = Math.max(0, raw - playerArmor - fallbackDefense);
+        reduced = Math.max(0, raw - playerArmor);
       }
       // Apply to the right stat
       if (damageType === "sanity") {
@@ -276,15 +283,17 @@ export function resolveFight(state, threatDef, rng = Math.random) {
       kind: "combat",
       message: substitute(line, { threat: threatDef.name }),
     });
-    // TODO #50: trigger death-debuff cascade. For Phase 2 we stub to
-    // revive at 1 HP so the run keeps going. When #50 lands, swap this
-    // for `applyDeathDebuff(run, magnitude)`.
-    playerHp = 1;
-    events.push({
-      kind: "combat",
-      message:
-        "🪨 You wake at the hut, hurt and shamed. (Death-debuff cascade lands in Task #50.)",
-    });
+    // Death cascade lands here (#50). The defeat narration is the last
+    // combat line; what follows is the "wake at home" beat plus the
+    // stat cascade. We apply the debuff to a snapshot that already
+    // includes any combat damage taken this fight — playerHp/sanity/
+    // spirit are baked into the partial-newStats below before we call
+    // applyDeathDebuff.
+    //
+    // Note: applyDeathDebuff will compute its own scaled stats from
+    // whatever the current run.stats are. We pre-stage the post-fight
+    // stats into `run` so the cascade scales those, not the pre-fight
+    // values.
   } else {
     events.push({
       kind: "combat",
@@ -301,6 +310,19 @@ export function resolveFight(state, threatDef, rng = Math.random) {
   });
 
   let run = { ...state.run, stats: newStats };
+
+  // ─── Death cascade (#50) ────────────────────────────────────────────
+  // If the player went to 0 HP this fight, apply the death-debuff. This
+  // replaces the previous "revive at 1 HP" stub. The cascade scales every
+  // survival stat by the debuff magnitude, lifts HP back to a minimum 1,
+  // and records the debuff status. The player wakes at home (or hut).
+  // Recovery happens via food eating (see survival.js + content/resources.js
+  // deathDebuffRecovery).
+  if (outcome === "defeat") {
+    const dd = applyDeathDebuff(run);
+    run = dd.run;
+    events.push(...dd.events);
+  }
 
   // Tick combat wear on the equipped weapon. applyToolWear iterates both
   // tools and weapons (see crafting.js) so durability ticks correctly

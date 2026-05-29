@@ -76,10 +76,20 @@ These are the patterns the codebase enforces. Don't violate them when adding fea
 ## Current state (as of this commit)
 
 ### What's playable end-to-end
-- **Era 0 (Scavenger):** gather → find rock → collect 10 fragments → rock awakens with consume animation
-- **Era 1 (Awakening):** build hut → research tree (now 16+ nodes across 4 tiers, includes Boiling + Altar Work) → build fire pit + **Water Hole** (renamed Well) + Garden + Cairn → craft primitive tools → hunt birds → manage hunger/thirst/energy/HP/resolve/sanity → **water tier system** (Stagnant 🩸 / Muddy 💧 / Boiled 🫖, each with dysentery risk) via **Drink dropdown** with risk hints → **Boil action** (muddy → boiled at fire pit) → defend against scavenger threats → respond to random events with hidden alignment → manage caps + spoilage
-- **Era 2 (Settler):** trigger as before → 🌅 era transition story event → research Smithing → build Forge → craft Era-2 tools → research Fletching → ranged hunting via Bow → research Home → build Home → build settlement chain (Stone Walls, Silo, Farmhouse) → **research Altar Work** → **build Stone Altar** (the gate to Arcane Studies) → craft **Scrolls 📜 + Ink 🖋️** (Alchemy recipes — 2 wood + 1 fragment, 1 wood + 1 grub) → prestige UI ("Channel the Rock") reveals for the first time
-- **Era 3 (Awakened World):** as before → also unlocks deeper studies (cross-path nodes like Wardweave / Ghostcall / Truesight) and the Voidcall path (apex-gated by alignment.evil ≥ 5)
+- **Era 0 (Scavenger):** gather → find rock → collect 10 fragments → rock awakens with consume animation. **Played once per save** — ascension skips this.
+- **Era 1 (Awakening):** build hut → research tree (16+ nodes across 4 tiers, includes Boiling + Altar Work) → build fire pit + **Water Hole** (renamed Well) + Garden + Cairn → craft primitive tools + **pure weapons** (Wooden Club / Stone Spear / Stone Mace) → equip a weapon → **multi-round combat encounters** (Wild Dog combat-class threat) → hunt birds → manage hunger/thirst/energy/HP/resolve/sanity → **water tier system** (Stagnant 🩸 / Muddy 💧 / Boiled 🫖, each with dysentery risk) via **Drink dropdown** with risk hints → **Boil action** (muddy → boiled at fire pit) → defend against scavenger threats → respond to random events with hidden alignment → manage caps + spoilage
+- **Era 2 (Settler):** trigger as before → 🌅 era transition story event → research Smithing → build Forge → craft Era-2 tools (dual-use Stone Axe / Stone Pickaxe / Bone Knife = tool effects + weaponStats) → research Fletching → ranged hunting via Bow (also a dual-use weapon) → research Home → build Home → build settlement chain (Stone Walls, Silo, Farmhouse) → **Raider threats** (combat-class, real fight) → **research Altar Work** → **build Stone Altar** (the gate to Arcane Studies) → craft **Scrolls 📜 + Ink 🖋️** (Alchemy recipes — 2 wood + 1 fragment, 1 wood + 1 grub) → prestige UI ("Channel the Rock") reveals for the first time
+- **Era 3 (Awakened World):** as before → deeper studies (cross-path nodes Wardweave / Ghostcall / Truesight) + Voidcall path (apex-gated by alignment.evil ≥ 5) → **Soulless Stalker** combat-class threat (sanity damage, ignores armor) + **Corrupted Walker** (hp damage, full fight loop) → Fragment Knife dual-use → 10 study-unlocked spells
+
+### Death is no longer a run reset
+Combat HP=0 triggers the **death-debuff cascade**: STR-magnitude jumps by 0.5 per death (cap 0.95), every survival stat scales down (HP/Energy/Happy/Sanity/Spirit drop to `raw × (1 − mag)`, Hunger/Thirst climb toward 100). Wake-up narration adapts to what's built (Home → "🏡 You wake in your home..." / Hut → "🛖 You wake at the hut..." / Bare → "🌑 You wake on the ground..."). Recovery: every food consumed reduces magnitude by the food's `deathDebuffRecovery` rate (grubs 0.05 — trace; bird meat 0.12 — real protein; Mending Potion 0.30 — panic button). When magnitude hits 0, debuff lifts: "🪶 The shake in your hands settles. The body is yours again."
+
+### Ascension QoL (locked 2026-05)
+**PRESTIGE skips the cosmic-horror opening.** The new run starts at Era 1: rock already found + awakened, hut already raised, survival mechanics live, splash skipped. Player still rebuilds Fire Pit / Water Hole / Garden / Cairn / everything else. The "find a rock in the dust → collect 10 fragments → awakening" sequence is a once-per-save experience.
+
+**Resources stay known across runs.** Anything with a `hiddenUntil` rule that was unhidden at the moment of channeling gets snapshotted into `persistent.permanentlyKnown`. Fragments stop reading "???" once you've ascended carrying knowledge of them. Generic by design — any future hidden resource (mystic ores, voidshards, etc.) inherits the same persistence automatically.
+
+**RESET_RUN (death/give-up) is unchanged** — still starts at Era 0 in the dust. The cosmic-horror opening still hurts when you've earned it.
 
 ### Arcane Studies system (NEW — shipped 2026-05)
 **Lithos's deep magic layer**, fully playable end-to-end:
@@ -119,6 +129,45 @@ These are the patterns the codebase enforces. Don't violate them when adding fea
 ### Dysentery + disease system (NEW — shipped 2026-05)
 Drinking stagnant or muddy water rolls against `dysenteryChance` (25% / 10% / 2% per tier). Sick state doubles hunger/thirst drain and applies slow HP / sanity / spirit drain. Cleared by Mending Word spell, Mending Potion, or fades naturally (5–10 min). Boiled water drunk while sick shortens recovery by 60s. Foundation for future illnesses.
 
+### Combat system (NEW — shipped 2026-05)
+Real RPG combat with equipped weapons, multi-round resolution, and rich log narration.
+
+**Equipped slot foundation (#32).** `run.equipped` carries the full slot map:
+- **Main slots (8, always visible):** handLeft / handRight (dual-wield) · ranged · head · chest · leggings · boots · gloves
+- **Accessories tray (13, collapsible):** 10 rings · back · over-armor · talisman
+- Two-handed weapons consume both hands (the off-hand stores a `{ twoHandedHeldIn }` pointer so the UI shows it as busy)
+- Helpers: `getEquippedMeleeDef(run)` · `getEquippedRangedDef(run)` · `freshEquipped()` · `canEquip(state, id, slot)` · `performEquip/Unequip/EquipRing/UnequipRing`
+- Reducer actions: `EQUIP` / `UNEQUIP` / `EQUIP_RING` / `UNEQUIP_RING` (equip ops are housekeeping, don't pause Arcane Studies)
+
+**Weapon content.**
+- Pure weapons (`content/weapons.js`): Wooden Club (no research, 2–4 dmg), Stone Spear (knapping, 3–7 dmg), Stone Mace (knapping, 4–8 dmg). Each has `durability: { wearsOn: "combat" }`.
+- Dual-use tools (`content/tools.js`): Stone Axe / Stone Pickaxe / Bone Knife / Bow / Fragment Knife all carry `weaponStats` alongside their tool `effect`. The hatchet pattern: tool-leaning bonuses + modest combat stats. The numbers tell the player why a pickaxe makes a bad weapon.
+- All weapons carry `subfamily` (axe/spear/mace/knife/pickaxe/bow/club) for future combat-skill XP routing in Phase 3 (#34).
+
+**Combat resolution (#33).** `systems/combat.js` `resolveFight(state, threatDef, rng)`:
+- Multi-round fight loop, max 12 rounds (safety cap)
+- Each round: player attacks (`acc - eva` roll, on hit roll damage [min,max] ×2 on crit), then threat attacks
+- Threat damage routed by `damageType: "hp" | "sanity" | "spirit"` — armor reduces hp damage only; sanity/spirit bypass armor (the mind has no armor)
+- Fights produce 3–8 narrative log lines per encounter using threat-specific `combatFlavor` template pools (opener / attack / miss / victory / defeat) with `{weapon}`, `{threat}`, `{dmg}` substitutions
+- Combat log lines use `kind: "combat"` with the `.log-entry--combat` CSS class — consecutive lines fuse into a single fight block via tinted left border
+- Per-fight durability wear on equipped weapons via `applyToolWear(run, "combat")` (iterates both tools and weapons)
+
+**Combat-class threats (#33):**
+- **🐺 Wild Dog** (Era 1, hut+10 gathers) — 12 HP, acc 0.7, eva 0.05, dmg 2–4 (hp)
+- **🗡️ Raider** (Era 2) — 22 HP, acc 0.78, eva 0.10, dmg 3–7 (hp)
+- **🦴 Corrupted Walker** (Era 3, demon-class) — 35 HP, acc 0.72, eva 0.05, dmg 4–8 (hp)
+- **🪦 Soulless Stalker** (Era 3, demon-class) — 18 HP, acc 0.85, eva 0.15, dmg 3–6 (**sanity**)
+- **Existing one-shot threats** (Scavenger / Whisperer / Hollow Hound / Iconoclast) keep their narrative-rich single-event path. `routeThreat()` in `systems/threats.js` sniffs `threat.combat` and dispatches accordingly.
+
+**Armor vs Defense split (#39, locked).** Two separate stats:
+- `armor` — personal damage reduction in combat. Sources: study completions (Wardweave +2), future armor crafts, future Light-path enchants. Reduces hp-damage threats only.
+- `defense` — settlement/structure defense. Used by raid-style one-shot threats (Scavenger food theft) and future city raids. Read via `systems/defense.js` (extracted from threats.js to break the combat→threats cycle).
+- **Walls don't help when a wild dog jumps you in the wilderness** — that's the design intent. Walls protect your camp; armor protects your body.
+
+**Death-debuff cascade (#50).** See "Death is no longer a run reset" above.
+
+**Stat damage (#42, partial).** `damageType` routing on threat combat blocks. Sanity damage (Soulless Stalker), spirit damage (future arcane threats), hp damage (everything else). Recovery items get `recoversStat` annotations alongside `useEffect` (e.g. Stillness Potion clears sanity damage; Mending Potion clears HP damage). Full "damaged-stat tracking" UI lives in #44/#49.
+
 ### Echo Shop (prestige spending)
 After channeling, Echoes can be spent in the **🌀 Echo Shop** — click the Echoes badge in the header, or hit the "Echo Shop" button on the prestige modal before channeling. 14 upgrades across 5 categories (Cache / Body / Mind / Skills / Arcane). Tiered upgrades cost `ceil(baseCost * 1.5^level)`; one-time upgrades buy once. Purchases land in `persistent.echoUpgrades` and seed every new run via `applyEchoUpgrades(freshRun(), persistent)` in RESET_RUN and PRESTIGE.
 
@@ -129,19 +178,23 @@ After channeling, Echoes can be spent in the **🌀 Echo Shop** — click the Ec
 State management (persistent + run split), reducer pattern, content-as-data, scene composition, gathering loop with anti-spam cooldown, keyboard shortcuts (G/R/E/D/H, customizable), rock awakening, splash screen, buildings in tree modal (now including **Stone Altar**), passive production with offline catchup, teachings tree, primitive + Era-2 + arcane crafting with durability, hunting with skill-driven yield, skills system, survival (HP/hunger/thirst/energy + Resolve/Sanity/Spirit), threats incl. Whisperer/Hollow Hound/Iconoclast, random events (50 across Era 1/2/3) with hidden alignment, pest events, settings, audio with era-driven music, save/load with versioned migration, prestige + Echo Shop, layout refactor (left rail with tabs + right column + footer action strip + Stone strip with Channel-the-Rock + active-study indicator), **water tier system** (Stagnant/Muddy/Boiled + virtual-water cost), **dysentery + disease module**, **Drink dropdown** with risk hints, **Boil action**, **Stone Altar building**, **Scroll + Ink resources** with new `producesResource` craft pattern, **Arcane Studies system** (timed-study engine + pause-on-action + 21 nodes across 7 paths + per-path completion deltas + spell unlocks via `requires.studied` + altar etchings persisting across runs + Studies UI), **World Score** (hidden meter + 6 graduated thresholds + apex reveal).
 
 ### Major systems planned (⬜ in systems.md / queued in task list)
-**Combat arc** — equipped weapon slot foundation (Phase 1), passive combat resolution + rich log narration (Phase 2), weapon progression + combat skills swordplay/archery/magicCombat (Phase 3), specialized gather actions Chop/Mine/Forage + iron_ore/coal/herbs (Phase 4), iron tier + smithing (Phase 5), weapon enchants tied to Arcane Studies (Phase 6). **Boss system** (turn-based modal, 1 mini + 1 main per era, elemental gates Era 3+). **Stat-damage with targeted recovery** (different threats hit different stats; protein recovers strength; herbs recover sanity). **Death-debuff system** (STR % loss cascades to all stats; food recovers gradually). **Character page** (full-page UI replacing center body, three-panel stat display with STR bridging survival + combat, 8 main equipment slots + 13 accessories tray, tooltip comparison). **Crafting page** (full-body, family-subtabbed: Blacksmithing/Alchemy/Fletching/Farming/Woodworking/Tailoring). **City management** (Era 4+, deferred).
+**Combat arc — 4 of 7 done.** Equipped slot foundation ✅, passive resolution ✅, armor/defense split ✅, stat-damage routing ✅, death-debuff ✅. Remaining: weapon progression + combat skills swordplay/archery/magicCombat (#34); specialized gather actions Chop/Mine/Forage + iron_ore/coal/herbs (#35); iron tier + smithing (#36); weapon enchants tied to Arcane Studies (#37); boss-fight modal turn-based UI (#40); boss roster authoring — ≥1 mini + ≥1 main per era + elemental gates (#41). **Character page** (Phase A–G, tasks #43–#49): view-architecture plumbing, three-panel stat sheet (Survival / Bridge: STR / Combat: DEX SPD MAG Spirit Armor), 8+13 equipment slots, tooltip-compare, full equip/unequip UI. **Crafting page** (#48): full-body takeover, family-subtabbed (Blacksmithing/Alchemy/Fletching/Farming/Woodworking/Tailoring). **City management** (Era 4+, #38 — deferred).
 
 ### Notable design decisions on file
 - Tracks unlock as eras progress; persistent across prestige; player can pin any unlocked track
 - "Resolve" is the happiness stat name; Spirit is the magic-resource stat (was reserved, now active in Era 3+)
-- Fragments display as "Unknown ???" until `arcaneAwakening` research unlocks the truth; Scrolls + Ink hidden similarly until `altarWork` is learned
+- Fragments display as "Unknown ???" until `arcaneAwakening` research unlocks the truth; Scrolls + Ink hidden similarly until `altarWork` is learned. **Once revealed and ascended-with, they stay revealed forever** via `persistent.permanentlyKnown`.
 - Sanity drops only from horror events (threats, damage, eldritch); Resolve drops from physical deprivation and rises from comfort/progression
 - **Skills are run-only**, fully reset on prestige
 - **Spirit and Mana are the same thing** — locked decision. UI uses "Spirit" everywhere; the underlying stat key is `spirit`.
-- **STR is the bridge stat between survival and combat** — will be added when Combat Phase 1 lands. Protein-based foods recover it.
-- **Two defense stats** — locked. `defense` (existing) stays for settlement/raid defense (food theft, structure damage). New `armor` (Combat Phase 1/2) is personal damage reduction.
-- **Boss fights = turn-based modal**, retry-friendly. Routine combat is passive-log.
-- **Death debuff cascades from STR** — combat death = wake at home, no run reset. STR drops 50%; that % cascades to all survival stats.
+- **STR is the bridge stat between survival and combat** — to be added at Combat Phase 3 (#34). Protein-based foods recover it. Death-debuff magnitude currently tracks the cascade scalar in lieu of STR.
+- **Two defense stats — armor vs defense (locked, shipped #39).** `defense` is settlement-only (raids, food theft, structure damage). `armor` is personal combat damage reduction. Walls don't help when a wild dog jumps you in the wilderness.
+- **Boss fights = turn-based modal**, retry-friendly (#40, not yet shipped). Routine combat is passive-log (#33, shipped).
+- **Death debuff cascades on combat HP=0 (shipped #50).** Stats scale by magnitude (first death 0.5, stacking +0.5 per death up to 0.95 cap). HP floored at 1 so the player stays alive. Wake-up narration adapts to what's built. Recovery via every-food-helps eating (grubs 0.05 / bird meat 0.12 / Mending Potion 0.30).
+- **Ascension starts at Era 1 (locked).** Prestige skips the cosmic-horror opening — rock awakened + hut raised + survival live on the new run. RESET_RUN (death/give-up) still hurts at Era 0.
+- **Resources stay known across runs (locked).** Anything revealed before ascending stays revealed in every future life via `persistent.permanentlyKnown`. Generic — works for any future hidden resource.
+- **Combat is passive-log, NOT a modal.** Routine encounters resolve in 3–8 narration lines per fight. Bosses (#40) will use a modal turn-based UI; routine fights stay idle-friendly.
+- **Combat-class vs one-shot threats coexist.** `threat.combat` field flips a threat into the fight-loop path; threats without it stay as narrative-rich one-shots. Both shapes live in `content/threats.js`.
 - **Arcane Studies = layered on top of Stone's Teachings**, not replacing it. Teachings stays instant-listen for fundamentals; the Altar is where deep magic study happens with timers.
 - **Multiple in-progress studies allowed**, lossless pause-on-action, free switching. Materials are the cost; time is yours to hold.
 - **Voidcall is APEX-GATED** by `alignment.evil ≥ 5`. Every Voidcall completion costs the world (worldScore −1). Designed as the "I've gone too far" path with the strongest payoff.
@@ -169,8 +222,9 @@ Header shows era · counts · alignment · echoes · **WS (World Score) · studi
 - **🚀 Quick** — Era jumps (1/2/3), full unlocks per era, rock + fragments, bulk resource grants
 - **🌍 Content** — Granular toggles for every building, research node, and tool. ✓ marks owned; stackable potions/materials show ×N. (Scroll/Ink recipes route to their resource ids automatically.)
 - **🧠 State** — Per-stat sliders, skill levels, alignment setters, spell-cooldown clear, **status toggles including Dysentery (apply 5 min / clear)**
-- **⚔️ Encounters** — Force-fire each threat by name, pest controls, event cooldown wipe, clear active event modal
-- **🕯️ Arcane (NEW)** — Stone Altar one-tap build (with prereqs), scroll + ink grants, water-tier shortcuts, study completion (active / all), study reset, **World Score quick-set (0 / 5 / 15 / 30 / 50 / 80 / 100) + nudge ±5**, altar etchings inspector + wipe
+- **⚔️ Encounters** — Force-fire each threat by name (including combat-class). **Equipment slots readout** (live status of every main slot + ring count). **Pure weapons section** — give + equip buttons for Wooden Club / Stone Spear / Stone Mace into either hand. **Quick-equip dual-use tools** — one-tap Stone Axe / Bone Knife / Stone Pickaxe / Fragment Knife / Bow into the right slot. Pest controls, event cooldown wipe, clear active event modal.
+- **🧠 State** — Per-stat sliders, skill levels, alignment setters, spell-cooldown clear, status toggles. **Death-debuff controls**: apply (full cascade), set magnitude to 0.5 / 0.25 / 0, clear. Live readout: `Death debuff: mag 50% · deaths ×1`. **Dysentery**: apply 5 min / clear.
+- **🕯️ Arcane** — Stone Altar one-tap build (with prereqs), scroll + ink grants, water-tier shortcuts, study completion (active / all), study reset, **World Score quick-set (0 / 5 / 15 / 30 / 50 / 80 / 100) + nudge ±5**, altar etchings inspector + wipe
 - **⏱️ System** — Time skip, inventory dump, wipe run, nuke save
 
 Gated by `import.meta.env.DEV`, so it does NOT ship in production builds. If you want it in a built game for testing, set `settings.devUnlocked = true`.
@@ -178,28 +232,57 @@ Gated by `import.meta.env.DEV`, so it does NOT ship in production builds. If you
 All dev actions emit a "🛠️ Foo done." log line so you can see what changed. They use the same DEV_PATCH reducer action, which keeps state changes predictable. Force-fired threats additionally pump their own flavor messages into the log via `patch.events`.
 
 **Typical workflows:**
-- Test Era 3 spell: Quick → 🚀 Unlock all Era 3 → State → set alignment to good 5 → Content → toggle banishSpell research → cast from in-game UI.
+- **Test combat end-to-end**: Encounters → "+1 of every weapon" → "Wooden Club → handRight" → Encounters → Force Wild Dog → watch the multi-line fight log. Try without a weapon to feel the fists math.
+- **Test the death cascade**: State → "💔 Apply Death Debuff (cascade)" → watch stats drop + wake-up narration. Then eat repeatedly (or Inventory → +999 → eat through grubs) and watch magnitude tick down to 0.
 - **Test Arcane Studies end-to-end**: Arcane → 🕯️ Build Stone Altar → 📜 +5 Scrolls & Inks → open Studies tab → Open Path Trees → Start a study → Arcane → Complete active study → check the Spells modal for the unlock.
 - **Test World Score thresholds**: Arcane → WS → 30 → gather a few times → watch the log light up with "💦 The water's less of the dust today" promotions. WS → 100 fires the apex reveal once.
 - **Test dysentery**: State → Apply Dysentery (5 min) → watch the doubled hunger/thirst decay + per-tick HP/sanity drain.
-- **Test Warding Talisman**: Content → arcane tools → Warding Talisman → Encounters → Force Whisperer / Hollow Hound.
+- **Test ascension QoL**: Quick → 🚀 Unlock all Era 3 → State → max stats → click "Channel the Rock" (footer or stone strip if eligible) → new run starts with hut already raised + survival live + fragments still readable as "Arcane Shards" (not "???").
+- **Test combat-class horror threat (sanity damage)**: equip any weapon → Encounters → Force Soulless Stalker → sanity drains per round, armor doesn't help.
 
 ---
 
 ## Likely next moves (pick one when resuming)
 
-The Arcane Studies arc is complete. The natural next focus is the **Combat / Weapons / Skills** arc, which is the largest unbuilt system and has 7 phases queued. Detailed task list in the in-app TodoList (#32–#42, #50) and design specs in `docs/ERA_PLAN.md` under "Combat + Weapons + Specialized Skills (RPG layer)" and "Character page + Crafting page (full-body UI restructure)".
+**Completed since the last handoff update:**
+- ✅ Combat Phase 1 (#32) — equipped weapon slot foundation + dual-use pattern + pure tier-1 weapons
+- ✅ Combat Phase 2 (#33) — passive multi-round fight loop + rich log narration + 4 combat-class threats
+- ✅ Armor/Defense split (#39) — locked: `armor` personal, `defense` settlement
+- ✅ Stat damage routing (#42) — damageType field on threats; Soulless Stalker drains sanity
+- ✅ Death-debuff cascade (#50) — combat HP=0 → cascade + wake-up + food-based recovery (no run reset)
+- ✅ Ascension QoL — prestige starts at Era 1 with rock awakened + hut raised; resources stay known across runs via `persistent.permanentlyKnown`
 
-Suggested ordering:
+**Remaining in the Combat arc:**
 
-1. **Combat Phase 1: equipped weapon slot foundation (#32).** Small, visible. Add `run.equipped`, `content/weapons.js` with tier-1 weapons (Wooden Club, Stone Spear, Stone Mace), dual-use pattern (hatchet vs battle axe — same family, different stat distribution). 8 main equipment slots + accessories tray. First slottable weapon → tooltip-compare arrives later.
-2. **Combat Phase 2: passive resolution + rich log (#33).** Move existing threat system into a real fight loop. 3–6 log lines per encounter. New `content/threats.js` tiered roster. Pair with **#39 armor split**, **#42 stat damage**, and **#50 death-debuff** to land combat with weight.
-3. **Character Page Phase A view architecture (#43).** Pure plumbing — Shell.jsx grows a `view` state, left-rail tabs can be full-page (replace center column). Lays the foundation for #44 Character page + #48 Crafting page.
-4. **Character Page Phase B read-only (#44).** Three-panel stat display (Survival / Bridge: STR / Combat: DEX/SPD/MAG/Spirit/Armor). Equipment slots row. Body & Mind tab retires. First visually satisfying "character sheet."
-5. **Combat Phases 3–6 + Character Phases C–G.** Build out weapon progression, specialized gather, iron tier, enchants, equipment inventory grid, tooltip-compare, Crafting page family-subtabs, polish. Each is itself multi-session.
-6. **Boss roster + boss-fight modal (#40, #41).** Author the content — at least 1 mini + 1 main per era, plus elemental gates Era 3+. Modal UI for turn-based combat.
-7. **Polish + Era 1 paper-cuts.** Era background indicator (BUGS.md #008). Bird tiering / grub birds. Shelter-tier rest. Audio expansion.
-8. **City management (#38, deferred).** Don't start until Combat + Character pages ship.
+1. **Combat Phase 3 (#34) — weapon progression + combat skills.** Weapon level/XP from kills (per equipped instance), levels add to damage/crit/acc rolls. New skills: `swordplay`, `archery`, `magicCombat` extending the skills.js system. Wires the existing `weaponStats` numbers into a growth loop.
+2. **Boss roster (#41) — author content.** At least 1 mini + 1 main per era; elemental gates Era 3+. Lives in new `content/bosses.js`. Pace toward this — most other combat work doesn't unlock new content, this does.
+3. **Boss-fight modal (#40) — turn-based UI.** Reuses passive resolution math but exposes it turn-by-turn. Attack / Spell / Item / Defend / Flee. Death is retry-friendly (death-debuff applies, no run reset). Lives in `ui/BossFightModal.jsx`.
+4. **Combat Phase 4 (#35) — specialized gather actions.** Chop / Mine / Forage buttons unlock once the right tool is owned. New resources: iron_ore, coal, herbs, mushrooms, arrows. New skills: mining, woodcutting, fletching. Each action has its own cooldown.
+5. **Combat Phase 5 (#36) — iron tier + smithing.** Iron Hatchet vs Iron Battle Axe (dual-use subfamily pattern). Smithing skill from each metal craft. Iron ingot recipe at Forge.
+6. **Combat Phase 6 (#37) — weapon enchants.** Ties Combat + Arcane Studies. Enchant slots per weapon level (1/2/3). Enchants unlocked by Light/Bend/Elemental study completions. Altar UI for application.
+
+**Character page arc (#43–#49):**
+
+7. **Phase A (#43) — view architecture.** Pure plumbing: Shell.jsx grows `view` state ("world" | "character" | "crafting"). Compact rail tabs vs full-page rail tabs. Header / Scene / Right column / StonePanel / ActionStrip stay; center column swaps.
+8. **Phase B (#44) — read-only Character page.** Three-panel stat sheet: Survival | Bridge (STR) | Combat (DEX/SPD/MAG/Spirit/Armor). Equipment slots row. Body & Mind tab retires. First visually satisfying "character sheet."
+9. **Phase C (#45) — equipment inventory grid + equip/unequip UI.** Bottom panel of CharacterPage. Top tabs: All / Weapons / Defense / Herbs / Magic Items / Tools / Crafting Materials / Other. Inventory tab in left rail retires.
+10. **Phase D (#46) — tooltip comparison.** Hover any item → tooltip shows candidate stats + currently-equipped + per-stat diff color-coded. Multi-slot handling for rings.
+11. **Phase E (#47) — combat stats actually modulate combat.** STR scales melee damage + protein-recovery bridge. DEX scales ranged + acc + eva. MAG scales spell damage. SPD reduces cooldowns. Spirit regen at locked-very-slow base.
+12. **Phase F (#48) — Crafting page.** Full-body takeover, sub-tabbed by family: Blacksmithing / Alchemy / Fletching / Farming / Woodworking / Tailoring. ToolsModal retires.
+13. **Phase G (#49) — polish + animations.** Tab switch transitions. Hover states. Equip flourishes. Damaged-stat visual state on stat bars (red overlay).
+
+**Era 1 polish + paper-cuts:**
+
+14. **Era background indicator (BUGS.md #008).** Subtle per-era body class for ambient color cues.
+15. **Bird tiering / grub birds.** Era 1 hunting depth. Captured in ERA_PLAN.md.
+16. **Shelter-tier rest.** Rest quality scales with shelter level (no shelter / hut / hut+firepit / home / etc.). Half-shipped in code; needs the "no shelter = penalty" half.
+17. **Audio expansion.** SFX for gather/build/awaken/combat/death-cascade moments.
+
+**Deferred — not until Combat + Character pages ship:**
+
+18. **City management (#38) — Era 4+, deferred.** Villager NPCs, role assignment, village-level threats.
+
+**Suggested ordering when resuming**: #34 → #41 → #40 → #43 → #44 → #35 onward. #34 is the smallest combat-arc win that adds real progression; #41+#40 turn the combat layer into a real era-gating mechanic; #43+#44 give the player a place to *see* what they've built.
 
 When in doubt, ask before assuming.
 
@@ -219,7 +302,7 @@ If starting a new conversation (different machine, new session, different model 
 >
 > The codebase is **content-as-data**: game content lives in `src/content/*.js` as plain data objects (no functions inside content). Systems in `src/systems/*` read content and run logic. UI components in `src/ui/*` render state. Reducer is thin; logic lives in systems.
 >
-> We're in **Era 2/3** territory — full gameplay loop through Era 3 (Arcane Studies, World Score, dysentery + tiered water, alignment-driven content, 50 events). Recent sessions shipped: **water tier system** (Stagnant/Muddy/Boiled with dysentery rolls per drink), **Drink dropdown** with risk hints, **Boil action**, the entire **Arcane Studies arc** (Stone Altar building + scroll/ink resources + timed-study engine with pause-on-action + 21 nodes across 7 paths including apex-gated Voidcall + 10 new spells unlocked via `requires.studied` + altar etchings persisting across runs + full Studies UI), and the **World Score** hidden meter (6 graduated thresholds + apex reveal). The next big arc is **Combat / Weapons / Skills + Character page** — fully specced in `docs/ERA_PLAN.md`, queued in tasks #32–#50. But ask me what I want to work on rather than assuming.
+> We're in **Era 2/3** territory — full gameplay loop through Era 3 with real RPG combat. Already shipped: **water tier system** (Stagnant/Muddy/Boiled + dysentery + Drink dropdown + Boil action), **Arcane Studies arc** (Stone Altar + scroll/ink + timed-study engine with pause-on-action + 21 nodes across 7 paths including apex-gated Voidcall + 10 spells gated by `requires.studied` + altar etchings persisting + Studies UI), **World Score** hidden meter (6 graduated thresholds + apex reveal), **Combat Phases 1–2** (equipped slot foundation with 8+13 slots, dual-use Stone Axe/Bone Knife/Bow + pure Wooden Club/Stone Spear/Stone Mace, multi-round fight loop with rich log narration, 4 combat-class threats Wild Dog/Raider/Corrupted Walker/Soulless Stalker), **armor/defense split** (locked: armor personal, defense settlement), **stat-damage routing** (damageType field; Soulless Stalker drains sanity ignoring armor), **death-debuff cascade** (combat HP=0 → magnitude scales all stats, no run reset, food recovers), and **ascension QoL** (prestige starts at Era 1 with hut + rock awakened; resources stay known across runs via `persistent.permanentlyKnown`). The next big arcs are **Combat Phase 3+ (weapon progression, specialized gather, iron tier, enchants, bosses)** and the **Character/Crafting page** UI restructure — fully specced in `docs/ERA_PLAN.md`, queued in tasks #34–#49. But ask me what I want to work on rather than assuming.
 >
 > Please follow the patterns established in existing code. Accessibility-first (reduced motion, accessibility fonts, no flashing without a setting to disable). Hidden alignment never shown to the player as a number.
 

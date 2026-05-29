@@ -120,6 +120,9 @@ export const RESOURCES = {
     description: "Pale, wriggling. They squirm in the palm. Better than nothing. Barely.",
     baseCap: 15,
     spoilage: { perMinute: 0.2, atCapMultiplier: 4 },
+    // Death-debuff recovery (Task #50). Grubs help a little. The point
+    // of #50 is *every food gives something back* — even worms.
+    deathDebuffRecovery: 0.05,
   },
 
   bird_meat: {
@@ -132,6 +135,9 @@ export const RESOURCES = {
     description: "Stringy, dark, faintly metallic. The first warm meal in a long time.",
     baseCap: 10,
     spoilage: { perMinute: 0.4, atCapMultiplier: 5 },
+    // Protein — the bridge to STR (future #47) AND the most effective
+    // food-side recovery from a death-debuff cascade. See systems/death.js.
+    deathDebuffRecovery: 0.12,
   },
 
   feathers: {
@@ -229,6 +235,12 @@ export function spendWater(inventory, qty) {
 export function isResourceHidden(state, resource) {
   const h = resource.hiddenUntil;
   if (!h) return false;
+  // Persistent reveal: once you've ascended (prestiged) carrying knowledge
+  // of this resource, it stays known across every future run. The PRESTIGE
+  // reducer snapshots anything that wasn't hidden at the moment of
+  // channeling and writes it here. See state/reducer.js PRESTIGE case +
+  // state/persistent.js permanentlyKnown.
+  if (state.persistent?.permanentlyKnown?.[resource.id]) return false;
   if (h.researched && !state.run.researched?.[h.researched]) return true;
   if (h.built && !state.run.built?.[h.built]) return true;
   return false;

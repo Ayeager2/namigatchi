@@ -251,7 +251,9 @@ When the **Home** building is up, a new **Home tab** appears on the main UI. Dis
 
 ### Arcane Studies — timed magic study + path subtrees + hidden World Score
 
-**Status.** Design captured 2026-05. Major new system bridging Era 2 → late game. Layered on top of existing Stone's Teachings (which keeps the listen-once model for Era 0–2 fundamentals). The Altar is where deeper magic actually gets *learned*.
+**Status.** ✅ **SHIPPED 2026-05** (tasks #25–#31, plus #29 World Score). All seven paths authored with first-pass content (21 nodes). Stone Altar building, scroll/ink crafting, timed-study engine with pause-on-action, Studies UI (tab + path-tree modal + stone-strip indicator), completion effects (per-path deltas + altar etchings), and the World Score meter with graduated effects table are all live end-to-end. **See systems.md "Arcane Studies" entry for the canonical current-state description.** The full design below is retained as the spec-of-record for future content authoring (more nodes per path, future enchant unlocks tied to Combat Phase 6 #37).
+
+Major new system bridging Era 2 → late game. Layered on top of existing Stone's Teachings (which keeps the listen-once model for Era 0–2 fundamentals). The Altar is where deeper magic actually gets *learned*.
 
 **Locked-in decisions (AskUserQuestion 2026-05):**
 - **Layered**, not replacing — existing Teachings tree is preserved. Altar is the second, deeper layer.
@@ -422,7 +424,9 @@ The whole system fits the "stone teaches" arc — the basic teachings come quick
 
 ### Combat + Weapons + Specialized Skills (RPG layer)
 
-**Status.** Design captured 2026-05. Era 2+ rollout, multi-session. The game has had skeletal combat (threats during gathering) and one tool-shaped weapon (Bone Knife) — this turns it into an actual RPG layer.
+**Status.** Era 2+ rollout, multi-session. **Phases 1–2 + #39 + #42 + #50 shipped 2026-05.** Live now: equipped weapon slot foundation (8 main + 13 accessories), multi-round passive fight loop with rich log narration, 4 combat-class threats (Wild Dog / Raider / Corrupted Walker / Soulless Stalker), armor vs defense split (locked: armor personal, defense settlement), stat-damage routing via damageType (Soulless Stalker drains sanity ignoring armor), and death-debuff cascade (combat HP=0 → magnitude scales all stats, no run reset, food recovers). Remaining: Phase 3 weapon progression + combat skills (#34), Phase 4 specialized gather (#35), Phase 5 iron tier + smithing (#36), Phase 6 weapon enchants (#37), boss modal (#40) + boss roster (#41).
+
+**See systems.md "Equipment system" + "Combat resolution" + "Armor vs Defense split" + "Death-debuff cascade" + "Stat damage" entries for canonical current state.** The full design below is retained as the spec-of-record for unshipped phases.
 
 **Locked-in decisions (AskUserQuestion 2026-05):**
 - **Combat resolution: passive with rich log.** No modal interruption. Encounters resolve automatically based on weapon + stats + level. The log narrates the fight as 3–6 lines instead of 1. Idle-friendly. (Boss fights might get a modal later — TBD.)

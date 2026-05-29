@@ -260,8 +260,16 @@ export function devApplyStatus(state, statusId, durationSec = 5 * 60) {
 export function devForceThreat(state, threatId) {
   const result = resolveThreatById(state, threatId);
   if (!result) return { msg: `🛠️ Threat "${threatId}" not found.` };
+  // Combat-class threats (#33) also return toolDurability — pick it up so
+  // weapon wear lands. One-shot threats omit the field.
+  const nextRun = {
+    ...state.run,
+    inventory: result.inventory,
+    stats: result.stats,
+  };
+  if (result.toolDurability) nextRun.toolDurability = result.toolDurability;
   return {
-    run: { ...state.run, inventory: result.inventory, stats: result.stats },
+    run: nextRun,
     events: result.events,
     msg: `🛠️ Forced threat "${threatId}".`,
   };

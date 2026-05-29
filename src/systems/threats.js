@@ -1,39 +1,28 @@
 // Threat system — rolls random encounters per gather.
+//
+// Two resolution paths live here. The router (rollThreatEncounter +
+// resolveThreatById) sniffs `threat.combat` to decide:
+//
+//   • combat-class threats (have `combat: { hp, acc, eva, damage, ... }`)
+//     route to systems/combat.js resolveFight — multi-round fight loop
+//     with weapon stats, durability wear, narrative log.
+//
+//   • one-shot threats (legacy / atmospheric) keep the existing
+//     resolveThreat path — narrative-rich single-event resolutions
+//     (scavenger steals food and flees, whisperer's pressure passes).
 
 import { getAllThreats } from "../content/threats.js";
-import { getResearch } from "../content/research.js";
-import { getBuilding } from "../content/buildings.js";
 import { getToolEffects } from "../content/tools.js";
 import { SURVIVAL } from "../content/survival.js";
 import { applyEffect } from "./survival.js";
+import { getDefense, getFoodStealReduction } from "./defense.js";
+import { resolveFight } from "./combat.js";
 import { computeEra } from "./era.js";
 import { randInt } from "../util/rng.js";
 
-export function getDefense(state) {
-  let def = 0;
-  for (const id of Object.keys(state.run.researched || {})) {
-    const r = getResearch(id);
-    if (r?.effect?.defense) def += r.effect.defense;
-  }
-  for (const id of Object.keys(state.run.built || {})) {
-    const b = getBuilding(id);
-    if (b?.effect?.defense) def += b.effect.defense;
-  }
-  return def;
-}
-
-export function getFoodStealReduction(state) {
-  let red = 0;
-  for (const id of Object.keys(state.run.researched || {})) {
-    const r = getResearch(id);
-    if (r?.effect?.foodStealReduction) red += r.effect.foodStealReduction;
-  }
-  for (const id of Object.keys(state.run.built || {})) {
-    const b = getBuilding(id);
-    if (b?.effect?.foodStealReduction) red += b.effect.foodStealReduction;
-  }
-  return red;
-}
+// Re-export defense helpers for back-compat (old callers may still import
+// from threats.js — keep their imports working).
+export { getDefense, getFoodStealReduction };
 
 function isThreatActive(state, threat) {
   if (threat.requires?.hutBuilt && !state.run.built?.hut) return false;
@@ -61,7 +50,7 @@ export function rollThreatEncounter(state, rng = Math.random) {
   if (candidates.length === 0) return null;
   for (const threat of candidates) {
     if (rng() >= threat.encounterChance) continue;
-    return resolveThreat(state, threat, rng);
+    return routeThreat(state, threat, rng);
   }
   return null;
 }
@@ -71,6 +60,30 @@ export function rollThreatEncounter(state, rng = Math.random) {
 export function resolveThreatById(state, threatId, rng = Math.random) {
   const threat = getAllThreats().find((t) => t.id === threatId);
   if (!threat) return null;
+  return routeThreat(state, threat, rng);
+}
+
+// Internal router — picks between the combat fight loop and the legacy
+// one-shot resolver, then normalizes the return shape so callers
+// (gathering.js etc.) can consume either uniformly.
+//
+// Returned shape (always):
+//   { inventory, stats, toolDurability?, events, threatId, outcome? }
+//
+// Combat-class results pass `outcome: "victory" | "defeat" | "stalemate"`
+// in case callers want to react to it. One-shot results omit `outcome`.
+function routeThreat(state, threat, rng) {
+  if (threat.combat) {
+    const result = resolveFight(state, threat, rng);
+    return {
+      inventory: result.run.inventory,
+      stats: result.run.stats,
+      toolDurability: result.run.toolDurability,
+      events: result.events,
+      threatId: result.threatId,
+      outcome: result.outcome,
+    };
+  }
   return resolveThreat(state, threat, rng);
 }
 

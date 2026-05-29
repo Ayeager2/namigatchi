@@ -1,6 +1,7 @@
 // Crafting system. Reducer dispatches CRAFT_TOOL; this file owns the logic.
 
 import { getTool, getAllTools } from "../content/tools.js";
+import { getAllWeapons } from "../content/weapons.js";
 import { totalWater, spendWater } from "../content/resources.js";
 import { getResourceCap } from "./storage.js";
 import { getStudyPassives } from "./studies.js";
@@ -26,7 +27,12 @@ export function applyToolWear(run, actionTag) {
   // smooth probabilistic feel rather than fractional durability.
   const skipChance = wearReduction;
 
-  for (const tool of getAllTools()) {
+  // Iterate both tools AND pure weapons so combat wear works on either.
+  // Weapons share the same durability shape (`durability: { max, wearsOn }`)
+  // and live in the same run.toolDurability keyed by item id. See
+  // content/weapons.js + systems/equipment.js for the Combat Phase 1
+  // foundation; Combat Phase 2 (#33) ticks combat wear here.
+  for (const tool of [...getAllTools(), ...getAllWeapons()]) {
     if (!(inventory[tool.id] > 0)) continue;
     const dur = tool.durability;
     if (!dur || dur.wearsOn !== actionTag) continue;

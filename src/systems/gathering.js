@@ -265,6 +265,10 @@ export function performGather(state, rng = Math.random) {
     if (threat) {
       run.inventory = threat.inventory;
       run.stats = threat.stats;
+      // Combat-class threats (Phase 2 / #33) tick weapon durability via
+      // applyToolWear and return the updated map. Old one-shot threats
+      // omit this field, leaving toolDurability untouched.
+      if (threat.toolDurability) run.toolDurability = threat.toolDurability;
       events.push(...threat.events);
       persistent.lifetimeStats.threatsEncountered =
         (persistent.lifetimeStats.threatsEncountered || 0) + 1;

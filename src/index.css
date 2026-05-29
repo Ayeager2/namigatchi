@@ -1645,6 +1645,23 @@ body.motion-reduced .settings-trigger:hover {
   text-shadow: 0 0 4px rgba(184, 91, 91, 0.25);
 }
 
+/* Combat log lines (Combat Phase 2, Task #33). Threat fights produce 3-8
+   of these per encounter — opener, per-round attack/miss lines, closer.
+   The tinted left border helps the eye group them as a single "fight"
+   block in the recent-log panel. */
+.log-entry--combat {
+  color: #c98a4f;
+  border-left: 2px solid rgba(201, 138, 79, 0.45);
+  padding-left: 6px;
+  margin-left: 2px;
+}
+
+/* Adjacent combat lines visually fuse into a single fight block — the
+   first one keeps the top border, the rest blend in. */
+.log-entry--combat + .log-entry--combat {
+  border-top: none;
+}
+
 .log-entry--event_good {
   color: var(--accent);
   font-weight: 500;

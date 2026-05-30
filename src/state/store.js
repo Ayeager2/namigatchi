@@ -54,6 +54,7 @@ export function useGameStore() {
     markSplashSeen: () => dispatch({ type: ACTIONS.MARK_SPLASH_SEEN }),
     clearLog: () => dispatch({ type: ACTIONS.CLEAR_LOG }),
     buyEchoUpgrade: (upgradeId) => dispatch({ type: ACTIONS.BUY_ECHO_UPGRADE, upgradeId }),
+    endBossFight: (payload) => dispatch({ type: ACTIONS.BOSS_FIGHT_END, payload }),
     devPatch: (patch) => dispatch({ type: ACTIONS.DEV_PATCH, patch }),
   };
 

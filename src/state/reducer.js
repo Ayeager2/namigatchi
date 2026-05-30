@@ -34,6 +34,7 @@ import { SURVIVAL } from "../content/survival.js";
 import { performCastSpell } from "../systems/spells.js";
 import { performUseTool } from "../systems/consumables.js";
 import { performBuyEchoUpgrade, applyEchoUpgrades } from "../systems/echoes.js";
+import { performBossFightEnd } from "../systems/boss.js";
 import {
   applyPassiveProduction,
   clearStalePests,
@@ -172,6 +173,16 @@ export function reducer(state, action) {
         action.upgradeId
       );
       return { persistent, run: appendLog(state.run, events) };
+    }
+
+    case ACTIONS.BOSS_FIGHT_END: {
+      // Boss fight ended — commit damage + rewards + first-defeat etching.
+      // Player-initiated, so stamp lastActionAt (studies clock pauses).
+      const { run, persistent, events } = performBossFightEnd(
+        state,
+        action.payload
+      );
+      return { persistent, run: appendLogAndStamp(run, events) };
     }
 
     case ACTIONS.GATHER: {
@@ -437,6 +448,20 @@ export function reducer(state, action) {
       return { ...state, run: { ...state.run, log: [] } };
 
     case ACTIONS.DEV_PATCH: {
+      const patch = action.patch || {};
+      const run = patch.run || state.run;
+      const persistent = patch.persistent || state.persistent;
+      const events = [];
+      if (Array.isArray(patch.events)) events.push(...patch.events);
+      if (patch.msg) events.push({ kind: "dev", message: patch.msg });
+      return { persistent, run: appendLog(run, events) };
+    }
+
+    default:
+      return state;
+  }
+}
+DEV_PATCH: {
       const patch = action.patch || {};
       const run = patch.run || state.run;
       const persistent = patch.persistent || state.persistent;

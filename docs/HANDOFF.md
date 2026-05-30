@@ -38,7 +38,7 @@ Read in order:
 Per-system status in `docs/systems.md`. Grouped highlights:
 
 - **Foundation** — persistent/run split · thin reducer + pure systems · content-as-data · scene composition · versioned save migration · settings/audio/keyboard shortcuts (G/R/E/D/H, customizable) · splash screen · save export/import
-- **Combat** — equipped slots (8 main + 13 accessory) · pure + dual-use weapons (`weaponStats` alongside tool `effect`) · multi-round fight loop with 3–8 narrative lines per encounter · 4 combat-class threats · armor/defense split (armor personal, defense settlement-only) · `damageType` routing (hp/sanity/spirit) · death-debuff cascade (combat HP=0 → magnitude scales all stats, no run reset, food-based recovery) · per-fight `applyToolWear(run, "combat")`
+- **Combat** — equipped slots (8 main + 13 accessory) · pure + dual-use weapons (`weaponStats` alongside tool `effect`) · multi-round fight loop with 3–8 narrative lines per encounter · 4 combat-class threats · armor/defense split (armor personal, defense settlement-only) · `damageType` routing (hp/sanity/spirit) · death-debuff cascade (combat HP=0 → magnitude scales all stats, no run reset, food-based recovery) · per-fight `applyToolWear(run, "combat")` · combat skills (`swordplay` / `archery` / `magicCombat`) with subfamily-routed XP from kills; skill level scales attack damage (+0.5/lvl, cap +10) / accuracy (+0.01/lvl, cap +0.20) / crit (+0.02/lvl, cap +0.30) · 6 bosses authored in `content/bosses.js` (1 mini + 1 main per era; Era 3 elementally gated via `studiesCompleted` prefix-match) · **boss-fight turn-based modal (#40) — header "⚔️ Challenges" button when `getBossesAvailable(state)` returns any; picker → fight (Attack/Spell/Item/Defend/Flee); player turn ends → 600ms pause → foe turn; spells/items dispatch real `CAST_SPELL`/`USE_TOOL` (cost real spirit/fragments/inventory + cooldowns); modal commits damage + outcome via `BOSS_FIGHT_END` (`systems/boss.js performBossFightEnd`); victory grants `defeatReward`, fires `firstDefeatLog` once, stamps `persistent.bossesDefeated[bossId]` + altar etching, awards combat XP; defeat applies death-debuff cascade; flee = 60% success; weapon wear ticks once per encounter**
 - **Meta** — Echo Shop (14 upgrades, 5 categories: Cache/Body/Mind/Skills/Arcane) · ascension QoL (prestige starts Era 1; `persistent.permanentlyKnown` auto-persists revealed resources; RESET_RUN still starts Era 0) · 50 random events across Era 1/2/3 with hidden alignment · World Score hidden meter (6 thresholds + apex reveal at 100) · dysentery + disease module · prestige system with reward breakdown
 - **UI** — left-rail tabs · right column · footer action strip · Stone strip with Channel-the-Rock + active-study indicator · dev panel (6 tabs) · Spells modal · Tools modal · Echo Shop modal · Prestige + Reset modals · Settings · Event modal
 
@@ -46,7 +46,7 @@ Per-system status in `docs/systems.md`. Grouped highlights:
 - **Spirit = magic-energy stat** (was reserved as Mana; locked active in Era 3+)
 - **STR = bridge stat** between survival and combat (lands at #34; death-debuff magnitude is the proxy until then)
 - **Armor vs Defense** — armor reduces personal combat hp damage; defense is settlement-only (raids, food theft). Walls don't help when a dog jumps you in the wilderness.
-- **Boss fights = turn-based modal** (#40 not yet shipped). Routine combat = passive log (shipped).
+- **Boss fights = turn-based modal** (shipped #40). Routine combat = passive log (shipped). Mid-fight spells/items dispatch real `CAST_SPELL`/`USE_TOOL` so spirit/fragment/cooldown bookkeeping stays single-source-of-truth; modal commits damage taken + outcome in one `BOSS_FIGHT_END` dispatch at fight end.
 - **Voidcall apex-gated** by `alignment.evil ≥ 5`. Each Voidcall costs `worldScore −1`.
 - **Ascension starts Era 1** (rock awakened + hut raised). RESET_RUN (death/give-up) still starts Era 0. The cosmic-horror opening hurts when you've earned it.
 - **Resources stay known across runs.** Anything revealed before ascending stays revealed forever via `persistent.permanentlyKnown` (generic; works for any future hidden resource).
@@ -56,12 +56,9 @@ Per-system status in `docs/systems.md`. Grouped highlights:
 - **Arcane Studies layered on Stone's Teachings**, not replacing. Teachings = instant-listen for fundamentals. Altar = deep magic with timers.
 - **Multiple in-progress studies allowed**, lossless pause-on-action, free switching. Materials are the cost; time is yours to hold.
 
-## Next moves (suggested order: #34 → #41 → #40 → #43 → #44 → #35 onward)
+## Next moves (suggested order: #43 → #44 → #35 onward)
 
-**Combat arc (4/7 done):**
-- **#34** — weapon progression + combat skills (`swordplay` / `archery` / `magicCombat`). Per-instance weapon XP from kills feeds damage/crit/acc rolls. Smallest combat win with real progression.
-- **#41** — boss roster authoring. ≥1 mini + ≥1 main per era + elemental gates Era 3+. New `content/bosses.js`.
-- **#40** — boss-fight modal turn-based UI. Reuses passive resolution math; exposes turn-by-turn. Attack / Spell / Item / Defend / Flee. Death is retry-friendly. `ui/BossFightModal.jsx`.
+**Combat arc (7/7 done — full combat phase complete):**
 - **#35** — specialized gather actions (Chop / Mine / Forage) + resources (iron_ore, coal, herbs, mushrooms, arrows) + skills (mining, woodcutting, fletching).
 - **#36** — iron tier + smithing skill (dual-use Iron Hatchet vs Iron Battle Axe; Iron ingot recipe at Forge).
 - **#37** — weapon enchants tied to Arcane Studies. Enchant slots per weapon level (1/2/3). Unlocks via Light/Bend/Elemental completions. Altar UI.
@@ -99,6 +96,9 @@ Six tabs:
 
 Test recipes:
 - **Combat end-to-end**: Encounters → give every weapon → equip into handRight → Force Wild Dog → watch fight log
+- **Combat-skill progression**: State → set swordplay to lvl 10 → equip melee weapon → Force Wild Dog → fight resolves with boosted acc/crit/damage. Lvl 20 swordplay = +10 flat damage per hit before crit double, +0.20 acc, +0.30 crit.
+- **Boss fight (full flow)**: Quick → 🚀 Unlock all Era 1 → Encounters → give every weapon → equip into handRight → header **⚔️ Challenges (n)** → pick boss → Attack/Spell/Item/Defend/Flee → on victory, check inventory for `defeatReward`, log for `firstDefeatLog`, Arcane → altar etchings inspector for new stamp.
+- **Boss defeat cascade**: Take a fight you can't win → on defeat, death-debuff applies + you wake with reduced HP — no run reset (verify in State tab).
 - **Death cascade**: State → Apply Death Debuff → eat repeatedly to tick magnitude to 0
 - **Arcane Studies**: Arcane → Build Stone Altar → +5 Scrolls/Inks → Studies tab → start study → Arcane → Complete active study → check Spells modal
 - **World Score thresholds**: Arcane → WS → 30 → gather → watch water-promotion log. WS → 100 fires apex reveal once.
@@ -116,7 +116,7 @@ Paste this when starting a new conversation:
 > **State:** Era 3 feature-complete. Era 0→3 gameplay loop runs end-to-end with real RPG combat, Arcane Studies, World Score, ascension QoL, Echo Shop.
 >
 > **Active arcs** (cross-era, not era content):
-> - Combat Phase 3+ (tasks #34–#41): weapon XP, iron tier, enchants, boss roster + modal
+> - Combat Phase 3+ (tasks #35–#37, #34 + #40 + #41 shipped): specialized gather actions, iron tier, weapon enchants
 > - Character / Crafting page (#43–#49): view-architecture, three-panel stat sheet, equip UI, crafting takeover
 >
 > **Read first:** `docs/AI_CONTEXT.md` (file map + state shape + rules), then `docs/HANDOFF.md`. Open `docs/systems.md` only when working on a specific system.

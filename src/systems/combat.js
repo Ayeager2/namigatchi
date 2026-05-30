@@ -1,37 +1,6 @@
 // Combat resolution — passive multi-round fight loop with rich log
-// narration. Task #33 (Combat Phase 2).
-//
-// Locked: passive resolution, no modal. Routine encounters happen during
-// gather/hunt and resolve automatically in 3–8 log lines. Boss fights
-// (#40) get their own turn-based modal later; this file handles the
-// everyday combat that fills the era arcs.
-//
-// Fight loop:
-//   1. Pick opener narration (intro the foe).
-//   2. Each round: player attacks, then threat (if alive) attacks.
-//   3. Hit math: rng() < (attacker.acc - target.eva). If hit, roll damage
-//      [min, max], crit doubles, subtract target armor, apply HP delta.
-//   4. Log a narration line per attack (hit / miss / crit).
-//   5. End condition: foe HP ≤ 0 (victory) | player HP ≤ 0 (defeat) |
-//      MAX_ROUNDS cap (stalemate — flee).
-//   6. Apply combat durability wear once at the end via applyToolWear.
-//
-// What this file reads:
-//   • run.equipped → equipped weapon's weaponStats (Phase 1 / #32)
-//   • run.studyStatBonuses.armor → from Wardweave (#31)
-//   • run.stats → current hp/sanity/spirit
-//   • getDefense(state) → settlement defense (existing). Phase 1 of #39
-//     leaves this contributing to combat too — Phase 2/E will split.
-//
-// What this file does NOT yet do:
-//   • Per-stat damage routing for sanity/spirit threats — Phase 2 ships
-//     hp-only combat-class threats. The hook is in place (damageType
-//     field) but no horror/arcane combat threats are authored yet.
-//   • Death-debuff (#50) — combat death stubbed to revive at 1 HP with
-//     a TODO marker until #50 lands.
-//   • Combat-skill XP (#34) — wired in the next phase.
-//
-// See ERA_PLAN.md "Combat + Weapons + Specialized Skills" for the design.
+// narration. Task #33 (Combat Phase 2). Now also exposes single-turn
+// rollers used by the boss-fight modal (#40).
 
 import {
   getEquippedMeleeDef,
@@ -41,27 +10,46 @@ import { applyToolWear } from "./crafting.js";
 import { applyEffect } from "./survival.js";
 import { getStudyStatBonuses } from "./studies.js";
 import { applyDeathDebuff } from "./death.js";
+import { gainXp, getSkillState } from "./skills.js";
 import { randInt } from "../util/rng.js";
 
-// Note: `getDefense` from systems/defense.js is no longer imported here.
-// Per Task #39 (locked 2026-05), `defense` is the SETTLEMENT stat — it
-// protects your structures from raids and food theft (resolveThreat in
-// threats.js). It does NOT reduce personal combat damage anymore. Only
-// the `armor` stat (currently sourced from study completions like
-// Wardweave) reduces hits in the fight loop. Walls don't help when a
-// wild dog jumps you in the wilderness.
+// ─── Combat-skill routing (#34) ───────────────────────────────────────
+const SUBFAMILY_TO_SKILL = {
+  club: "swordplay",
+  spear: "swordplay",
+  mace: "swordplay",
+  axe: "swordplay",
+  sword: "swordplay",
+  knife: "swordplay",
+  pickaxe: "swordplay",
+  bow: "archery",
+  throwing: "archery",
+};
+
+export function getCombatSkillForWeapon(weapon) {
+  if (!weapon || !weapon.subfamily) return null;
+  return SUBFAMILY_TO_SKILL[weapon.subfamily] || null;
+}
+
+export function getCombatSkillBonuses(run, skillId) {
+  if (!skillId) return { damageBonus: 0, accBonus: 0, critBonus: 0 };
+  const { level } = getSkillState(run, skillId);
+  return {
+    damageBonus: Math.min(10, level * 0.5),
+    accBonus: Math.min(0.20, level * 0.01),
+    critBonus: Math.min(0.30, level * 0.02),
+  };
+}
+
+export function getCombatXpForVictory(threatDef) {
+  const foeHp = threatDef?.combat?.hp ?? 10;
+  return Math.max(1, Math.floor(foeHp / 4));
+}
 
 // ─── Constants ─────────────────────────────────────────────────────────
-
-// Hard cap on rounds — keeps a misconfigured fight from infinite-looping.
 const MAX_ROUNDS = 12;
-
-// Player's default evasion before DEX (#47) lands. Tiny — fights feel
-// honest, not luck-driven.
 const PLAYER_BASE_EVA = 0.05;
 
-// Fallback "weapon" when nothing is equipped. The player CAN fight bare-
-// handed; the numbers warn them not to.
 const FISTS = {
   id: "_fists",
   name: "your fists",
@@ -70,11 +58,6 @@ const FISTS = {
 };
 
 // ─── Narration templates (fallbacks) ──────────────────────────────────
-//
-// Each line supports {weapon}, {threat}, {dmg} substitutions. Threat defs
-// can provide their own pools via `combatFlavor.attack` / `.miss` etc.;
-// these are the fallback pools when a threat doesn't.
-
 const PLAYER_HIT_LINES = [
   "You raise the {weapon}. The strike lands. {dmg} dmg.",
   "{weapon} bites cleanly. {dmg} dmg.",
@@ -110,7 +93,6 @@ const DEFEAT_LINES = [
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────
-
 function pickRandom(arr, rng) {
   if (!arr || arr.length === 0) return null;
   return arr[Math.floor(rng() * arr.length)];
@@ -124,9 +106,7 @@ function substitute(template, subs) {
   );
 }
 
-function getEffectiveWeapon(run) {
-  // Prefer melee — most fights are at close range. Fall back to ranged if
-  // the player only has a bow, and fists if nothing is wielded.
+export function getEffectiveWeapon(run) {
   const melee = getEquippedMeleeDef(run);
   if (melee && melee.weaponStats) return melee;
   const ranged = getEquippedRangedDef(run);
@@ -134,16 +114,105 @@ function getEffectiveWeapon(run) {
   return FISTS;
 }
 
-// Personal armor — Wardweave (#31 study) + future armor crafts + Light-
-// path enchants (#37). Phase 2 reads this hook so Wardweave-completing
-// players see their +2 armor in fight math today.
-function getPersonalArmor(state) {
+export function getPersonalArmor(state) {
   const bonuses = getStudyStatBonuses(state.run);
   return bonuses.armor || 0;
 }
 
-// ─── Main resolver ────────────────────────────────────────────────────
+// ─── Single-turn rollers (boss modal #40) ─────────────────────────────
+export function rollPlayerAttack(state, threatDef, rng = Math.random) {
+  const weapon = getEffectiveWeapon(state.run);
+  const wStats = weapon.weaponStats || FISTS.weaponStats;
+  const cb = threatDef.combat || {};
+  const threatEva = cb.eva ?? 0.05;
+  const skillId = getCombatSkillForWeapon(weapon);
+  const sb = getCombatSkillBonuses(state.run, skillId);
+  const effAcc = wStats.acc + sb.accBonus;
+  const effCrit = (wStats.crit || 0) + sb.critBonus;
+  const flatDmg = Math.floor(sb.damageBonus);
 
+  const hit = rng() < (effAcc - threatEva);
+  if (!hit) {
+    const flavor = threatDef.combatFlavor || {};
+    const line = pickRandom(flavor.playerMiss, rng) || pickRandom(PLAYER_MISS_LINES, rng);
+    return {
+      hit: false,
+      isCrit: false,
+      dmg: 0,
+      weaponName: weapon.name,
+      skillId,
+      message: substitute(line, { weapon: weapon.name, threat: threatDef.name }),
+    };
+  }
+  const [lo, hi] = wStats.damage;
+  let dmg = randInt(rng, lo, hi) + flatDmg;
+  const isCrit = rng() < effCrit;
+  if (isCrit) dmg *= 2;
+  const line = isCrit
+    ? pickRandom(PLAYER_CRIT_LINES, rng)
+    : pickRandom(PLAYER_HIT_LINES, rng);
+  return {
+    hit: true,
+    isCrit,
+    dmg,
+    weaponName: weapon.name,
+    skillId,
+    message: substitute(line, {
+      weapon: weapon.name,
+      threat: threatDef.name,
+      dmg,
+    }),
+  };
+}
+
+export function rollFoeAttack(state, threatDef, rng = Math.random) {
+  const weapon = getEffectiveWeapon(state.run);
+  const cb = threatDef.combat || {};
+  const threatAcc = cb.acc ?? 0.7;
+  const threatDmg = cb.damage || { min: 2, max: 4 };
+  const damageType = cb.damageType || "hp";
+  const armor = damageType === "hp" ? getPersonalArmor(state) : 0;
+  const flavor = threatDef.combatFlavor || {};
+
+  const hit = rng() < (threatAcc - PLAYER_BASE_EVA);
+  if (!hit) {
+    const line = pickRandom(flavor.miss, rng) || pickRandom(THREAT_MISS_LINES, rng);
+    return {
+      hit: false,
+      dmg: 0,
+      damageType,
+      message: substitute(line, { threat: threatDef.name, weapon: weapon.name }),
+    };
+  }
+  const raw = randInt(rng, threatDmg.min, threatDmg.max);
+  const dmg = Math.max(0, raw - armor);
+  const line = pickRandom(flavor.attack, rng) || pickRandom(THREAT_ATTACK_LINES, rng);
+  return {
+    hit: true,
+    dmg,
+    damageType,
+    message: substitute(line, { threat: threatDef.name, weapon: weapon.name, dmg }),
+  };
+}
+
+export function pickOpener(threatDef, rng = Math.random) {
+  const flavor = threatDef.combatFlavor || {};
+  return pickRandom(flavor.opener, rng) || `⚔️ A ${threatDef.name} closes the distance.`;
+}
+
+export function pickVictoryLine(threatDef, rng = Math.random) {
+  const flavor = threatDef.combatFlavor || {};
+  const line = pickRandom(flavor.victory, rng) || pickRandom(VICTORY_LINES, rng);
+  return substitute(line, { threat: threatDef.name });
+}
+
+export function pickDefeatLine(threatDef, rng = Math.random) {
+  const flavor = threatDef.combatFlavor || {};
+  const line = pickRandom(flavor.defeat, rng) || pickRandom(DEFEAT_LINES, rng);
+  return substitute(line, { threat: threatDef.name });
+}
+
+// ─── Main resolver ────────────────────────────────────────────────────
 export function resolveFight(state, threatDef, rng = Math.random) {
   const weapon = getEffectiveWeapon(state.run);
   const wStats = weapon.weaponStats || FISTS.weaponStats;
@@ -153,8 +222,12 @@ export function resolveFight(state, threatDef, rng = Math.random) {
   const threatDmg = cb.damage || { min: 2, max: 4 };
   const damageType = cb.damageType || "hp";
 
-  // Starting stats — track local copies, push back to applyEffect at the
-  // end (so we get the same clamping as everywhere else).
+  const combatSkillId = getCombatSkillForWeapon(weapon);
+  const skillBonuses = getCombatSkillBonuses(state.run, combatSkillId);
+  const effAcc = wStats.acc + skillBonuses.accBonus;
+  const effCrit = (wStats.crit || 0) + skillBonuses.critBonus;
+  const flatDamageBonus = Math.floor(skillBonuses.damageBonus);
+
   const startStats = state.run.stats || {};
   let playerHp = startStats.hp ?? 100;
   let playerSanity = startStats.sanity ?? 50;
@@ -162,57 +235,34 @@ export function resolveFight(state, threatDef, rng = Math.random) {
   let foeHp = cb.hp ?? 10;
 
   const playerArmor = getPersonalArmor(state);
-  // Task #39 (locked): combat damage is reduced ONLY by personal `armor`.
-  // The settlement `defense` stat applies to raids on structures (handled
-  // by resolveThreat in threats.js), not to attacks on the player.
 
   const events = [];
   const flavor = threatDef.combatFlavor || {};
 
-  // Opener
   const openerLine = pickRandom(flavor.opener, rng);
   events.push({
     kind: "combat",
-    message:
-      openerLine ||
-      `⚔️ A ${threatDef.name} closes the distance.`,
+    message: openerLine || `⚔️ A ${threatDef.name} closes the distance.`,
   });
 
-  // ─── Fight rounds ────────────────────────────────────────────────
   let round = 0;
   let outcome = "stalemate";
   while (round < MAX_ROUNDS) {
     round++;
 
-    // PLAYER TURN
     const playerHitRoll = rng();
-    const playerHits = playerHitRoll < (wStats.acc - threatEva);
+    const playerHits = playerHitRoll < (effAcc - threatEva);
     if (playerHits) {
       const [lo, hi] = wStats.damage;
-      let dmg = randInt(rng, lo, hi);
-      const isCrit = rng() < (wStats.crit || 0);
+      let dmg = randInt(rng, lo, hi) + flatDamageBonus;
+      const isCrit = rng() < effCrit;
       if (isCrit) dmg *= 2;
       foeHp = Math.max(0, foeHp - dmg);
-      const line = isCrit
-        ? pickRandom(PLAYER_CRIT_LINES, rng)
-        : pickRandom(PLAYER_HIT_LINES, rng);
-      events.push({
-        kind: "combat",
-        message: substitute(line, {
-          weapon: weapon.name,
-          threat: threatDef.name,
-          dmg,
-        }),
-      });
+      const line = isCrit ? pickRandom(PLAYER_CRIT_LINES, rng) : pickRandom(PLAYER_HIT_LINES, rng);
+      events.push({ kind: "combat", message: substitute(line, { weapon: weapon.name, threat: threatDef.name, dmg }) });
     } else {
       const line = pickRandom(PLAYER_MISS_LINES, rng);
-      events.push({
-        kind: "combat",
-        message: substitute(line, {
-          weapon: weapon.name,
-          threat: threatDef.name,
-        }),
-      });
+      events.push({ kind: "combat", message: substitute(line, { weapon: weapon.name, threat: threatDef.name }) });
     }
 
     if (foeHp <= 0) {
@@ -220,46 +270,20 @@ export function resolveFight(state, threatDef, rng = Math.random) {
       break;
     }
 
-    // THREAT TURN
     const threatHitRoll = rng();
     const threatHits = threatHitRoll < (threatAcc - PLAYER_BASE_EVA);
     if (threatHits) {
       const raw = randInt(rng, threatDmg.min, threatDmg.max);
-      // Armor reduction. hp-damage threats are softened by personal
-      // armor (#39); sanity/spirit damage isn't reduced by armor (the
-      // mind has no armor — see #42 for the broader stat-damage system).
       let reduced = raw;
-      if (damageType === "hp") {
-        reduced = Math.max(0, raw - playerArmor);
-      }
-      // Apply to the right stat
-      if (damageType === "sanity") {
-        playerSanity = Math.max(0, playerSanity - reduced);
-      } else if (damageType === "spirit") {
-        playerSpirit = Math.max(0, playerSpirit - reduced);
-      } else {
-        playerHp = Math.max(0, playerHp - reduced);
-      }
-      const line =
-        pickRandom(flavor.attack, rng) || pickRandom(THREAT_ATTACK_LINES, rng);
-      events.push({
-        kind: "combat",
-        message: substitute(line, {
-          threat: threatDef.name,
-          weapon: weapon.name,
-          dmg: reduced,
-        }),
-      });
+      if (damageType === "hp") reduced = Math.max(0, raw - playerArmor);
+      if (damageType === "sanity") playerSanity = Math.max(0, playerSanity - reduced);
+      else if (damageType === "spirit") playerSpirit = Math.max(0, playerSpirit - reduced);
+      else playerHp = Math.max(0, playerHp - reduced);
+      const line = pickRandom(flavor.attack, rng) || pickRandom(THREAT_ATTACK_LINES, rng);
+      events.push({ kind: "combat", message: substitute(line, { threat: threatDef.name, weapon: weapon.name, dmg: reduced }) });
     } else {
-      const line =
-        pickRandom(flavor.miss, rng) || pickRandom(THREAT_MISS_LINES, rng);
-      events.push({
-        kind: "combat",
-        message: substitute(line, {
-          threat: threatDef.name,
-          weapon: weapon.name,
-        }),
-      });
+      const line = pickRandom(flavor.miss, rng) || pickRandom(THREAT_MISS_LINES, rng);
+      events.push({ kind: "combat", message: substitute(line, { threat: threatDef.name, weapon: weapon.name }) });
     }
 
     if (playerHp <= 0) {
@@ -268,41 +292,16 @@ export function resolveFight(state, threatDef, rng = Math.random) {
     }
   }
 
-  // ─── Closer ──────────────────────────────────────────────────────
   if (outcome === "victory") {
-    const line =
-      pickRandom(flavor.victory, rng) || pickRandom(VICTORY_LINES, rng);
-    events.push({
-      kind: "combat",
-      message: substitute(line, { threat: threatDef.name }),
-    });
+    const line = pickRandom(flavor.victory, rng) || pickRandom(VICTORY_LINES, rng);
+    events.push({ kind: "combat", message: substitute(line, { threat: threatDef.name }) });
   } else if (outcome === "defeat") {
-    const line =
-      pickRandom(flavor.defeat, rng) || pickRandom(DEFEAT_LINES, rng);
-    events.push({
-      kind: "combat",
-      message: substitute(line, { threat: threatDef.name }),
-    });
-    // Death cascade lands here (#50). The defeat narration is the last
-    // combat line; what follows is the "wake at home" beat plus the
-    // stat cascade. We apply the debuff to a snapshot that already
-    // includes any combat damage taken this fight — playerHp/sanity/
-    // spirit are baked into the partial-newStats below before we call
-    // applyDeathDebuff.
-    //
-    // Note: applyDeathDebuff will compute its own scaled stats from
-    // whatever the current run.stats are. We pre-stage the post-fight
-    // stats into `run` so the cascade scales those, not the pre-fight
-    // values.
+    const line = pickRandom(flavor.defeat, rng) || pickRandom(DEFEAT_LINES, rng);
+    events.push({ kind: "combat", message: substitute(line, { threat: threatDef.name }) });
   } else {
-    events.push({
-      kind: "combat",
-      message:
-        "⚔️ The fight grinds past patience. You break off and stagger away.",
-    });
+    events.push({ kind: "combat", message: "⚔️ The fight grinds past patience. You break off and stagger away." });
   }
 
-  // Apply stat deltas through applyEffect so clamping is consistent.
   const newStats = applyEffect(state.run.stats || {}, {
     hp: playerHp - (startStats.hp ?? 100),
     sanity: playerSanity - (startStats.sanity ?? 50),
@@ -311,24 +310,19 @@ export function resolveFight(state, threatDef, rng = Math.random) {
 
   let run = { ...state.run, stats: newStats };
 
-  // ─── Death cascade (#50) ────────────────────────────────────────────
-  // If the player went to 0 HP this fight, apply the death-debuff. This
-  // replaces the previous "revive at 1 HP" stub. The cascade scales every
-  // survival stat by the debuff magnitude, lifts HP back to a minimum 1,
-  // and records the debuff status. The player wakes at home (or hut).
-  // Recovery happens via food eating (see survival.js + content/resources.js
-  // deathDebuffRecovery).
+  if (outcome === "victory" && combatSkillId) {
+    const xpGain = getCombatXpForVictory(threatDef);
+    const xpResult = gainXp(run, combatSkillId, xpGain);
+    run = { ...run, skills: xpResult.skills };
+    events.push(...xpResult.events);
+  }
+
   if (outcome === "defeat") {
     const dd = applyDeathDebuff(run);
     run = dd.run;
     events.push(...dd.events);
   }
 
-  // Tick combat wear on the equipped weapon. applyToolWear iterates both
-  // tools and weapons (see crafting.js) so durability ticks correctly
-  // whether the player wields a Stone Axe (tool with wearsOn: "gather"
-  // — won't tick here) or a Stone Mace (weapon with wearsOn: "combat" —
-  // will tick).
   const wear = applyToolWear(run, "combat");
   run = wear.run;
   events.push(...wear.events);

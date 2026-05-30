@@ -20,15 +20,15 @@ export const ACTIONS = {
   USE_TOOL: "USE_TOOL",
 
   // Arcane Studies — timed magic study at the Stone Altar (#27).
-  START_STUDY: "START_STUDY",         // start a new study
-  SET_ACTIVE_STUDY: "SET_ACTIVE_STUDY", // switch which in-progress study accrues time
-  CANCEL_STUDY: "CANCEL_STUDY",       // abandon an in-progress study (no refund)
+  START_STUDY: "START_STUDY",
+  SET_ACTIVE_STUDY: "SET_ACTIVE_STUDY",
+  CANCEL_STUDY: "CANCEL_STUDY",
 
   // Combat — equipment management (#32).
-  EQUIP: "EQUIP",                     // equip item to slot
-  UNEQUIP: "UNEQUIP",                 // clear a slot
-  EQUIP_RING: "EQUIP_RING",           // ring → ring[index] slot
-  UNEQUIP_RING: "UNEQUIP_RING",       // clear a ring index
+  EQUIP: "EQUIP",
+  UNEQUIP: "UNEQUIP",
+  EQUIP_RING: "EQUIP_RING",
+  UNEQUIP_RING: "UNEQUIP_RING",
 
   TICK: "TICK",
   RESPOND_TO_EVENT: "RESPOND_TO_EVENT",
@@ -39,6 +39,9 @@ export const ACTIONS = {
   CLEAR_LOG: "CLEAR_LOG",
 
   BUY_ECHO_UPGRADE: "BUY_ECHO_UPGRADE",
+
+  // Boss fight commit (#40). Dispatched by BossFightModal at end of fight.
+  BOSS_FIGHT_END: "BOSS_FIGHT_END",
 
   DEV_PATCH: "DEV_PATCH",
 };

@@ -11,6 +11,7 @@ import BuildingsTreeModal from "./BuildingsTreeModal.jsx";
 import StudyTreeModal from "./StudyTreeModal.jsx";
 import ToolsModal from "./ToolsModal.jsx";
 import SpellsModal from "./SpellsModal.jsx";
+import BossFightModal from "./BossFightModal.jsx";
 import EventModal from "./EventModal.jsx";
 import SettingsModal from "./SettingsModal.jsx";
 import SettingsTrigger from "./SettingsTrigger.jsx";
@@ -18,6 +19,7 @@ import PrestigeModal from "./PrestigeModal.jsx";
 import PrestigeShop from "./PrestigeShop.jsx";
 import { getPrestigeReward } from "../systems/prestige.js";
 import { computeEra, getEra } from "../systems/era.js";
+import { getBossesAvailable } from "../content/bosses.js";
 
 export default function Shell({ state, actions, settingsHook }) {
   const [teachingsOpen, setTeachingsOpen] = useState(false);
@@ -25,6 +27,7 @@ export default function Shell({ state, actions, settingsHook }) {
   const [studyTreeOpen, setStudyTreeOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [spellsOpen, setSpellsOpen] = useState(false);
+  const [bossFight, setBossFight] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [prestigeOpen, setPrestigeOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
@@ -37,6 +40,8 @@ export default function Shell({ state, actions, settingsHook }) {
   const reward = getPrestigeReward(state);
   const showEchoes = prestigeUnlocked || state.persistent.echoes > 0;
   const eligibleForPrestige = prestigeUnlocked && reward.eligible;
+  const bossesAvailable = getBossesAvailable(state);
+  const showChallenges = bossesAvailable.length > 0;
 
   const handleResetClick = () => setPrestigeOpen(true);
   const handleConfirmReset = () => {
@@ -50,6 +55,17 @@ export default function Shell({ state, actions, settingsHook }) {
         <h1>Lithos</h1>
         <div className="shell-meta">
           {era > 0 && <span className="meta-item meta-era">{eraInfo.name}</span>}
+          {showChallenges && (
+            <button
+              className="meta-item meta-item--challenges"
+              onClick={() => setBossFight({ initialBossId: null })}
+              title="Challenge a boss"
+              type="button"
+            >
+              ⚔️ Challenges
+              <span className="meta-item-suffix">{bossesAvailable.length}</span>
+            </button>
+          )}
           {showEchoes && (
             <button
               className="meta-item meta-item--echoes"
@@ -142,6 +158,15 @@ export default function Shell({ state, actions, settingsHook }) {
           state={state}
           actions={actions}
           onClose={() => setSpellsOpen(false)}
+        />
+      )}
+
+      {bossFight && (
+        <BossFightModal
+          state={state}
+          actions={actions}
+          initialBossId={bossFight.initialBossId}
+          onClose={() => setBossFight(null)}
         />
       )}
 

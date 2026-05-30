@@ -4678,3 +4678,207 @@ body.motion-reduced .tool-durability-fill {
 }
 
 /* End layout refactor styles */
+
+/* ─── Boss-fight modal (#40) ──────────────────────────────────────── */
+.modal--boss {
+  max-width: 720px;
+  width: 92vw;
+}
+.modal--boss .modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.meta-item--challenges {
+  background: rgba(180, 60, 60, 0.25);
+  border: 1px solid rgba(255, 120, 120, 0.4);
+  color: #ffd9d9;
+  cursor: pointer;
+  font-weight: 600;
+}
+.meta-item--challenges:hover {
+  background: rgba(220, 80, 80, 0.35);
+}
+.meta-item-suffix {
+  margin-left: 6px;
+  opacity: 0.8;
+  font-size: 11px;
+}
+
+.boss-picker .boss-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.boss-row {
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.15);
+}
+.boss-row-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.boss-row-icon {
+  font-size: 22px;
+}
+.boss-row-name {
+  flex: 1;
+  font-weight: 600;
+}
+.boss-row-tag {
+  margin-left: 6px;
+  font-size: 11px;
+  opacity: 0.6;
+  font-weight: 400;
+}
+.boss-row-desc {
+  margin: 6px 0 4px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.boss-row-stats {
+  font-size: 12px;
+  margin: 0;
+}
+
+.boss-fight-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.boss-fight-foe-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.boss-fight-foe-name {
+  font-weight: 600;
+}
+.boss-bar {
+  display: grid;
+  grid-template-columns: 56px 1fr 72px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.boss-bar-label {
+  opacity: 0.8;
+}
+.boss-bar-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+.boss-bar-track {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.boss-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+.boss-bar--hp .boss-bar-fill { background: #c34141; }
+.boss-bar--sanity .boss-bar-fill { background: #6c8cd5; }
+.boss-bar--spirit .boss-bar-fill { background: #a574d5; }
+.boss-bar--foe .boss-bar-fill { background: #d59a41; }
+
+.boss-fight-weapon {
+  font-size: 11px;
+  margin-top: 6px;
+}
+
+.boss-fight-log {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 10px 12px;
+  max-height: 240px;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.boss-fight-line {
+  margin: 0 0 4px;
+}
+.boss-fight-line--player-crit {
+  color: #ffd17a;
+  font-weight: 600;
+}
+.boss-fight-line--player-hit { color: #d8e9c8; }
+.boss-fight-line--player-miss { opacity: 0.6; }
+.boss-fight-line--foe-hit { color: #f0b3b3; }
+.boss-fight-line--foe-miss { opacity: 0.6; }
+.boss-fight-line--defend { color: #b3d4f0; }
+.boss-fight-line--spell { color: #d0b3f0; }
+.boss-fight-line--item { color: #c8e6f0; }
+.boss-fight-line--victory {
+  color: #c5e88a;
+  font-weight: 600;
+  margin-top: 6px;
+}
+.boss-fight-line--defeat {
+  color: #f08080;
+  font-weight: 600;
+  margin-top: 6px;
+}
+.boss-fight-line--flee { color: #c8c5b6; }
+.boss-fight-line--opener {
+  font-style: italic;
+  opacity: 0.9;
+}
+
+.boss-fight-actions {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+.boss-fight-end {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+}
+.boss-fight-end-label {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.boss-subpicker {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.boss-subpicker-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.boss-subpicker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+}

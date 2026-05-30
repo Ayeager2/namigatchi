@@ -28,8 +28,9 @@
 export const SKILL_CATEGORIES = {
   survival: { id: "survival", name: "Survival", order: 1 },
   craft:    { id: "craft",    name: "Craft",    order: 2 },
-  industry: { id: "industry", name: "Industry", order: 3 },
-  arcane:   { id: "arcane",   name: "Arcane",   order: 4 },
+  combat:   { id: "combat",   name: "Combat",   order: 3 },
+  industry: { id: "industry", name: "Industry", order: 4 },
+  arcane:   { id: "arcane",   name: "Arcane",   order: 5 },
 };
 
 // Standard XP curve used by all Era 1 skills. Tunable knob lives here.
@@ -121,6 +122,55 @@ export const SKILLS = {
     ],
     firstUnlockMessage:
       "Your back stops complaining. The frame goes up cleaner the second time.",
+  },
+
+  // ==================== Combat (Task #34) ====================
+  // Subfamily-routed XP from kills (see SUBFAMILY_TO_SKILL in systems/combat.js).
+  // Combat reads skill level DIRECTLY for damage/accuracy/crit bonuses
+  // (per-skill scope), so bonuses[] stays empty — the level itself is
+  // the contract. magicCombat stays dormant until spell-vs-threat ships
+  // with #37 enchants.
+
+  swordplay: {
+    id: "swordplay",
+    name: "Swordplay",
+    icon: "⚔️",
+    description: "The hand learning the weight, the haft, the moment to commit.",
+    active: true,
+    category: "combat",
+    xpCurve: STANDARD_CURVE,
+    maxLevel: 20,
+    bonuses: [],
+    firstUnlockMessage:
+      "The weapon stops fighting you. The swing finishes where you meant it.",
+  },
+
+  archery: {
+    id: "archery",
+    name: "Archery",
+    icon: "🏹",
+    description: "The breath at full draw. Reading the wind that will carry the shaft.",
+    active: true,
+    category: "combat",
+    xpCurve: STANDARD_CURVE,
+    maxLevel: 20,
+    bonuses: [],
+    firstUnlockMessage:
+      "You stop hoping the arrow flies true. You make it.",
+  },
+
+  magicCombat: {
+    id: "magicCombat",
+    name: "Magic Combat",
+    icon: "🪄",
+    description: "Words that bend. The mind as a weapon, with a weapon's care.",
+    active: true,
+    category: "combat",
+    xpCurve: STANDARD_CURVE,
+    maxLevel: 20,
+    bonuses: [],
+    firstUnlockMessage:
+      "The spell stops asking for permission. It finds the target the way water finds the low ground.",
   },
 
   // ==================== Stubs (future eras) ====================

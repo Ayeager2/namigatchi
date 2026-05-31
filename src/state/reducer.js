@@ -317,9 +317,8 @@ export function reducer(state, action) {
           changed = true;
           newEvents.push({
             kind: "music_unlocked",
-            message: `🎵 New music: "${track.title}"${
-              track.artist ? ` by ${track.artist}` : ""
-            }.`,
+            message: `🎵 New music: "${track.title}"${track.artist ? ` by ${track.artist}` : ""
+              }.`,
           });
         }
       }
@@ -448,20 +447,6 @@ export function reducer(state, action) {
       return { ...state, run: { ...state.run, log: [] } };
 
     case ACTIONS.DEV_PATCH: {
-      const patch = action.patch || {};
-      const run = patch.run || state.run;
-      const persistent = patch.persistent || state.persistent;
-      const events = [];
-      if (Array.isArray(patch.events)) events.push(...patch.events);
-      if (patch.msg) events.push({ kind: "dev", message: patch.msg });
-      return { persistent, run: appendLog(run, events) };
-    }
-
-    default:
-      return state;
-  }
-}
-DEV_PATCH: {
       const patch = action.patch || {};
       const run = patch.run || state.run;
       const persistent = patch.persistent || state.persistent;

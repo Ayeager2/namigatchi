@@ -1,14 +1,5 @@
-// The persistent rock companion strip at the bottom of the layout.
-// Once the hut is built, the strip becomes the door to the Teachings tree —
-// click the main strip body to open the modal.
-//
-// Once prestige is unlocked AND the player has accumulated enough echoes to
-// be eligible, the awakening-purple **Channel the Rock** button appears on
-// the right side of the strip (inline, no longer in the footer).
-// See ERA_PLAN.md "Layout refactor — Part C".
-//
-// Renders nothing if rock not found yet.
-
+// Stone strip — Listen target + Channel button + active-study progress bar.
+import { useEffect, useState } from "react";
 import { getRockProgress, getRockState } from "../systems/rock.js";
 import { getAvailableResearch } from "../systems/research.js";
 import {
@@ -27,39 +18,30 @@ export default function StonePanel({
   const { run } = state;
   const rock = getRockState(run);
 
+  // 1s heartbeat so the active-study progress bar moves smoothly between
+  // 15s TICKs. getActiveStudyProgress extrapolates live; this just
+  // triggers re-render.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!run.activeStudyId) return;
+    const id = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, [run.activeStudyId]);
+
   if (rock === "absent") return null;
 
   const progress = getRockProgress(run);
   const isDormant = rock === "dormant";
   const canListen = !!run.built?.hut && !!onListen;
-
-  // Count teachings the player can listen to right now. Drives the small
-  // red notification badge on the stone strip (BUGS.md #007). Only
-  // meaningful once the stone has awakened — dormant rock can't be
-  // listened to.
-  const availableTeachings = !isDormant
-    ? getAvailableResearch(state).length
-    : 0;
-
-  // Active arcane study — surfaced as a subtle progress bar at the bottom
-  // of the strip when the player has one underway. Lets them feel the
-  // clock tick even when they're not on the Studies tab. Pause indicator
-  // when their last action was recent (within IDLE_THRESHOLD_MS).
-  // Task #30 — see ERA_PLAN.md "Arcane Studies → UI".
+  const availableTeachings = !isDormant ? getAvailableResearch(state).length : 0;
   const studyProgress = !isDormant ? getActiveStudyProgress(run) : null;
   const studyDef = studyProgress ? getStudy(studyProgress.nodeId) : null;
   const studyPaused =
     !!studyProgress && Date.now() - (run.lastActionAt || 0) < IDLE_THRESHOLD_MS;
-
-  // Flash animation when awakening just happened (within 4s).
   const since = run.rockAwakenedAt ? Date.now() - run.rockAwakenedAt : Infinity;
   const justAwakened = !isDormant && since >= 0 && since < 4000;
-
   const showChannel = !isDormant && channelEligible && !!onChannel;
 
-  // Inner click target: only fires onListen if the click wasn't on the
-  // Channel button. We split this into an inner clickable region rather
-  // than nesting buttons (illegal HTML).
   const innerClickable = canListen;
   const innerProps = innerClickable
     ? {
@@ -123,7 +105,6 @@ export default function StonePanel({
             </div>
           )}
 
-          {/* Active arcane study indicator — subtle thin bar. */}
           {studyProgress && studyDef && (
             <div
               className={`stone-study-bar ${studyPaused ? "is-paused" : ""}`}

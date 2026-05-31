@@ -1,14 +1,4 @@
-// Arcane Studies — left rail tab content (Task #30).
-//
-// Lives in LeftColumn when the Stone Altar is built. Shows:
-//   1. Active study (if any) with live progress bar + pause indicator
-//   2. Other in-progress studies (paused, with "Make active" + "Cancel")
-//   3. Recently completed studies count
-//   4. "Open Path Trees" button → StudyTreeModal
-//
-// The engine in systems/studies.js is the source of truth — this is pure
-// rendering + dispatch wrapper. See ERA_PLAN.md "Arcane Studies → UI".
-
+// Arcane Studies — left rail tab content.
 import { useEffect, useState } from "react";
 import { getStudy } from "../content/studies.js";
 import {
@@ -23,31 +13,35 @@ function formatMMSS(ms) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-// Lightweight component for one in-progress study row. Re-rendered every
-// 500ms so the progress bar feels live (the actual data only updates on
-// each TICK in the reducer — every 15s — but visually we interpolate by
-// reading `now - studyProgress.startedAt` indirectly via accumulatedMs).
-function StudyRow({
-  state,
-  actions,
-  nodeId,
-  isActive,
-  isPaused,
-}) {
+function StudyRow({ state, actions, nodeId, isActive, isPaused }) {
   const def = getStudy(nodeId);
   const prog = state.run.studyProgress?.[nodeId];
   if (!def || !prog) return null;
 
-  const accumulated = prog.accumulatedMs || 0;
+  // Live extrapolation for the active row; other rows show committed value.
+  const live = isActive ? getActiveStudyProgress(state.run) : null;
+  const accumulated = live ? live.accumulatedMs : (prog.accumulatedMs || 0);
   const dur = def.durationMs || 0;
   const pct = dur > 0 ? Math.max(0, Math.min(1, accumulated / dur)) : 0;
   const remainingMs = Math.max(0, dur - accumulated);
+
+  const effectBits = [];
+  if (def.unlocksSpell) effectBits.push(`unlocks spell ${def.unlocksSpell}`);
+  if (def.addsStat) {
+    for (const [k, v] of Object.entries(def.addsStat)) {
+      effectBits.push(`+${v} ${k}`);
+    }
+  }
+  if (def.worldScoreDelta) effectBits.push(`World Score +${def.worldScoreDelta}`);
+  const effectStr = effectBits.length ? ` · ${effectBits.join(", ")}` : "";
+  const tooltip = `${def.name}${effectStr}\n\n${def.description || ""}`;
 
   return (
     <div
       className={`study-row ${isActive ? "is-active" : "is-other"} ${
         isPaused && isActive ? "is-paused" : ""
       }`}
+      title={tooltip}
     >
       <div className="study-row-header">
         <span className="study-row-icon" aria-hidden="true">{def.icon}</span>
@@ -61,12 +55,12 @@ function StudyRow({
       </div>
       {isActive && isPaused && (
         <div className="study-row-status muted">
-          ⏸ Paused — your last action interrupted the focus.
+          Paused — your last action interrupted the focus.
         </div>
       )}
       {isActive && !isPaused && (
         <div className="study-row-status muted">
-          ⏳ Studying — {formatMMSS(remainingMs)} remaining.
+          Studying — {formatMMSS(remainingMs)} remaining.
         </div>
       )}
       {!isActive && (
@@ -103,8 +97,6 @@ function StudyRow({
 }
 
 export default function StudiesPanel({ state, actions, onOpenStudyTree }) {
-  // Re-render every 500ms while there's an active study so the visual
-  // feels alive even though the underlying data only updates on TICK.
   const [, setTick] = useState(0);
   const activeId = state.run.activeStudyId;
   const hasActive = !!activeId;
@@ -117,11 +109,9 @@ export default function StudiesPanel({ state, actions, onOpenStudyTree }) {
   const progressIds = Object.keys(state.run.studyProgress || {});
   const completedCount = Object.keys(state.run.studiesCompleted || {}).length;
 
-  // Detect paused state — most-recent action within IDLE_THRESHOLD_MS.
   const lastActionAt = state.run.lastActionAt || 0;
   const isPaused = Date.now() - lastActionAt < IDLE_THRESHOLD_MS;
 
-  // Active study goes first; others sorted by closeness to completion.
   const others = progressIds.filter((id) => id !== activeId).sort((a, b) => {
     const defA = getStudy(a);
     const defB = getStudy(b);
@@ -134,8 +124,6 @@ export default function StudiesPanel({ state, actions, onOpenStudyTree }) {
     return pctB - pctA;
   });
 
-  const activeProgress = getActiveStudyProgress(state.run);
-
   return (
     <div className="studies-panel">
       <h3 className="studies-panel-title">Studies</h3>
@@ -143,7 +131,6 @@ export default function StudiesPanel({ state, actions, onOpenStudyTree }) {
         Sit at the altar. Real lessons take time. The clock pauses when you act.
       </p>
 
-      {/* Active study */}
       {activeId && (
         <>
           <div className="studies-section-label muted">Active</div>
@@ -157,7 +144,6 @@ export default function StudiesPanel({ state, actions, onOpenStudyTree }) {
         </>
       )}
 
-      {/* Other in-progress studies (paused for now) */}
       {others.length > 0 && (
         <>
           <div className="studies-section-label muted">Other lessons in progress</div>
@@ -174,14 +160,12 @@ export default function StudiesPanel({ state, actions, onOpenStudyTree }) {
         </>
       )}
 
-      {/* Empty state */}
       {progressIds.length === 0 && (
         <div className="studies-empty muted">
           No lessons in progress. Open the Path Trees to choose what to study.
         </div>
       )}
 
-      {/* Open the tree modal */}
       <button
         type="button"
         className="btn btn-primary studies-open-trees"

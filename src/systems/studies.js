@@ -64,7 +64,7 @@ export function getStudyState(run, nodeId) {
   return "not-started";
 }
 
-export function getActiveStudyProgress(run) {
+export function getActiveStudyProgress(run, now = Date.now()) {
   const id = run.activeStudyId;
   if (!id) return null;
   const prog = run.studyProgress?.[id];
@@ -72,11 +72,26 @@ export function getActiveStudyProgress(run) {
   const def = getStudy(id);
   if (!def) return null;
   const dur = def.durationMs || 0;
+
+  // Live extrapolation — the reducer only commits accumulatedMs every TICK
+  // (currently 15s). For a smooth-moving progress bar, add the live elapsed
+  // time since the last study tick to the stored value (clamped to dur).
+  // The actual commit still happens on TICK; this is just for display.
+  // We only extrapolate when the player has been idle long enough that the
+  // clock would actually be running (matching tickStudies' gating).
+  const last = run.lastStudyTickAt || prog.startedAt || now;
+  const lastAction = run.lastActionAt || 0;
+  const idle = now - lastAction >= IDLE_THRESHOLD_MS;
+  const liveElapsed = idle ? Math.max(0, now - last) : 0;
+  const accumulatedMs = Math.min(
+    dur || Infinity,
+    (prog.accumulatedMs || 0) + liveElapsed
+  );
   return {
     nodeId: id,
-    accumulatedMs: prog.accumulatedMs || 0,
+    accumulatedMs,
     durationMs: dur,
-    pct: dur > 0 ? Math.min(1, (prog.accumulatedMs || 0) / dur) : 0,
+    pct: dur > 0 ? Math.min(1, accumulatedMs / dur) : 0,
   };
 }
 
@@ -564,23 +579,16 @@ export function getStudyStatBonuses(run) {
 
 // ─── Visibility helpers (parallel to building.js / research.js) ────────
 
-// Studies the player should see in the Studies UI. Until alignment-gated
-// paths come online, everything except secret content shows up — locked
-// nodes render as locked, parent-locked or era-locked, in the same way
-// the existing tree modals handle it (BUGS.md #005).
+// Studies the player should see in the Studies UI. Hides alignment-gated
+// nodes until the silent counter tips.
 export function getKnownStudies(state) {
   return getAllStudies().filter((s) => {
     if (state.run.studiesCompleted?.[s.id]) return true;
-    // Alignment-gated nodes stay hidden until the silent counter tips.
     const req = s.requires || {};
     if (req.alignment) {
       const align = state.run.alignment || { good: 0, evil: 0 };
-      if (req.alignment.good && (align.good || 0) < req.alignment.good) {
-        return false;
-      }
-      if (req.alignment.evil && (align.evil || 0) < req.alignment.evil) {
-        return false;
-      }
+      if (req.alignment.good && (align.good || 0) < req.alignment.good) return false;
+      if (req.alignment.evil && (align.evil || 0) < req.alignment.evil) return false;
     }
     return true;
   });

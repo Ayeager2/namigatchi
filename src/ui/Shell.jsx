@@ -1,7 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DevPanel, { useDevPanelToggle, isDevAvailable } from "./DevPanel.jsx";
 import Scene from "./Scene.jsx";
 import ActionPanel from "./ActionPanel.jsx";
+import CharacterView from "./CharacterView.jsx";
+import CraftingView from "./CraftingView.jsx";
+import SkillsView from "./SkillsView.jsx";
+import InventoryView from "./InventoryView.jsx";
+import ArcaneView from "./ArcaneView.jsx";
+import StudiesView from "./StudiesView.jsx";
 import LeftColumn from "./LeftColumn.jsx";
 import StonePanel from "./StonePanel.jsx";
 import RightColumn from "./RightColumn.jsx";
@@ -19,9 +25,43 @@ import PrestigeModal from "./PrestigeModal.jsx";
 import PrestigeShop from "./PrestigeShop.jsx";
 import { getPrestigeReward } from "../systems/prestige.js";
 import { computeEra, getEra } from "../systems/era.js";
-import { getBossesAvailable } from "../content/bosses.js";
+
+// View states (#43) — the center column swaps between these. Everything
+// else (header, Scene, LeftColumn, RightColumn, StonePanel, ActionStrip)
+// stays mounted across all views. New views: just add a case here and an
+// entry in the VIEWS list below.
+const VIEWS = [
+  { id: "world", icon: "🌍", label: "World" },
+  { id: "character", icon: "👤", label: "Character" },
+  { id: "crafting", icon: "🛠️", label: "Crafting" },
+];
+
+// Right-panel mode — left panel is rail-only now (no lc-content),
+// so only the right column keeps its off-canvas behavior.
+//   "grid"    — panel sits in the grid (default; full width visible)
+//   "closed"  — panel hidden; a tab button is rendered on the viewport edge
+//   "overlay" — panel pulled out as a position-fixed overlay over the center
+// Persisted to localStorage so "I want this collapsed" survives reloads.
+// "overlay" is ephemeral — degrades to "closed" on reload.
+const RIGHT_KEY = "lithos.rightPanelMode";
+function loadPanelMode(key) {
+  try {
+    const v = localStorage.getItem(key);
+    if (v === "closed" || v === "grid") return v;
+  } catch (_) { /* localStorage unavailable */ }
+  return "grid";
+}
 
 export default function Shell({ state, actions, settingsHook }) {
+  const [view, setView] = useState("world");
+  const [rightMode, setRightMode] = useState(() => loadPanelMode(RIGHT_KEY));
+  useEffect(() => {
+    try {
+      const persist = rightMode === "overlay" ? "closed" : rightMode;
+      localStorage.setItem(RIGHT_KEY, persist);
+    } catch (_) { /* ignore */ }
+  }, [rightMode]);
+
   const [teachingsOpen, setTeachingsOpen] = useState(false);
   const [buildingsOpen, setBuildingsOpen] = useState(false);
   const [studyTreeOpen, setStudyTreeOpen] = useState(false);
@@ -40,8 +80,6 @@ export default function Shell({ state, actions, settingsHook }) {
   const reward = getPrestigeReward(state);
   const showEchoes = prestigeUnlocked || state.persistent.echoes > 0;
   const eligibleForPrestige = prestigeUnlocked && reward.eligible;
-  const bossesAvailable = getBossesAvailable(state);
-  const showChallenges = bossesAvailable.length > 0;
 
   const handleResetClick = () => setPrestigeOpen(true);
   const handleConfirmReset = () => {
@@ -55,17 +93,6 @@ export default function Shell({ state, actions, settingsHook }) {
         <h1>Lithos</h1>
         <div className="shell-meta">
           {era > 0 && <span className="meta-item meta-era">{eraInfo.name}</span>}
-          {showChallenges && (
-            <button
-              className="meta-item meta-item--challenges"
-              onClick={() => setBossFight({ initialBossId: null })}
-              title="Challenge a boss"
-              type="button"
-            >
-              ⚔️ Challenges
-              <span className="meta-item-suffix">{bossesAvailable.length}</span>
-            </button>
-          )}
           {showEchoes && (
             <button
               className="meta-item meta-item--echoes"
@@ -81,26 +108,62 @@ export default function Shell({ state, actions, settingsHook }) {
 
       <Scene state={state} />
 
-      <div className="shell-grid">
+      <div
+        className={`shell-grid ${rightMode !== "grid" ? "right-collapsed" : ""}`}
+      >
+        {/* Left side. Rail-only — no lc-content. Each rail icon either
+            swaps the center view or opens a modal (Buildings tree,
+            Challenges boss). */}
         <aside className="shell-area shell-area--left">
           <LeftColumn
             state={state}
-            actions={actions}
-            settingsHook={settingsHook}
-            onOpenTools={() => setToolsOpen(true)}
-            onOpenSpells={() => setSpellsOpen(true)}
+            view={view}
+            setView={setView}
+            views={VIEWS}
             onOpenBuildings={() => setBuildingsOpen(true)}
-            onOpenStudyTree={() => setStudyTreeOpen(true)}
+            onOpenBossFight={() => setBossFight({ initialBossId: null })}
           />
         </aside>
 
-        <main className="shell-area shell-area--center">
-          <ActionPanel state={state} />
+        <main className={`shell-area shell-area--center shell-area--view-${view}`}>
+          {view === "world" && <ActionPanel state={state} />}
+          {view === "character" && <CharacterView state={state} />}
+          {view === "crafting" && <CraftingView state={state} />}
+          {view === "skills" && <SkillsView state={state} />}
+          {view === "inv" && <InventoryView state={state} settingsHook={settingsHook} />}
+          {view === "arcane" && <ArcaneView state={state} actions={actions} />}
+          {view === "studies" && (
+            <StudiesView
+              state={state}
+              actions={actions}
+              onOpenStudyTree={() => setStudyTreeOpen(true)}
+            />
+          )}
         </main>
 
-        <aside className="shell-area shell-area--right">
-          <RightColumn state={state} />
+        <aside
+          className={`shell-area shell-area--right mode-${rightMode}`}
+        >
+          {rightMode !== "closed" && (
+            <RightColumn
+              state={state}
+              onClose={() => setRightMode("closed")}
+              overlayMode={rightMode === "overlay"}
+            />
+          )}
         </aside>
+
+        {rightMode === "closed" && (
+          <button
+            type="button"
+            className="panel-edge-tab panel-edge-tab--right"
+            onClick={() => setRightMode("overlay")}
+            title="Show right panel"
+            aria-label="Show right panel"
+          >
+            ‹
+          </button>
+        )}
       </div>
 
       <StonePanel

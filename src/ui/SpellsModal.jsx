@@ -51,9 +51,34 @@ function SpellRow({ state, actions, spell }) {
   );
 }
 
-export default function SpellsModal({ state, actions, onClose }) {
+function SpellsContent({ state, actions }) {
   const known = getKnownSpells(state);
+  if (known.length === 0) {
+    return <p className="muted">No spells known.</p>;
+  }
+  return (
+    <ul className="spell-list">
+      {known.map((s) => (
+        <SpellRow key={s.id} state={state} actions={actions} spell={s} />
+      ))}
+    </ul>
+  );
+}
 
+// Reusable inline body — used by ArcaneView in the center column.
+export function SpellsBody({ state, actions }) {
+  return (
+    <section className="action-panel action-panel--arcane">
+      <div className="panel-header">
+        <h2>Spells</h2>
+        <p className="muted">Cast costs Fragments and Spirit.</p>
+      </div>
+      <SpellsContent state={state} actions={actions} />
+    </section>
+  );
+}
+
+export default function SpellsModal({ state, actions, onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose} role="presentation">
       <div
@@ -74,15 +99,7 @@ export default function SpellsModal({ state, actions, onClose }) {
           </button>
         </header>
         <div className="modal-body">
-          {known.length === 0 ? (
-            <p className="muted">No spells known.</p>
-          ) : (
-            <ul className="spell-list">
-              {known.map((s) => (
-                <SpellRow key={s.id} state={state} actions={actions} spell={s} />
-              ))}
-            </ul>
-          )}
+          <SpellsContent state={state} actions={actions} />
         </div>
       </div>
     </div>

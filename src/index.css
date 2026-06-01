@@ -117,10 +117,172 @@ button {
 .shell-header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
+  gap: 16px;
   border-bottom: 1px solid var(--border);
   padding-bottom: 12px;
   margin-bottom: 18px;
+}
+
+/* View switcher (#43) — three buttons at the top of the left rail.
+   They share .lc-rail-btn styling for icon-strip alignment, plus a small
+   accent treatment when active so they're visually distinct from the
+   below-divider tab buttons that control the left-panel content. */
+.lc-rail-btn--view.is-active {
+  background: var(--accent);
+  color: var(--bg);
+}
+.lc-rail-btn--view.is-active .lc-rail-icon {
+  filter: none;
+}
+.lc-rail-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 4px;
+  opacity: 0.6;
+}
+
+/* ─── Character view (#44) ─────────────────────────────────────────── */
+.char-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+  margin-top: 12px;
+}
+.char-col {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.char-col-title {
+  font-size: 12px;
+  margin: 0 0 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.char-col-note {
+  font-size: 11px;
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+.char-stat-row {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.char-stat-row:last-of-type {
+  border-bottom: none;
+}
+.char-stat-icon {
+  font-size: 14px;
+  text-align: center;
+}
+.char-stat-label {
+  color: var(--text);
+}
+.char-stat-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.char-stat-max {
+  font-weight: 400;
+  font-size: 12px;
+}
+.char-stat-row--hp .char-stat-value { color: #d8c870; }
+.char-stat-row--resolve .char-stat-value { color: #c8b070; }
+.char-stat-row--sanity .char-stat-value { color: #a0b8d8; }
+.char-stat-row--spirit .char-stat-value { color: #c0a0e0; }
+.char-stat-row--str .char-stat-value { color: #e0a070; }
+
+.char-equipment {
+  margin-top: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.char-equip-title {
+  font-size: 12px;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.char-slots {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.char-slots--accessories {
+  margin-top: 10px;
+  grid-template-columns: repeat(4, 1fr);
+}
+.char-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.15);
+  font-size: 12px;
+  min-height: 44px;
+}
+.char-slot.is-empty {
+  opacity: 0.55;
+  border-style: dashed;
+}
+.char-slot.is-locked {
+  opacity: 0.65;
+  font-style: italic;
+}
+.char-slot-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.char-slot-value {
+  font-weight: 600;
+}
+.char-accessories-toggle {
+  margin-top: 8px;
+}
+.char-accessories-count {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-left: 4px;
+}
+
+@media (max-width: 759px) {
+  .char-grid {
+    grid-template-columns: 1fr;
+  }
+  .char-slots,
+  .char-slots--accessories {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Center-column view placeholders (#44 / #48 will fill these in). */
+.view-placeholder {
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  margin-top: 12px;
+}
+.view-placeholder p {
+  margin: 0;
+  line-height: 1.6;
 }
 
 .shell-header h1 {
@@ -153,11 +315,145 @@ button {
 
 @media (min-width: 900px) {
   .shell-grid {
-    grid-template-columns: 280px minmax(0, 1fr) 280px;
+    /* Left column is just the 40px rail. Right column collapses when
+       the right panel is closed. Center takes whatever remains. */
+    grid-template-columns: 40px minmax(0, 1fr) 280px;
     grid-template-areas: "left center right";
     gap: 20px;
     align-items: start;
+    position: relative; /* anchor for right-side overlay */
   }
+  .shell-grid.right-collapsed {
+    grid-template-columns: 40px minmax(0, 1fr) 0;
+  }
+}
+
+/* ─── Off-canvas / overlay side panels ──────────────────────────────────
+   When a panel is in "overlay" mode (re-opened from closed via the edge
+   tab), it renders as an absolute-positioned floating panel over the
+   center column so the center keeps its widened layout. */
+
+/* In overlay mode the entire shell-area--left (rail + lc-content) floats
+   over the center column starting at the grid's left edge. */
+.shell-area--left.mode-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 280px;
+  max-height: 100%;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 8px 0 24px rgba(0, 0, 0, 0.4);
+  z-index: 30;
+  overflow: hidden;
+}
+.shell-area--left.mode-overlay .lc-content {
+  max-height: 100%;
+}
+.shell-area--right.mode-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 280px;
+  max-height: 100%;
+  z-index: 30;
+}
+.right-col--overlay {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.4);
+  padding: 10px 12px;
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+/* Edge tab — small clickable strip on the viewport edge when closed. */
+.panel-edge-tab {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 60px;
+  background: var(--bg-elev2);
+  color: var(--accent);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 700;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  padding: 0;
+}
+.panel-edge-tab:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+.panel-edge-tab--left {
+  left: 0;
+  border-radius: 0 6px 6px 0;
+  border-left: none;
+}
+.panel-edge-tab--right {
+  right: 0;
+  border-radius: 6px 0 0 6px;
+  border-right: none;
+}
+
+/* Close buttons inside the panels */
+.lc-content-close,
+.rc-close {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.lc-content-close:hover,
+.rc-close:hover {
+  color: var(--text);
+  background: var(--bg-elev);
+}
+.lc-content {
+  position: relative; /* anchor for the close button */
+}
+.lc-content-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+}
+.rc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+/* Mobile (≤900px): keep everything in normal flow; panels just hide when
+   closed (no overlay needed since the layout is already a single column). */
+@media (max-width: 899px) {
+  .shell-grid.left-collapsed .shell-area--left .lc-content { display: none; }
+  .shell-grid.right-collapsed .shell-area--right { display: none; }
+  .shell-area--left.mode-overlay .lc-content--overlay,
+  .shell-area--right.mode-overlay {
+    position: static;
+    width: 100%;
+  }
+  .panel-edge-tab--left { left: 0; }
 }
 
 .shell-area--left   { grid-area: left; }

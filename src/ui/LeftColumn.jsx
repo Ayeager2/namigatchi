@@ -1,27 +1,17 @@
-// Left column with a vertical icon-rail along the LEFT edge and a content
-// pane to its right. Rail tabs (top to bottom):
+// Left rail — vertical icon nav. Each icon either swaps the center
+// column view (most) or triggers a modal directly (Buildings tree,
+// Challenges boss fight; refactor pending to inline those too).
 //
-//   🫀 Body & Mind — primary, default. Wraps SurvivalBars.
-//   📊 Skills      — migrated here from RightColumn.
-//   🎒 Inventory   — full inventory listing.
-//   🔨 Tools       — summary + opens ToolsModal.
-//   ✨ Arcane      — summary + opens SpellsModal.
-//   🏛️ Buildings   — summary + opens BuildingsTreeModal.
+// The rail is split into two groups by a thin divider:
+//   • TOP: view switcher (World / Character / Crafting) — always visible
+//   • BOTTOM: content tabs (Skills / Inventory / Arcane / Buildings /
+//             Studies / Challenges) — each visible when its content has
+//             something meaningful to show
 //
-// Each tab is icon-only when collapsed (32px rail). Hovering or focusing the
-// rail expands it outward to reveal labels. Pattern borrowed from VS Code's
-// activity bar / Discord's server rail.
-//
-// Visibility: a tab is hidden when its content has nothing to show yet
-// (e.g. Skills hidden until any skill has XP, Tools hidden until at least
-// one tool-craft is researched). Default active tab is the first visible
-// in declared order.
+// No more lc-content panel — every icon either changes the center view or
+// pops a modal. Blurbs that used to be the panel's lead text are now
+// tooltip `title` attributes on the rail buttons.
 
-import { useEffect, useState } from "react";
-import BodyMindTab from "./BodyMindTab.jsx";
-import InventoryPanel from "./InventoryPanel.jsx";
-import SkillsPanel from "./SkillsPanel.jsx";
-import StudiesPanel from "./StudiesPanel.jsx";
 import { getActiveSkills } from "../content/skills.js";
 import {
   canBuild,
@@ -29,9 +19,9 @@ import {
   getAvailableBuildings,
 } from "../systems/building.js";
 import { canCraft, getVisibleTools } from "../systems/crafting.js";
-import { getKnownSpells, canCastSpell } from "../systems/spells.js";
-import { getKnownStudies, getStartableStudies } from "../systems/studies.js";
-import { survivalActive } from "../systems/survival.js";
+import { getKnownSpells } from "../systems/spells.js";
+import { getStartableStudies } from "../systems/studies.js";
+import { getBossesAvailable } from "../content/bosses.js";
 
 function skillsHasXp(state) {
   const skills = state.run.skills || {};
@@ -41,269 +31,156 @@ function skillsHasXp(state) {
   return false;
 }
 
-// Generic trigger summary panel used by Tools / Arcane / Buildings tabs.
-// Shows two big counts and an open-modal button.
-//
-// `actionableCount` (BUGS.md #007) — when > 0, paint a small red bubble on
-// the open-modal button so the player sees "there's something to do in
-// here." Same number that drives the rail-icon badge.
-function TriggerSummary({
-  title,
-  lead,
-  stats,
-  buttonLabel,
-  onOpen,
-  hint,
-  actionableCount,
-}) {
-  return (
-    <div className="lc-trigger">
-      <h3 className="lc-trigger-title">{title}</h3>
-      {lead && <p className="muted lc-trigger-lead">{lead}</p>}
-      <div className="lc-trigger-stats">
-        {stats.map((s, i) => (
-          <div key={i} className="lc-trigger-stat">
-            <div className="lc-trigger-stat-num">{s.value}</div>
-            <div className="lc-trigger-stat-label muted">{s.label}</div>
-          </div>
-        ))}
-      </div>
-      <button
-        type="button"
-        className="btn btn-primary lc-trigger-open lc-trigger-open--with-badge"
-        onClick={onOpen}
-      >
-        {buttonLabel}
-        {actionableCount > 0 && (
-          <span
-            className="lc-trigger-badge"
-            aria-label={`${actionableCount} actionable`}
-          >
-            {actionableCount}
-          </span>
-        )}
-      </button>
-      {hint && <p className="muted lc-trigger-hint">{hint}</p>}
-    </div>
-  );
-}
-
 export default function LeftColumn({
   state,
-  actions,
-  settingsHook,
-  onOpenTools,
-  onOpenSpells,
+  view,
+  setView,
+  views,
   onOpenBuildings,
-  onOpenStudyTree,
+  onOpenBossFight,
 }) {
   // Visibility of each tab.
-  const bodyMindVisible = true; // always show — placeholder when survival inactive
   const skillsVisible = skillsHasXp(state);
   const inventoryVisible = true; // always
   const tools = getVisibleTools(state);
-  const toolsVisible = tools.length > 0;
   const knownSpells = getKnownSpells(state);
   const arcaneVisible = knownSpells.length > 0;
   const buildings = getKnownBuildings(state);
   const buildingsVisible = buildings.length > 0;
-  // Studies tab appears once the Stone Altar is built (Task #26). Even
-  // before any nodes appear in the tree, the panel offers the "Open Path
-  // Trees" entry so the player can browse what's available.
   const studiesVisible = !!state.run.built?.stoneAltar;
-  const knownStudies = studiesVisible ? getKnownStudies(state) : [];
   const startableStudies = studiesVisible ? getStartableStudies(state) : [];
+  const bossesAvailable = getBossesAvailable(state);
+  const challengesVisible = bossesAvailable.length > 0;
+  const challengesActionable = bossesAvailable.filter(
+    (b) => !state.persistent.bossesDefeated?.[b.id]
+  ).length;
 
-  // ─── Actionable counts (BUGS.md #007) ────────────────────────────────────
-  //
-  // For the Tools tab: number of recipes the player can craft right now AND
-  // hasn't already produced one of (own count == 0). Excludes already-owned
-  // tools so the badge calms down once you've crafted the thing.
+  // Actionable counts (badges).
   const toolsActionable = tools.filter(
     (t) => (state.run.inventory?.[t.id] || 0) === 0 && canCraft(state, t.id).ok
   ).length;
-  // For the Buildings tab: anything affordable AND not yet built.
   const buildingsActionable = getAvailableBuildings(state).length;
-  // Arcane: deliberately no badge. Spells are repeatable casts, not
-  // progression — pinging them constantly would be noise.
-  // Studies tab badge: count of studies the player can START right now
-  // (canStartStudy ok). Doesn't count in-progress studies — those have
-  // their own UI affordances inside the panel.
   const studiesActionable = startableStudies.length;
 
-  // Ordered tab descriptors. Hidden tabs are filtered out below.
-  const allTabs = [
+  // Tab descriptors. Each has either `viewId` (swaps view) or `onClick`
+  // (triggers a modal directly).
+  const tabs = [
     {
-      id: "bodymind",
-      icon: "🫀",
-      label: "Body & Mind",
-      visible: bodyMindVisible,
+      id: "skills",
+      icon: "📊",
+      label: "Skills",
+      tip: "What your hands and head learn by repetition.",
+      visible: skillsVisible,
       actionable: 0,
+      viewId: "skills",
     },
-    { id: "skills", icon: "📊", label: "Skills", visible: skillsVisible, actionable: 0 },
-    { id: "inv", icon: "🎒", label: "Inventory", visible: inventoryVisible, actionable: 0 },
     {
-      id: "tools",
-      icon: "🔨",
-      label: "Tools",
-      visible: toolsVisible,
-      actionable: toolsActionable,
+      id: "inv",
+      icon: "🎒",
+      label: "Inventory",
+      tip: "What you carry. Caps grow as you build storage.",
+      visible: inventoryVisible,
+      actionable: 0,
+      viewId: "inv",
     },
-    { id: "arcane", icon: "✨", label: "Arcane", visible: arcaneVisible, actionable: 0 },
+    {
+      id: "arcane",
+      icon: "✨",
+      label: "Arcane",
+      tip: "What the Stone teaches when you listen long enough.",
+      visible: arcaneVisible,
+      actionable: 0,
+      viewId: "arcane",
+    },
     {
       id: "buildings",
       icon: "🏛️",
       label: "Buildings",
+      tip: "What you raise from the dust. Pan and zoom the tree.",
       visible: buildingsVisible,
       actionable: buildingsActionable,
+      onClick: onOpenBuildings,
     },
-    // Arcane Studies (#30) — appears once the Stone Altar is built.
     {
       id: "studies",
       icon: "🕯️",
       label: "Studies",
+      tip: "Sit at the altar. Real lessons take time. The clock pauses when you act.",
       visible: studiesVisible,
       actionable: studiesActionable,
+      viewId: "studies",
     },
-  ];
-  const tabs = allTabs.filter((t) => t.visible);
-
-  // Persist last active tab in component state. Default to first visible.
-  // If the active tab becomes hidden (rare — would only happen mid-prestige
-  // for some tabs), snap back to the first visible.
-  const [tab, setTab] = useState(tabs[0]?.id || "bodymind");
-  useEffect(() => {
-    if (!tabs.find((t) => t.id === tab)) {
-      setTab(tabs[0]?.id || "bodymind");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabs.map((t) => t.id).join("|")]);
-
-  // Body & Mind tab is the rail's identity even when others exist. If the
-  // player just hit a milestone that made it appear, surface it once.
-  if (tabs.length === 0) return null;
-
-  // Compute trigger stats for each summary tab.
-  const toolStats = (() => {
-    const owned = tools.filter((t) => (state.run.inventory?.[t.id] || 0) > 0)
-      .length;
-    const available = tools.filter(
-      (t) =>
-        (state.run.inventory?.[t.id] || 0) === 0 && canCraft(state, t.id).ok
-    ).length;
-    return [
-      { value: owned, label: "crafted" },
-      { value: available, label: "available" },
-      { value: tools.length, label: "known" },
-    ];
-  })();
-
-  const spellStats = (() => {
-    const ready = knownSpells.filter((s) => canCastSpell(state, s.id).ok)
-      .length;
-    return [
-      { value: ready, label: "ready" },
-      { value: knownSpells.length, label: "known" },
-    ];
-  })();
-
-  const buildingStats = (() => {
-    const built = buildings.filter((b) => state.run.built?.[b.id]).length;
-    const available = buildings.filter(
-      (b) => !state.run.built?.[b.id] && canBuild(state, b.id).ok
-    ).length;
-    return [
-      { value: built, label: "built" },
-      { value: available, label: "available" },
-      { value: buildings.length, label: "total" },
-    ];
-  })();
+    {
+      id: "challenges",
+      icon: "⚔️",
+      label: "Challenges",
+      tip: "Foes who came looking for you. Death does not reset the run.",
+      visible: challengesVisible,
+      actionable: challengesActionable,
+      onClick: onOpenBossFight,
+    },
+  ].filter((t) => t.visible);
 
   return (
     <div className="left-col">
-      <div className="lc-rail" role="tablist" aria-label="Left column tabs">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.id}
-            className={`lc-rail-btn ${tab === t.id ? "is-active" : ""}`}
-            onClick={() => setTab(t.id)}
-            title={
-              t.actionable > 0
-                ? `${t.label} — ${t.actionable} available`
-                : t.label
-            }
-          >
-            <span className="lc-rail-icon" aria-hidden="true">
-              {t.icon}
-            </span>
-            <span className="lc-rail-label">{t.label}</span>
-            {/* Notification badge — small red dot with count when the tab
-                has actionable items the player hasn't done yet.
-                See BUGS.md #007. */}
-            {t.actionable > 0 && (
-              <span
-                className="lc-rail-badge"
-                aria-label={`${t.actionable} actionable`}
+      <div className="lc-rail" role="tablist" aria-label="Navigation rail">
+        {/* View switcher (#43) — top of the rail. Controls the CENTER
+            column. Divider separates from content tabs below. */}
+        {views && setView && (
+          <>
+            {views.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                role="tab"
+                aria-selected={view === v.id}
+                className={`lc-rail-btn lc-rail-btn--view ${view === v.id ? "is-active" : ""}`}
+                onClick={() => setView(v.id)}
+                title={`View: ${v.label}`}
               >
-                {t.actionable}
+                <span className="lc-rail-icon" aria-hidden="true">
+                  {v.icon}
+                </span>
+                <span className="lc-rail-label">{v.label}</span>
+              </button>
+            ))}
+            <div className="lc-rail-divider" aria-hidden="true" />
+          </>
+        )}
+        {/* Content tabs — each click either swaps view or opens a modal. */}
+        {tabs.map((t) => {
+          const isView = !!t.viewId;
+          const active = isView && view === t.viewId;
+          const handleClick = isView ? () => setView(t.viewId) : t.onClick;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              className={`lc-rail-btn ${active ? "is-active" : ""}`}
+              onClick={handleClick}
+              title={
+                t.actionable > 0
+                  ? `${t.label} — ${t.actionable} available\n\n${t.tip}`
+                  : `${t.label}\n\n${t.tip}`
+              }
+            >
+              <span className="lc-rail-icon" aria-hidden="true">
+                {t.icon}
               </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      <div className="lc-content" role="tabpanel">
-        {tab === "bodymind" && <BodyMindTab state={state} />}
-        {tab === "skills" && <SkillsPanel state={state} />}
-        {tab === "inv" && (
-          <InventoryPanel state={state} settingsHook={settingsHook} />
-        )}
-        {tab === "tools" && (
-          <TriggerSummary
-            title="Tools"
-            lead="Things shaped by hand."
-            stats={toolStats}
-            buttonLabel="Open Crafts"
-            onOpen={onOpenTools}
-            actionableCount={toolsActionable}
-            hint={
-              survivalActive(state)
-                ? "Recipes and durability live in the Crafts panel."
-                : null
-            }
-          />
-        )}
-        {tab === "arcane" && (
-          <TriggerSummary
-            title="Arcane"
-            lead="What the Stone teaches when you listen long enough."
-            stats={spellStats}
-            buttonLabel="Open Spells"
-            onOpen={onOpenSpells}
-            hint="Cast costs Fragments and Spirit."
-          />
-        )}
-        {tab === "buildings" && (
-          <TriggerSummary
-            title="Buildings"
-            lead="What you raise from the dust."
-            stats={buildingStats}
-            buttonLabel="Open Buildings"
-            onOpen={onOpenBuildings}
-            actionableCount={buildingsActionable}
-            hint="Pan and zoom inside — drag the tree, scroll to zoom."
-          />
-        )}
-        {tab === "studies" && (
-          <StudiesPanel
-            state={state}
-            actions={actions}
-            onOpenStudyTree={onOpenStudyTree}
-          />
-        )}
+              <span className="lc-rail-label">{t.label}</span>
+              {t.actionable > 0 && (
+                <span
+                  className="lc-rail-badge"
+                  aria-label={`${t.actionable} actionable`}
+                >
+                  {t.actionable}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

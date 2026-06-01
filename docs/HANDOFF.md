@@ -40,7 +40,15 @@ Per-system status in `docs/systems.md`. Grouped highlights:
 - **Foundation** — persistent/run split · thin reducer + pure systems · content-as-data · scene composition · versioned save migration · settings/audio/keyboard shortcuts (G/R/E/D/H, customizable) · splash screen · save export/import
 - **Combat** — equipped slots (8 main + 13 accessory) · pure + dual-use weapons (`weaponStats` alongside tool `effect`) · multi-round fight loop with 3–8 narrative lines per encounter · 4 combat-class threats · armor/defense split (armor personal, defense settlement-only) · `damageType` routing (hp/sanity/spirit) · death-debuff cascade (combat HP=0 → magnitude scales all stats, no run reset, food-based recovery) · per-fight `applyToolWear(run, "combat")` · combat skills (`swordplay` / `archery` / `magicCombat`) with subfamily-routed XP from kills; skill level scales attack damage (+0.5/lvl, cap +10) / accuracy (+0.01/lvl, cap +0.20) / crit (+0.02/lvl, cap +0.30) · 6 bosses authored in `content/bosses.js` (1 mini + 1 main per era; Era 3 elementally gated via `studiesCompleted` prefix-match) · **boss-fight turn-based modal (#40) — header "⚔️ Challenges" button when `getBossesAvailable(state)` returns any; picker → fight (Attack/Spell/Item/Defend/Flee); player turn ends → 600ms pause → foe turn; spells/items dispatch real `CAST_SPELL`/`USE_TOOL` (cost real spirit/fragments/inventory + cooldowns); modal commits damage + outcome via `BOSS_FIGHT_END` (`systems/boss.js performBossFightEnd`); victory grants `defeatReward`, fires `firstDefeatLog` once, stamps `persistent.bossesDefeated[bossId]` + altar etching, awards combat XP; defeat applies death-debuff cascade; flee = 60% success; weapon wear ticks once per encounter**
 - **Meta** — Echo Shop (14 upgrades, 5 categories: Cache/Body/Mind/Skills/Arcane) · ascension QoL (prestige starts Era 1; `persistent.permanentlyKnown` auto-persists revealed resources; RESET_RUN still starts Era 0) · 50 random events across Era 1/2/3 with hidden alignment · World Score hidden meter (6 thresholds + apex reveal at 100) · dysentery + disease module · prestige system with reward breakdown
-- **UI** — left-rail tabs · right column · footer action strip · Stone strip with Channel-the-Rock + active-study indicator · dev panel (6 tabs) · Spells modal · Tools modal · Echo Shop modal · Prestige + Reset modals · Settings · Event modal
+- **UI Layout** — left rail (icons only, no lc-content panel) · center column (view-routed) · right column (off-canvas) · footer ActionStrip · Stone strip · dev panel (6 tabs)
+- **Left rail (rail-as-nav)** — top group: 3 view-switcher icons (🌍 World / 👤 Character / 🛠️ Crafting) above a divider. Bottom group: content tabs (📊 Skills / 🎒 Inventory / ✨ Arcane / 🏛️ Buildings / 🕯️ Studies / ⚔️ Challenges). Body & Mind + 🔨 Tools tabs removed (content moved to Character + Crafting views). Each icon `title` carries the lead-text blurb as a tooltip.
+- **Center routing** — `view` state in Shell drives `ActionPanel` / `CharacterView` / `CraftingView` / `SkillsView` / `InventoryView` / `ArcaneView` / `StudiesView`. Buildings + Challenges rail icons still pop their existing modals (inlining deferred).
+- **Right column (Recent / Unlocks / Stats)** — 3-mode off-canvas (`grid | closed | overlay`). ‹ close inside; ‹ edge tab when closed. Persists via `lithos.rightPanelMode`. Overlay degrades to closed on reload.
+- **Character page (#44)** — three-panel stat sheet (Survival | Bridge STR | Combat) + equipment row (8 main + collapsible accessory tray with back/overArmor/talisman/10 rings). STR proxied by death-debuff inverse `10 − floor(mag×10)` until #47. DEX/SPD/MAG placeholder dashes until #47. Armor reads `getPersonalArmor(state)`.
+- **Modals** — Spells / Tools / BossFight / Echo Shop / Prestige / Reset / Settings / Event / BuildingsTree / StudyTree / TeachingsTree. SpellsModal exports `SpellsBody` for inline reuse (ArcaneView).
+- **Tooltips** — native `title` attribute on stat rows, study rows, and all rail icons.
+- **Active-study indicator** — 1s live-extrapolated progress bar in Stone strip; bar moves smoothly between 15s TICK commits.
+- **Crafting view** — still a stub; #48 fills it with sub-tabbed disciplines.
 
 ### Locked design decisions
 - **Spirit = magic-energy stat** (was reserved as Mana; locked active in Era 3+)
@@ -55,17 +63,17 @@ Per-system status in `docs/systems.md`. Grouped highlights:
 - **Combat-class vs one-shot threats coexist** — `threat.combat` field flips to fight-loop; threats without it stay narrative-rich one-shots. `routeThreat()` in `systems/threats.js` dispatches.
 - **Arcane Studies layered on Stone's Teachings**, not replacing. Teachings = instant-listen for fundamentals. Altar = deep magic with timers.
 - **Multiple in-progress studies allowed**, lossless pause-on-action, free switching. Materials are the cost; time is yours to hold.
+- **Rail-as-nav** — left rail is icon-only. No lc-content panel. Each icon swaps the center view (preferred) or pops the corresponding modal (Buildings tree + Challenges boss, deferred inlining). Blurbs live as `title` tooltips. Header stays minimal: title + era + Echoes only.
+- **Off-canvas right only** — right column can close/overlay; left rail is always visible. Choice persists via `lithos.rightPanelMode` (no Bootstrap dependency).
 
-## Next moves (suggested order: #43 → #44 → #35 onward)
+## Next moves (suggested order: #44 → #35 onward)
 
 **Combat arc (7/7 done — full combat phase complete):**
 - **#35** — specialized gather actions (Chop / Mine / Forage) + resources (iron_ore, coal, herbs, mushrooms, arrows) + skills (mining, woodcutting, fletching).
 - **#36** — iron tier + smithing skill (dual-use Iron Hatchet vs Iron Battle Axe; Iron ingot recipe at Forge).
 - **#37** — weapon enchants tied to Arcane Studies. Enchant slots per weapon level (1/2/3). Unlocks via Light/Bend/Elemental completions. Altar UI.
 
-**Character / Crafting page arc (#43–#49):**
-- **#43** view-architecture — Shell `view` state ("world" / "character" / "crafting"). Center column swaps; header / scene / right column / StonePanel / ActionStrip stay.
-- **#44** read-only Character page — three-panel stat sheet (Survival | Bridge: STR | Combat: DEX/SPD/MAG/Spirit/Armor) + equipment slots row. Body & Mind tab retires.
+**Character / Crafting page arc (#45–#49; #43 + #44 shipped):**
 - **#45** equipment inventory grid + equip/unequip UI (top tabs: All / Weapons / Defense / Herbs / Magic / Tools / Crafting / Other). Inventory tab in left rail retires.
 - **#46** tooltip-compare on hover (multi-slot ring handling).
 - **#47** combat stats actually modulate combat (STR melee+protein; DEX ranged+acc+eva; MAG spell dmg; SPD cooldowns; Spirit regen).
@@ -97,8 +105,11 @@ Six tabs:
 Test recipes:
 - **Combat end-to-end**: Encounters → give every weapon → equip into handRight → Force Wild Dog → watch fight log
 - **Combat-skill progression**: State → set swordplay to lvl 10 → equip melee weapon → Force Wild Dog → fight resolves with boosted acc/crit/damage. Lvl 20 swordplay = +10 flat damage per hit before crit double, +0.20 acc, +0.30 crit.
-- **Boss fight (full flow)**: Quick → 🚀 Unlock all Era 1 → Encounters → give every weapon → equip into handRight → header **⚔️ Challenges (n)** → pick boss → Attack/Spell/Item/Defend/Flee → on victory, check inventory for `defeatReward`, log for `firstDefeatLog`, Arcane → altar etchings inspector for new stamp.
-- **Boss defeat cascade**: Take a fight you can't win → on defeat, death-debuff applies + you wake with reduced HP — no run reset (verify in State tab).
+- **Boss fight (full flow)**: Quick → 🚀 Unlock all Era 1 → Encounters → give every weapon → equip into handRight → left rail **⚔️ Challenges** tab → "Open Challenges" → pick boss → Attack/Spell/Item/Defend/Flee → on victory, check inventory for `defeatReward`, log for `firstDefeatLog`, Arcane → altar etchings inspector for new stamp.
+- **Rail-as-nav**: click left-rail icon → center view swaps (top group: 🌍/👤/🛠️; bottom group: Skills/Inventory/Arcane/Studies) OR a modal opens (Buildings tree, Challenges boss). Hover any icon for the explainer tooltip.
+- **Character page (#44)**: 👤 → Survival / Bridge / Combat columns + equipment row. Dev → State → Apply Death Debuff → STR drops in Bridge. Equip a weapon via Encounters → appears in Right Hand slot.
+- **Right off-canvas**: click › inside right column → collapses to ‹ edge tab. Click tab → slides back as overlay over center (center stays wide). Persists via `lithos.rightPanelMode`.
+- **Boss defeat cascade**: lose a boss → death-debuff applies + wake with reduced HP — no run reset (verify in State tab).
 - **Death cascade**: State → Apply Death Debuff → eat repeatedly to tick magnitude to 0
 - **Arcane Studies**: Arcane → Build Stone Altar → +5 Scrolls/Inks → Studies tab → start study → Arcane → Complete active study → check Spells modal
 - **World Score thresholds**: Arcane → WS → 30 → gather → watch water-promotion log. WS → 100 fires apex reveal once.
@@ -117,7 +128,7 @@ Paste this when starting a new conversation:
 >
 > **Active arcs** (cross-era, not era content):
 > - Combat Phase 3+ (tasks #35–#37, #34 + #40 + #41 shipped): specialized gather actions, iron tier, weapon enchants
-> - Character / Crafting page (#43–#49): view-architecture, three-panel stat sheet, equip UI, crafting takeover
+> - Character / Crafting page (#45–#49, #43 + #44 shipped): equipment inventory grid + equip/unequip UI (#45 top priority — retires Inventory tab), tooltip-compare (#46), stat modulation (#47), fill in CraftingView stub (#48), polish (#49)
 >
 > **Read first:** `docs/AI_CONTEXT.md` (file map + state shape + rules), then `docs/HANDOFF.md`. Open `docs/systems.md` only when working on a specific system.
 >
